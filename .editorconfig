@@ -33,6 +33,19 @@ dotnet_style_readonly_field = true:suggestion
 # onlar zaten ortulu public, "public" yazmak gurultu olurdu.
 dotnet_style_require_accessibility_modifiers = for_non_interface_members:error
 
+[src/Learnier.Infrastructure/Persistence/Migrations/*.cs]
+# Migration dosyalarini dotnet ef uretir; bicimini biz belirlemiyoruz ve elle
+# duzeltilirse bir sonraki uretimde geri gelir. Uretilmis kod olarak isaretlenir,
+# boylece stil ve tasarim kurallari bu dosyalarda calismaz.
+generated_code = true
+
+[src/Learnier.Domain/Identity/*.cs]
+# CA1711: "Permission" son eki .NET Framework'un Code Access Security tipleri
+# (CodeAccessPermission, IPermission) icin ayrilmisti; modern .NET'te o kavram yok.
+# Permission ve RolePermission kaynak dokumandaki tablo adlarinin birebir karsiligi;
+# yeniden adlandirmak sema ile kod arasindaki izlenebilirligi bozardi.
+dotnet_diagnostic.CA1711.severity = none
+
 [tests/**/*.cs]
 # CA1707: Alt cizgi kullanimi. Kural genel API yuzeyi icin anlamli; test metotlarinda
 # Method_Scenario_ExpectedResult kalibi sektor standardi ve basarisiz test ciktisini

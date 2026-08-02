@@ -2,6 +2,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using Learnier.Application.Common.Abstractions;
 using Learnier.Domain.Common;
+using Learnier.Domain.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace Learnier.Infrastructure.Persistence;
@@ -11,6 +12,22 @@ public sealed class AppDbContext(
     ICurrentTenant currentTenant)
     : DbContext(options), IUnitOfWork
 {
+    public DbSet<User> Users => Set<User>();
+
+    public DbSet<Organization> Organizations => Set<Organization>();
+
+    public DbSet<OrganizationMembership> Memberships => Set<OrganizationMembership>();
+
+    public DbSet<Role> Roles => Set<Role>();
+
+    public DbSet<Permission> Permissions => Set<Permission>();
+
+    public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
+
+    public DbSet<MembershipRole> MembershipRoles => Set<MembershipRole>();
+
+    public DbSet<LearnerGuardian> LearnerGuardians => Set<LearnerGuardian>();
+
     public async Task<ITransaction> BeginTransactionAsync(CancellationToken cancellationToken = default)
     {
         var transaction = await Database.BeginTransactionAsync(cancellationToken);
@@ -26,6 +43,7 @@ public sealed class AppDbContext(
         modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
 
         ApplyTenantQueryFilters(modelBuilder);
+        ApplyDerivedTenantQueryFilters(modelBuilder);
 
         base.OnModelCreating(modelBuilder);
     }
@@ -91,6 +109,25 @@ public sealed class AppDbContext(
 
             modelBuilder.Entity(entityType.ClrType).HasQueryFilter(TenantFilterName, filter);
         }
+    }
+
+    /// <summary>
+    /// Kendi <c>OrganizationId</c> sutunu olmayan, ancak bir iliski uzerinden
+    /// organizasyona bagli olan varliklara filtre uygular.
+    /// </summary>
+    /// <remarks>
+    /// Kaynak dokumanin 12. bolumu, organizasyona baska bir iliski uzerinden ulasilabilen
+    /// tablolara <c>organization_id</c> eklenmemesini soyluyor. Ancak filtre uygulanmazsa
+    /// bu tablolar dogrudan sorgulandiginda organizasyon siniri asilabilir: ornegin
+    /// <c>MembershipRole</c> uzerinden baska bir kurumun rol atamalari gorulebilirdi.
+    /// Bu yuzden sutun eklemek yerine filtre iliski uzerinden tanimlaniyor.
+    /// </remarks>
+    private void ApplyDerivedTenantQueryFilters(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<MembershipRole>().HasQueryFilter(
+            TenantFilterName,
+            mr => CurrentOrganizationId == null
+                  || mr.Membership.OrganizationId == CurrentOrganizationId);
     }
 
     /// <summary>

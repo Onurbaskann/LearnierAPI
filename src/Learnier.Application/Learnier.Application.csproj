@@ -12,7 +12,10 @@
       EF Core, ASP.NET Core veya veritabani saglayicisi buraya eklenmemeli.
     -->
     <PackageReference Include="FluentValidation" />
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <!-- Handler ve validator'lari konvansiyona gore kaydetmek icin assembly taramasi. -->
+    <PackageReference Include="Scrutor" />
   </ItemGroup>
 
 </Project>

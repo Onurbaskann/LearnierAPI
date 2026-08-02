@@ -1,23 +1,91 @@
+using System.Globalization;
+using Learnier.Application;
+using Learnier.Application.Common.Abstractions;
+using Learnier.Infrastructure;
+using Learnier.WebApi.Common;
+using Learnier.WebApi.Filters;
+using Learnier.WebApi.Localization;
+using Microsoft.AspNetCore.Localization;
+using Scalar.AspNetCore;
+using Serilog;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// Serilog: yapilandirilmis loglama ve istek basina ozet kayit.
+// Bicimlendirme InvariantCulture ile sabitlenir: istek basina kultur degistigi icin
+// aksi halde ayni log satiri dile gore farkli tarih/sayi bicimiyle yazilirdi.
+builder.Host.UseSerilog((context, configuration) => configuration
+    .ReadFrom.Configuration(context.Configuration)
+    .Enrich.FromLogContext()
+    .WriteTo.Console(formatProvider: CultureInfo.InvariantCulture));
 
-builder.Services.AddControllers();
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+builder.Services.AddApplication();
+builder.Services.AddInfrastructure(builder.Configuration);
+
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentUser, CurrentUser>();
+
+// CurrentTenant hem somut tipiyle (middleware degeri set edebilsin diye)
+// hem de arayuzuyle kaydedilir; ikisi de ayni ornege isaret eder.
+builder.Services.AddScoped<CurrentTenant>();
+builder.Services.AddScoped<ICurrentTenant>(sp => sp.GetRequiredService<CurrentTenant>());
+
+builder.Services.AddScoped<ErrorMessageResolver>();
+
+builder.Services.AddControllers(options =>
+{
+    // Validation her action'da otomatik calisir; tek tek eklemek gerekmez.
+    options.Filters.Add<ValidationFilter>();
+});
+
+builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
+
+builder.Services.Configure<RequestLocalizationOptions>(options =>
+{
+    var supportedCultures = new[] { new CultureInfo("tr"), new CultureInfo("en") };
+
+    options.DefaultRequestCulture = new RequestCulture("tr");
+    options.SupportedCultures = supportedCultures;
+    options.SupportedUICultures = supportedCultures;
+});
+
+// Sadece L1 (in-memory). Redis eklendiginde AddStackExchangeRedisCache yeterli olur;
+// GetOrCreateAsync cagrilari degismez.
+builder.Services.AddHybridCache();
+
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
+
 builder.Services.AddOpenApi();
+builder.Services.AddHealthChecks();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+app.UseExceptionHandler();
+app.UseSerilogRequestLogging();
+app.UseRequestLocalization();
+
 if (app.Environment.IsDevelopment())
 {
+    // OpenAPI ve Scalar yalnizca gelistirmede: uretimde API yuzeyini ifsa etmemek icin.
     app.MapOpenApi();
+    app.MapScalarApiReference();
+}
+else
+{
+    app.UseHttpsRedirection();
 }
 
-app.UseHttpsRedirection();
-
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHealthChecks("/health");
 
-app.Run();
+await app.RunAsync();
+
+/// <summary>
+/// Entegrasyon testlerinin <c>WebApplicationFactory&lt;Program&gt;</c> ile
+/// uygulamayi ayaga kaldirabilmesi icin gerekli.
+/// </summary>
+public partial class Program;

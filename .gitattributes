@@ -1,0 +1,20 @@
+# Metin dosyalarinda satir sonu normalizasyonu: depoda LF, calisma kopyasinda platform varsayilani.
+* text=auto
+
+*.cs text diff=csharp
+*.csproj text
+*.props text
+*.slnx text
+*.json text
+*.md text
+*.yml text
+*.yaml text
+*.resx text
+
+# Kabuk betikleri Linux container'da calisir; CRLF onlari bozar.
+*.sh text eol=lf
+Dockerfile text eol=lf
+
+*.png binary
+*.jpg binary
+*.pfx binary

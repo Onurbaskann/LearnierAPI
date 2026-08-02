@@ -33,6 +33,12 @@ dotnet_style_readonly_field = true:suggestion
 # onlar zaten ortulu public, "public" yazmak gurultu olurdu.
 dotnet_style_require_accessibility_modifiers = for_non_interface_members:error
 
+[src/Learnier.Application/Common/Abstractions/IDomainEventHandler.cs]
+# CA1711: "EventHandler" son eki .NET'in event delegate konvansiyonu icin ayrilmis.
+# Burada kastedilen o degil; IDomainEventHandler<T> domain-events deseninin yerlesik adi
+# ve sektorde bu isimle taniniyor. Yeniden adlandirmak yanlis anlasilmayi artirirdi.
+dotnet_diagnostic.CA1711.severity = none
+
 [src/Learnier.Application/Common/Results/*.cs]
 # CA1716: "Error" VB.NET'te ayrilmis bir kelimeyle cakisiyor.
 # Kural baska dillerden tuketilen kutuphaneler icin anlamli; bu bir ic uygulama kodu

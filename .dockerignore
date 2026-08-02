@@ -1,0 +1,23 @@
+# Derleme baglamini kucuk tutar: buyuk baglam hem yavas hem de
+# bin/obj kopyalanirsa imaj icinde yanlis artifact'lara yol acar.
+**/bin/
+**/obj/
+**/.vs/
+**/.vscode/
+**/.idea/
+
+.git/
+.gitignore
+.gitattributes
+
+**/.env
+**/.env.*
+!**/.env.example
+
+**/*.user
+**/TestResults/
+**/coverage*
+
+docker-compose*.yml
+Dockerfile*
+*.md

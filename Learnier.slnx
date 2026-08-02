@@ -5,4 +5,8 @@
     <Project Path="src/Learnier.Infrastructure/Learnier.Infrastructure.csproj" />
     <Project Path="src/Learnier.WebApi/Learnier.WebApi.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Learnier.IntegrationTests/Learnier.IntegrationTests.csproj" />
+    <Project Path="tests/Learnier.UnitTests/Learnier.UnitTests.csproj" />
+  </Folder>
 </Solution>

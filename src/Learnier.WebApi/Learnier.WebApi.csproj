@@ -19,4 +19,16 @@
     <PackageReference Include="Serilog.Sinks.Console" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!--
+      dotnet ef araclari bu paketi baslangic projesinde arar (Infrastructure'daki
+      referans PrivateAssets=all oldugu icin buraya akmaz). PrivateAssets: yalnizca
+      tasarim zamani araci, uretim imajina girmez.
+    -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
 </Project>

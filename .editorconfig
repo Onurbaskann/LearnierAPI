@@ -33,6 +33,15 @@ dotnet_style_readonly_field = true:suggestion
 # onlar zaten ortulu public, "public" yazmak gurultu olurdu.
 dotnet_style_require_accessibility_modifiers = for_non_interface_members:error
 
+[tests/**/*.cs]
+# CA1707: Alt cizgi kullanimi. Kural genel API yuzeyi icin anlamli; test metotlarinda
+# Method_Scenario_ExpectedResult kalibi sektor standardi ve basarisiz test ciktisini
+# okunur kilan sey tam olarak bu ayirici.
+dotnet_diagnostic.CA1707.severity = none
+
+# Testlerde ic sinif ve yardimci tipler icin dokumantasyon zorunlu degil.
+dotnet_diagnostic.CA1034.severity = none
+
 [src/Learnier.Application/Common/Abstractions/IDomainEventHandler.cs]
 # CA1711: "EventHandler" son eki .NET'in event delegate konvansiyonu icin ayrilmis.
 # Burada kastedilen o degil; IDomainEventHandler<T> domain-events deseninin yerlesik adi

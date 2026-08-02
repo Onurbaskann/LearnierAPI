@@ -1,11 +1,16 @@
+using System.Text;
 using Learnier.Application.Common.Abstractions;
 using Learnier.Infrastructure.Events;
+using Learnier.Infrastructure.Identity;
+using Learnier.Infrastructure.Identity.Placeholders;
 using Learnier.Infrastructure.Persistence;
 using Learnier.Infrastructure.Persistence.Interceptors;
 using Learnier.Infrastructure.Time;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.IdentityModel.Tokens;
 
 namespace Learnier.Infrastructure;
 
@@ -54,6 +59,53 @@ public static class DependencyInjection
         });
 
         services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<AppDbContext>());
+
+        services.AddIdentityServices(configuration);
+
+        return services;
+    }
+
+    private static IServiceCollection AddIdentityServices(
+        this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        services.AddOptions<JwtOptions>()
+            .Bind(configuration.GetSection(JwtOptions.SectionName))
+            .ValidateDataAnnotations()
+            // Eksik veya gecersiz JWT ayariyla uygulama hic baslamasin: bu hatanin
+            // ilk istekte degil baslangicta ortaya cikmasi cok daha ucuz.
+            .ValidateOnStart();
+
+        services.AddSingleton<IPasswordHasher, PasswordHasher>();
+        services.AddScoped<ITokenService, JwtTokenService>();
+
+        // GECICI: RBAC tablolari Faz 1'de olusturulacak. O zamana kadar kapali varsayilan
+        // implementasyonlar kayitli - hicbir uyelik dogrulanmaz, hicbir izin verilmez.
+        services.AddScoped<IMembershipProvider, DenyAllMembershipProvider>();
+        services.AddScoped<IPermissionProvider, DenyAllPermissionProvider>();
+
+        services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            .AddJwtBearer(options =>
+            {
+                var jwt = configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>()
+                    ?? throw new InvalidOperationException(
+                        $"{JwtOptions.SectionName} bolumu tanimli degil.");
+
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidIssuer = jwt.Issuer,
+                    ValidateAudience = true,
+                    ValidAudience = jwt.Audience,
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(
+                        Encoding.UTF8.GetBytes(jwt.SigningKey)),
+                    ValidateLifetime = true,
+                    // Varsayilan 5 dakikalik tolerans, kisa omurlu tokenlarda
+                    // iptalin etkisini geciktirir; sifirlaniyor.
+                    ClockSkew = TimeSpan.Zero
+                };
+            });
 
         return services;
     }

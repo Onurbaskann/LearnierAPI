@@ -14,6 +14,7 @@
     <PackageReference Include="Microsoft.Extensions.Caching.Hybrid" />
     <!-- Yalnizca PasswordHasher icin; ASP.NET Core Identity'nin tablo/rol modeli kullanilmiyor. -->
     <PackageReference Include="Microsoft.Extensions.Identity.Core" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
   </ItemGroup>
 
   <ItemGroup>

@@ -2,9 +2,12 @@ using System.Globalization;
 using Learnier.Application;
 using Learnier.Application.Common.Abstractions;
 using Learnier.Infrastructure;
+using Learnier.WebApi.Authorization;
 using Learnier.WebApi.Common;
 using Learnier.WebApi.Filters;
 using Learnier.WebApi.Localization;
+using Learnier.WebApi.Middleware;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Localization;
 using Scalar.AspNetCore;
 using Serilog;
@@ -53,6 +56,11 @@ builder.Services.Configure<RequestLocalizationOptions>(options =>
 // GetOrCreateAsync cagrilari degismez.
 builder.Services.AddHybridCache();
 
+// Policy adi dogrudan izin kodu olarak yorumlanir; her izin icin ayri kayit gerekmez.
+builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
+builder.Services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
+builder.Services.AddAuthorization();
+
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 
@@ -77,6 +85,11 @@ else
 }
 
 app.UseAuthentication();
+
+// Sira onemli: tenant cozumlemesi kimlik dogrulamadan sonra (kullaniciyi bilmesi gerekir),
+// yetkilendirmeden once (izinler uyelige bagli) calismali.
+app.UseMiddleware<TenantResolutionMiddleware>();
+
 app.UseAuthorization();
 
 app.MapControllers();

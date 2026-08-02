@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Ortak ayarlar Directory.Build.props, paket surumleri Directory.Packages.props'tan gelir. -->
+
+  <ItemGroup>
+    <ProjectReference Include="..\Learnier.Domain\Learnier.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      Application katmani yalnizca soyutlamalara bagimlidir.
+      EF Core, ASP.NET Core veya veritabani saglayicisi buraya eklenmemeli.
+    -->
+    <PackageReference Include="FluentValidation" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+  </ItemGroup>
+
+</Project>

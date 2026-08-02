@@ -1,0 +1,45 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = crlf
+insert_final_newline = true
+indent_style = space
+indent_size = 4
+trim_trailing_whitespace = true
+
+[*.{json,yml,yaml,csproj,props,targets,slnx,xml,resx}]
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false
+
+[*.cs]
+# Namespace'ler dosya kapsamli yazilir; bir seviye girinti kazandirir.
+csharp_style_namespace_declarations = file_scoped:error
+
+# Tur adi ifadeden aciksa var kullan.
+csharp_style_var_when_type_is_apparent = true:suggestion
+csharp_style_var_elsewhere = false:suggestion
+
+# Ifade govdeli uyeler yalnizca tek satirlik olanlarda.
+csharp_style_expression_bodied_methods = when_on_single_line:suggestion
+csharp_style_expression_bodied_properties = true:suggestion
+
+csharp_prefer_braces = true:error
+dotnet_style_readonly_field = true:suggestion
+
+# Erisim belirteci zorunlu, ancak interface uyeleri haric:
+# onlar zaten ortulu public, "public" yazmak gurultu olurdu.
+dotnet_style_require_accessibility_modifiers = for_non_interface_members:error
+
+[src/Learnier.Application/Common/Results/*.cs]
+# CA1716: "Error" VB.NET'te ayrilmis bir kelimeyle cakisiyor.
+# Kural baska dillerden tuketilen kutuphaneler icin anlamli; bu bir ic uygulama kodu
+# ve Error, Result deseninin yerlesik ismi. Yeniden adlandirmak okunabilirligi dusururdu.
+dotnet_diagnostic.CA1716.severity = none
+
+# CA1000: Generic tiplerde statik uye tanimlama.
+# Result<T>.Success(value) ve Result<T>.Failure(error) bu desenin standart API'si;
+# alternatifi (ayri bir fabrika sinifi) cagri yerlerini gereksiz yere agirlastirirdi.
+dotnet_diagnostic.CA1000.severity = none

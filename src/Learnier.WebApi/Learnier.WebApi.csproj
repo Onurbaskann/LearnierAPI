@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <!-- Ortak ayarlar Directory.Build.props, paket surumleri Directory.Packages.props'tan gelir. -->
+
+  <ItemGroup>
+    <ProjectReference Include="..\Learnier.Infrastructure\Learnier.Infrastructure.csproj" />
+    <ProjectReference Include="..\Learnier.Application\Learnier.Application.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+    <!-- Transitive gelen acikli surumu ezmek icin acik referans (bkz. Directory.Packages.props). -->
+    <PackageReference Include="Microsoft.OpenApi" />
+    <PackageReference Include="Scalar.AspNetCore" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
+    <PackageReference Include="Scrutor" />
+    <PackageReference Include="Serilog.AspNetCore" />
+    <PackageReference Include="Serilog.Sinks.Console" />
+  </ItemGroup>
+
+</Project>

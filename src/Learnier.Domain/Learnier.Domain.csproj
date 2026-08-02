@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Ortak ayarlar Directory.Build.props'tan gelir.
+
+    Domain katmani bilerek paketsizdir: hicbir NuGet referansi eklenmemeli.
+    EF Core, ASP.NET Core veya baska bir altyapi burada yer alamaz.
+  -->
+
+</Project>

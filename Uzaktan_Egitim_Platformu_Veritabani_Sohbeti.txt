@@ -1,0 +1,647 @@
+UZAKTAN EĞİTİM PLATFORMU – VERİTABANI TASARIMI SOHBETİ
+
+KULLANICI
+
+https://flalingo.com/tr ve https://www.openenglish.com.tr/ siteleri gibi uzaktan eğitimlerin verildiği ama tek bir ders ile sınırlı olmayan (matematik, ingilizce, yazılım ...) grup derslerinin olduğu abonelik sisteminin olduğu randevu yapısı ile yönetilen çok kullanıcılı rol ve organizasyon yapılı bir yetki mekanizması olan bir site yapmayı planlıyorum. Senden bu siteleri incelemeni ve bana şu aşamada veri tabanı yapısı için çalışmanı istiyorum. Normalizasyon iyi yapılmış ilişkileri doğru kurulmuş over enginnering olmayan bir veri tabanı için çalışmanı istiyorum
+
+
+ASİSTAN
+
+İki modeli karşılaştırınca tasarlanacak sistemin yalnızca “öğretmen–öğrenci randevusu” olmaması gerektiği açık:
+
+- Flalingo modeli: öğrenci öğretmen ve saat seçiyor, her ders ayrı rezerve ediliyor; belirli süre öncesine kadar iptal ve hak iadesi var.
+- Open English modeli: seviyeye uygun, sık aralıklarla açılan kontenjanlı grup derslerine abonelik kapsamında katılım; özel dersler ayrıca hak veya ücretle sunuluyor.
+- Senin sistemin: bunlara ek olarak İngilizce, matematik, yazılım gibi farklı alanları; kurumları, çoklu rolleri, dönemsel sınıfları ve abonelik kapsamlarını desteklemeli.
+
+Flalingo, her ders için ayrı öğretmen/randevu seçimi ve ders saatinden 8 saat öncesine kadar iptal akışı kullanıyor:
+https://flalingo.com/en/how-it-works
+
+Open English ise 30 dakikada bir başlayan 45 dakikalık küçük grup dersleri, sınırsız grup erişimi ve ayrıca satın alınabilen birebir dersler sunuyor:
+https://www.openenglish.com.tr/sss/
+
+
+1. TEMEL TASARIM KARARLARI
+
+Şu ayrımlar veri tabanında mutlaka korunmalı:
+
+1. User ile öğrenci/eğitmen rolü aynı şey değildir.
+   Bir kullanıcı bir kurumda eğitmen, başka bir kurumda öğrenci veya yönetici olabilir.
+
+2. Course ile gerçekleşen ders aynı şey değildir.
+   “Başlangıç Seviye Python” bir eğitim tanımıdır; 14 Ağustos 20.00’daki ders ise lesson_session kaydıdır.
+
+3. Abonelik ile rezervasyon birbirine bağlanmamalıdır.
+   Rezervasyonun ödeme kaynağı abonelik hakkı, satın alınmış ders kredisi veya ücretsiz erişim olabilir.
+
+4. Grup sınıfı ile tek ders oturumu ayrılmalıdır.
+   Matematikte 12 haftalık sabit sınıf gerekirken, konuşma dersinde tek seferlik “katıl-çık” modeli gerekebilir.
+
+5. Fiyat geçmişi korunmalıdır.
+   Plan fiyatı değiştirilince eski aboneliklerin geçmişi bozulmamalıdır. Bu nedenle fiyat kayıtları güncellenmek yerine versiyonlanmalıdır.
+
+
+2. ÖNERİLEN ANA YAPI
+
+KULLANICI VE ORGANİZASYON
+
+users
+
+Kimlik doğrulanan gerçek kişiyi temsil eder.
+
+- id: UUID PK
+- email: Normalize edilmiş, unique
+- phone: Nullable, normalize edilmiş
+- password_hash: Harici identity provider yoksa
+- first_name, last_name: Kullanıcı bilgileri
+- status: pending, active, suspended
+- email_verified_at: Doğrulama zamanı
+- created_at, updated_at: Audit alanları
+
+E-posta için PostgreSQL citext veya lower(email) unique index kullanılmalı.
+
+organizations
+
+Platformdaki kurumları temsil eder: eğitim sağlayıcı, kurumsal müşteri, okul, şube gibi.
+
+- id: UUID PK
+- parent_organization_id: Nullable self FK
+- name: Kurum adı
+- slug: URL/tenant anahtarı
+- organization_type: provider, corporate_customer, school, branch
+- status: active, suspended
+- timezone: Örn. Europe/Istanbul
+- default_currency: TRY, USD
+- created_at: Oluşturulma
+
+parent_organization_id, ilk aşamada kurum–şube yapısı için yeterlidir. Ayrı bir organization tree veya closure table şimdilik gereksiz olur.
+
+organization_memberships
+
+Kullanıcının bir organizasyondaki üyeliği.
+
+- id: UUID PK
+- organization_id: FK
+- user_id: FK
+- status: invited, active, suspended
+- joined_at: Katılım zamanı
+
+Unique: (organization_id, user_id)
+
+
+3. ROL VE YETKİ MEKANİZMASI
+
+Önerim klasik ama organizasyon kapsamlı RBAC yapısıdır.
+
+Tablolar:
+
+- roles
+- permissions
+- role_permissions
+- membership_roles
+
+roles
+
+- id: UUID PK
+- organization_id: Nullable; null ise sistem rolü
+- code: student, instructor, org_admin vb.
+- name: Görünen isim
+- is_system: Sistem tarafından sağlanan rol mü?
+
+Unique: (organization_id, code)
+
+permissions
+
+Yetkiler kod olarak tutulur:
+
+- course.read
+- course.manage
+- session.create
+- session.cancel
+- booking.create
+- booking.manage_all
+- student.progress.read
+- subscription.manage
+- organization.member.manage
+
+role_permissions:
+
+- role_id
+- permission_id
+
+membership_roles:
+
+- membership_id
+- role_id
+
+Başlangıç sistem rolleri:
+
+- platform_admin
+- organization_owner
+- organization_admin
+- education_manager
+- instructor
+- student
+- guardian
+- support_agent
+- finance_manager
+
+users.role_id gibi tek rol alanı kullanılmamalı. Çünkü çoklu kurum ve çoklu rol ihtiyacını karşılamaz.
+
+Veli–öğrenci ilişkisi
+
+learner_guardians:
+
+- learner_user_id
+- guardian_user_id
+- relationship_type
+- is_primary
+- can_book
+- can_view_progress
+
+Bu ilişki RBAC’den ayrıdır. “Veli” rolü yetkiyi, bu tablo ise velinin hangi öğrenciden sorumlu olduğunu belirler.
+
+
+4. EĞİTİM KATALOĞU
+
+Önerilen hiyerarşi:
+
+Subject → Course → Module → Lesson
+
+subjects:
+
+- id
+- organization_id
+- parent_subject_id
+- name
+- slug
+- status
+
+Örnek:
+
+İngilizce
+Matematik
+Yazılım
+  - Backend
+  - Frontend
+
+courses:
+
+- id: UUID PK
+- organization_id: Sahibi olan kurum
+- subject_id: Ders alanı
+- title: Örn. Başlangıç Seviye Python
+- description: Açıklama
+- course_type: structured, drop_in, private
+- level_id: Nullable
+- status: draft, published, archived
+- default_duration_minutes: Varsayılan süre
+- min_participants: Minimum katılımcı
+- max_participants: Maksimum katılımcı
+
+levels:
+
+- id
+- organization_id
+- subject_id
+- code
+- name
+- sort_order
+
+Böylece İngilizcede A1–C2, matematikte 5. sınıf, yazılımda beginner–advanced kullanılabilir.
+
+course_modules:
+
+- id
+- course_id
+- title
+- description
+- sort_order
+
+course_lessons:
+
+Müfredattaki ders başlıklarıdır; randevu değildir.
+
+- id
+- module_id
+- title
+- description
+- estimated_duration_minutes
+- sort_order
+
+
+5. GRUP, SINIF VE DÖNEM YAPISI
+
+class_groups
+
+Belirli öğrenci topluluğunu temsil eder.
+
+- id: UUID PK
+- organization_id: Tenant
+- course_id: Verilen eğitim
+- name: Python Salı–Perşembe Grubu
+- delivery_type: cohort, drop_in_pool
+- starts_on, ends_on: Dönem
+- capacity: Sınıf kapasitesi
+- status: planned, active, completed, cancelled
+
+class_group_members:
+
+- class_group_id
+- learner_user_id
+- status
+- enrolled_at
+- left_at
+
+Unique: (class_group_id, learner_user_id)
+
+Bu tablo sabit sınıflar içindir. Open English benzeri serbest katılımlı derslerde öğrenci gruba kaydedilmek zorunda değildir; doğrudan oturuma rezervasyon yapar.
+
+
+6. EĞİTMEN YAPISI
+
+instructor_profiles:
+
+- id
+- membership_id
+- bio
+- timezone
+- status
+- default_hourly_rate
+
+Profilin user_id yerine membership_id üzerinden bağlanması daha doğru olur. Çünkü eğitmenin çalışma durumu ve profili kuruma göre değişebilir.
+
+instructor_subjects:
+
+- instructor_profile_id
+- subject_id
+- level_id nullable
+- status
+
+Bu sayede bir eğitmenin İngilizce A1–B2, Python başlangıç–orta, Matematik 5–8. sınıf gibi yetkinlikleri tanımlanabilir.
+
+instructor_availabilities:
+
+- id
+- instructor_profile_id
+- day_of_week
+- start_local_time
+- end_local_time
+- timezone
+- valid_from
+- valid_until
+
+instructor_availability_exceptions:
+
+- id
+- instructor_profile_id
+- exception_date
+- start_time nullable
+- end_time nullable
+- exception_type
+
+Başlangıç aşamasında karmaşık recurrence JSON/RRULE saklamaya gerek yok. Haftalık uygunluk + istisna çoğu ihtiyacı karşılar.
+
+
+7. GERÇEKLEŞEN DERS VE RANDEVU YAPISI
+
+lesson_sessions
+
+Takvimdeki gerçek ders oturumudur.
+
+- id: UUID PK
+- organization_id: Tenant
+- course_id: Eğitim
+- class_group_id: Nullable
+- course_lesson_id: Nullable, müfredat konusu
+- session_type: group, private, webinar
+- starts_at: UTC
+- ends_at: UTC
+- capacity: Oturuma özel kapasite
+- minimum_participants: Açılması için gereken sayı
+- status: scheduled, confirmed, in_progress, completed, cancelled
+- meeting_provider: zoom, teams, internal
+- meeting_reference: Harici toplantı kimliği
+- booking_opens_at: Rezervasyon başlangıcı
+- booking_closes_at: Rezervasyon bitişi
+- cancellation_deadline_at: Ücretsiz iptal sınırı
+
+Tarih/saat alanları UTC saklanmalı; organizasyon ve kullanıcı timezone bilgisine göre gösterilmelidir.
+
+session_instructors:
+
+- session_id
+- instructor_profile_id
+- role
+
+role: lead, assistant, moderator.
+
+session_bookings:
+
+- id: UUID PK
+- session_id: Oturum
+- learner_user_id: Öğrenci
+- booked_by_user_id: Öğrenci veya veli
+- status: reserved, waitlisted, cancelled, attended, no_show
+- access_source: subscription, credit, direct_purchase, admin
+- subscription_id: Nullable
+- credit_transaction_id: Nullable
+- booked_at: Rezervasyon zamanı
+- cancelled_at: Nullable
+- cancellation_reason: Nullable
+
+Unique: (session_id, learner_user_id)
+
+Kontenjan kontrolü sadece “önce say, sonra insert et” şeklinde yapılmamalı. Aynı anda gelen rezervasyonlarda aşım olmaması için transaction ve row lock/advisory lock kullanılmalı.
+
+Bekleme listesi için ayrı waitlists tablosu yerine booking durumunun waitlisted olması ilk aşama için yeterli. Sıralama booked_at üzerinden yapılabilir.
+
+
+8. ABONELİK VE PAKET YAPISI
+
+subscription_plans:
+
+- id
+- organization_id
+- name
+- description
+- status
+
+Örnek:
+
+- Tüm Grup Dersleri
+- Yazılım Akademisi
+- İngilizce Premium
+- Kurumsal 100 Kullanıcı
+
+plan_prices:
+
+- id
+- plan_id
+- currency
+- amount
+- billing_interval
+- billing_interval_count
+- valid_from
+- valid_until
+- status
+
+billing_interval: month, year.
+
+Fiyat değiştiğinde eski kayıt güncellenmez; yeni plan_prices kaydı oluşturulur.
+
+Plan kapsamı
+
+plan_subject_access:
+
+- plan_id
+- subject_id
+
+plan_course_access:
+
+- plan_id
+- course_id
+
+Plan tüm kataloğu kapsıyorsa subscription_plans.catalog_access = 'all' kullanılabilir.
+
+Kapsamlı, soyut bir plan_entitlement_targets(target_type, target_id) tablosu önerilmez. Foreign key bütünlüğünü bozup sorguları zorlaştırır.
+
+plan_entitlements:
+
+- id
+- plan_id
+- entitlement_type
+- session_type
+- quantity
+- reset_period
+
+Örnekler:
+
+- booking_access / group / sınırsız / subscription
+- lesson_credit / private / 4 / month
+- lesson_credit / group / 20 / month
+
+quantity = null, sınırsız anlamına gelebilir; fakat uygulama katmanında açık şekilde ele alınmalıdır.
+
+subscriptions:
+
+- id
+- organization_id
+- subscriber_user_id nullable
+- subscriber_organization_id nullable
+- plan_price_id
+- status
+- starts_at
+- current_period_start
+- current_period_end
+- cancel_at_period_end
+- cancelled_at
+- payment_provider
+- provider_subscription_id
+- created_at
+
+Kurumsal aboneliklerde abonelik organizasyona, bireysel aboneliklerde kullanıcıya ait olabilir. İki sahip alanından tam olarak birinin dolu olması için check constraint konmalıdır.
+
+subscription_seats:
+
+- subscription_id
+- membership_id
+- assigned_at
+- revoked_at
+
+Böylece şirket 100 kişilik abonelik alıp çalışanlarına koltuk atayabilir.
+
+
+9. DERS HAKKI VE KREDİ HAREKETLERİ
+
+Kalan hakkı doğrudan subscriptions.remaining_lessons alanında tutmak başlangıçta kolay görünür ama iptal, iade ve dönem yenilemelerinde sorun çıkarır.
+
+Bunun yerine credit_ledger hareket tablosu kullanılmalı:
+
+- id
+- subscription_id
+- learner_user_id
+- session_type
+- quantity
+- transaction_type
+- booking_id nullable
+- expires_at nullable
+- created_at
+
+Örnek hareketler:
+
+- +4 monthly_grant
+- -1 booking_usage
+- +1 cancellation_refund
+- +2 manual_adjustment
+- -4 expiration
+
+Kalan hak SUM(quantity) ile bulunur.
+
+Yoğun kullanım oluşursa toplam değer ayrıca cache/projection olarak tutulabilir; ana doğruluk kaynağı ledger olmalıdır.
+
+Sınırsız grup dersi için ledger hareketi üretmeye gerek yoktur. Plan erişiminin geçerli olması yeterlidir.
+
+
+10. ÖDEME TABLOLARI
+
+İlk sürüm için tam muhasebe sistemi kurmaya gerek yok.
+
+payment_customers:
+
+- id
+- user_id nullable
+- organization_id nullable
+- provider
+- provider_customer_id
+
+payments:
+
+- id
+- subscription_id nullable
+- payer_user_id nullable
+- amount
+- currency
+- status
+- payment_provider
+- provider_payment_id
+- paid_at
+- failed_at
+- created_at
+
+refunds:
+
+- id
+- payment_id
+- amount
+- reason
+- status
+- provider_refund_id
+- created_at
+
+Kart numarası veya CVV kesinlikle veritabanında tutulmamalı; ödeme sağlayıcısının token/customer ID bilgisi tutulmalı.
+
+
+11. KATILIM VE EĞİTİM İLERLEMESİ
+
+session_attendances:
+
+- id
+- booking_id
+- joined_at
+- left_at
+- attended_minutes
+- status
+- marked_by_user_id
+
+learner_course_progress:
+
+- learner_user_id
+- course_id
+- current_level_id
+- completion_percentage
+- started_at
+- completed_at
+- updated_at
+
+lesson_completions:
+
+- learner_user_id
+- course_lesson_id
+- session_id nullable
+- completed_at
+- completion_source
+
+İlerleme yüzdesi türetilebilir olsa da dashboard performansı için learner_course_progress içinde projection olarak tutulabilir.
+
+session_feedback:
+
+- id
+- session_id
+- author_user_id
+- target_instructor_id nullable
+- rating
+- comment
+- created_at
+
+
+12. TENANT İZOLASYONU
+
+Organizasyona ait ana tablolarda organization_id bulunmalı:
+
+- courses
+- subjects
+- class_groups
+- lesson_sessions
+- subscription_plans
+- subscriptions
+- instructor_profiles (membership üzerinden)
+
+PostgreSQL kullanılıyorsa ileride Row Level Security uygulanabilir. Ancak ilk sürümde bile her sorgunun organizasyon filtresi zorunlu olmalı.
+
+organization_id her alt tabloya düşünmeden eklenmemeli. Örneğin course_modules zaten course_id üzerinden organizasyona ulaşıyorsa tekrar organization_id taşımak normalizasyon açısından gereksizdir. Sadece güvenlik veya ciddi sorgu performansı gerekçesi oluşursa denormalize edilmelidir.
+
+
+13. KRİTİK CONSTRAINT VE INDEXLER
+
+En az şu kurallar veritabanı seviyesinde bulunmalı:
+
+- lesson_sessions.ends_at > lesson_sessions.starts_at
+- lesson_sessions.capacity > 0
+- session_bookings(session_id, learner_user_id) UNIQUE
+- organization_memberships(organization_id, user_id) UNIQUE
+- class_group_members(class_group_id, learner_user_id) UNIQUE
+- plan_prices.amount >= 0
+- refunds.amount > 0
+- credit_ledger.quantity <> 0
+
+Önerilen indexler:
+
+- lesson_sessions(organization_id, starts_at, status)
+- session_bookings(session_id, status)
+- session_bookings(learner_user_id, status)
+- session_instructors(instructor_profile_id, session_id)
+- subscriptions(subscriber_user_id, status)
+- subscriptions(subscriber_organization_id, status)
+- credit_ledger(subscription_id, learner_user_id, expires_at)
+- class_group_members(learner_user_id, status)
+
+Eğitmenin aynı zaman aralığında iki derse atanmasını yalnızca normal unique index çözemez. PostgreSQL kullanılıyorsa zaman aralığı üzerinde exclusion constraint düşünülebilir; daha taşınabilir bir yaklaşım için transaction içinde çakışma kontrolü yapılabilir.
+
+
+14. İLK SÜRÜMDE ÖZELLİKLE KURULMAYACAK YAPILAR
+
+Over-engineering olmaması için başlangıçta şunlar önerilmez:
+
+- Event sourcing altyapısı
+- Her tablo için ayrı history tablosu
+- Organizasyon ağacı için closure table
+- Mikroservis başına ayrı veritabanı
+- Generic entity_type/entity_id ilişkileri
+- Karmaşık recurrence engine
+- Her işlem için workflow/state-machine tabloları
+- İleri muhasebe ve çift taraflı finans defteri
+- Ders öneri algoritmasına özel tablolar
+- Bildirimleri domain tablolarının içine gömmek
+
+Gerekli audit için kritik tablolara created_at, updated_at, created_by, gerektiğinde cancelled_at gibi alanlar yeterlidir.
+
+
+15. TAVSİYE EDİLEN MVP KAPSAMI
+
+İlk migration grubunda şu tablolar yeterli olur:
+
+1. Kullanıcı, organizasyon ve RBAC
+2. Subject, course, level, instructor
+3. Class group ve lesson session
+4. Booking ve attendance
+5. Subscription plan, price, subscription
+6. Plan erişimi ve credit ledger
+7. Payment/refund
+8. Guardian ve corporate seat ilişkileri
+
+Bu yapı üçüncü normal forma büyük ölçüde uyar, Flalingo tipi birebir rezervasyonları ve Open English tipi sınırsız/drop-in grup derslerini destekler; aynı zamanda matematik ve yazılım gibi dönemsel, sabit sınıflı eğitimlere de zorlanmadan genişler. En önemli avantajı, rezervasyon motoru ile ticari abonelik modelini birbirine yapıştırmamasıdır.
+
+
+KULLANICI
+
+Bu sohbeti bana metin olarak verebilir misin?

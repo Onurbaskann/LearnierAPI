@@ -1,8 +1,13 @@
 using System.Linq.Expressions;
 using System.Reflection;
 using Learnier.Application.Common.Abstractions;
+using Learnier.Domain.Billing;
+using Learnier.Domain.Catalog;
 using Learnier.Domain.Common;
 using Learnier.Domain.Identity;
+using Learnier.Domain.Progress;
+using Learnier.Domain.Scheduling;
+using Learnier.Domain.Teaching;
 using Microsoft.EntityFrameworkCore;
 
 namespace Learnier.Infrastructure.Persistence;
@@ -27,6 +32,65 @@ public sealed class AppDbContext(
     public DbSet<MembershipRole> MembershipRoles => Set<MembershipRole>();
 
     public DbSet<LearnerGuardian> LearnerGuardians => Set<LearnerGuardian>();
+
+    public DbSet<Subject> Subjects => Set<Subject>();
+
+    public DbSet<Level> Levels => Set<Level>();
+
+    public DbSet<Course> Courses => Set<Course>();
+
+    public DbSet<CourseModule> CourseModules => Set<CourseModule>();
+
+    public DbSet<CourseLesson> CourseLessons => Set<CourseLesson>();
+
+    public DbSet<InstructorProfile> InstructorProfiles => Set<InstructorProfile>();
+
+    public DbSet<InstructorSubject> InstructorSubjects => Set<InstructorSubject>();
+
+    public DbSet<InstructorAvailability> InstructorAvailabilities => Set<InstructorAvailability>();
+
+    public DbSet<InstructorAvailabilityOverride> InstructorAvailabilityOverrides
+        => Set<InstructorAvailabilityOverride>();
+
+    public DbSet<ClassGroup> ClassGroups => Set<ClassGroup>();
+
+    public DbSet<ClassGroupMember> ClassGroupMembers => Set<ClassGroupMember>();
+
+    public DbSet<LessonSession> LessonSessions => Set<LessonSession>();
+
+    public DbSet<SessionInstructor> SessionInstructors => Set<SessionInstructor>();
+
+    public DbSet<SessionBooking> SessionBookings => Set<SessionBooking>();
+
+    public DbSet<SessionAttendance> SessionAttendances => Set<SessionAttendance>();
+
+    public DbSet<SubscriptionPlan> SubscriptionPlans => Set<SubscriptionPlan>();
+
+    public DbSet<PlanPrice> PlanPrices => Set<PlanPrice>();
+
+    public DbSet<PlanEntitlement> PlanEntitlements => Set<PlanEntitlement>();
+
+    public DbSet<PlanSubjectAccess> PlanSubjectAccess => Set<PlanSubjectAccess>();
+
+    public DbSet<PlanCourseAccess> PlanCourseAccess => Set<PlanCourseAccess>();
+
+    public DbSet<Subscription> Subscriptions => Set<Subscription>();
+
+    public DbSet<SubscriptionSeat> SubscriptionSeats => Set<SubscriptionSeat>();
+
+    public DbSet<CreditLedgerEntry> CreditLedger => Set<CreditLedgerEntry>();
+
+    public DbSet<PaymentCustomer> PaymentCustomers => Set<PaymentCustomer>();
+
+    public DbSet<Payment> Payments => Set<Payment>();
+
+    public DbSet<Refund> Refunds => Set<Refund>();
+
+    public DbSet<LearnerCourseProgress> LearnerCourseProgress => Set<LearnerCourseProgress>();
+
+    public DbSet<LessonCompletion> LessonCompletions => Set<LessonCompletion>();
+
+    public DbSet<SessionFeedback> SessionFeedback => Set<SessionFeedback>();
 
     public async Task<ITransaction> BeginTransactionAsync(CancellationToken cancellationToken = default)
     {
@@ -128,6 +192,117 @@ public sealed class AppDbContext(
             TenantFilterName,
             mr => CurrentOrganizationId == null
                   || mr.Membership.OrganizationId == CurrentOrganizationId);
+
+        // Katalog: seviye alana, modul egitime, ders module baglidir.
+        modelBuilder.Entity<Level>().HasQueryFilter(
+            TenantFilterName,
+            l => CurrentOrganizationId == null
+                 || l.Subject.OrganizationId == CurrentOrganizationId);
+
+        modelBuilder.Entity<CourseModule>().HasQueryFilter(
+            TenantFilterName,
+            m => CurrentOrganizationId == null
+                 || m.Course.OrganizationId == CurrentOrganizationId);
+
+        modelBuilder.Entity<CourseLesson>().HasQueryFilter(
+            TenantFilterName,
+            l => CurrentOrganizationId == null
+                 || l.Module.Course.OrganizationId == CurrentOrganizationId);
+
+        // Egitmen kayitlari uyelik uzerinden organizasyona baglidir.
+        modelBuilder.Entity<InstructorProfile>().HasQueryFilter(
+            TenantFilterName,
+            p => CurrentOrganizationId == null
+                 || p.Membership.OrganizationId == CurrentOrganizationId);
+
+        modelBuilder.Entity<InstructorSubject>().HasQueryFilter(
+            TenantFilterName,
+            s => CurrentOrganizationId == null
+                 || s.InstructorProfile.Membership.OrganizationId == CurrentOrganizationId);
+
+        modelBuilder.Entity<InstructorAvailability>().HasQueryFilter(
+            TenantFilterName,
+            a => CurrentOrganizationId == null
+                 || a.InstructorProfile.Membership.OrganizationId == CurrentOrganizationId);
+
+        modelBuilder.Entity<InstructorAvailabilityOverride>().HasQueryFilter(
+            TenantFilterName,
+            e => CurrentOrganizationId == null
+                 || e.InstructorProfile.Membership.OrganizationId == CurrentOrganizationId);
+
+        // Zamanlama: uyelik, atama, rezervasyon ve yoklama oturum/sinif uzerinden baglidir.
+        modelBuilder.Entity<ClassGroupMember>().HasQueryFilter(
+            TenantFilterName,
+            m => CurrentOrganizationId == null
+                 || m.ClassGroup.OrganizationId == CurrentOrganizationId);
+
+        modelBuilder.Entity<SessionInstructor>().HasQueryFilter(
+            TenantFilterName,
+            i => CurrentOrganizationId == null
+                 || i.Session.OrganizationId == CurrentOrganizationId);
+
+        modelBuilder.Entity<SessionBooking>().HasQueryFilter(
+            TenantFilterName,
+            b => CurrentOrganizationId == null
+                 || b.Session.OrganizationId == CurrentOrganizationId);
+
+        modelBuilder.Entity<SessionAttendance>().HasQueryFilter(
+            TenantFilterName,
+            a => CurrentOrganizationId == null
+                 || a.Booking.Session.OrganizationId == CurrentOrganizationId);
+
+        // Ticari model: fiyat, hak ve erisim tanimlari plana; koltuk ve ders
+        // hakki hareketleri abonelie baglidir.
+        modelBuilder.Entity<PlanPrice>().HasQueryFilter(
+            TenantFilterName,
+            p => CurrentOrganizationId == null
+                 || p.Plan.OrganizationId == CurrentOrganizationId);
+
+        modelBuilder.Entity<PlanEntitlement>().HasQueryFilter(
+            TenantFilterName,
+            e => CurrentOrganizationId == null
+                 || e.Plan.OrganizationId == CurrentOrganizationId);
+
+        modelBuilder.Entity<PlanSubjectAccess>().HasQueryFilter(
+            TenantFilterName,
+            a => CurrentOrganizationId == null
+                 || a.Plan.OrganizationId == CurrentOrganizationId);
+
+        modelBuilder.Entity<PlanCourseAccess>().HasQueryFilter(
+            TenantFilterName,
+            a => CurrentOrganizationId == null
+                 || a.Plan.OrganizationId == CurrentOrganizationId);
+
+        modelBuilder.Entity<SubscriptionSeat>().HasQueryFilter(
+            TenantFilterName,
+            s => CurrentOrganizationId == null
+                 || s.Subscription.OrganizationId == CurrentOrganizationId);
+
+        modelBuilder.Entity<CreditLedgerEntry>().HasQueryFilter(
+            TenantFilterName,
+            e => CurrentOrganizationId == null
+                 || e.Subscription.OrganizationId == CurrentOrganizationId);
+
+        // Ilerleme kayitlari egitim veya oturum uzerinden baglidir.
+        modelBuilder.Entity<LearnerCourseProgress>().HasQueryFilter(
+            TenantFilterName,
+            p => CurrentOrganizationId == null
+                 || p.Course.OrganizationId == CurrentOrganizationId);
+
+        modelBuilder.Entity<LessonCompletion>().HasQueryFilter(
+            TenantFilterName,
+            c => CurrentOrganizationId == null
+                 || c.CourseLesson.Module.Course.OrganizationId == CurrentOrganizationId);
+
+        modelBuilder.Entity<SessionFeedback>().HasQueryFilter(
+            TenantFilterName,
+            f => CurrentOrganizationId == null
+                 || f.Session.OrganizationId == CurrentOrganizationId);
+
+        // Odeme tablolarina bilincli olarak filtre uygulanmaz: bir odeme
+        // abonelie bagli olmayabilir (tek seferlik satin alma) ve odeme
+        // musterisi platform seviyesinde tekildir. Bu tablolar yalnizca
+        // finans yetkisi olan uclardan sorgulanir.
     }
 
     /// <summary>

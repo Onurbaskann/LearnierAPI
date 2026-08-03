@@ -78,4 +78,24 @@
   <data name="tenant.membership_not_found" xml:space="preserve">
     <value>Bu organizasyonun üyesi değilsiniz.</value>
   </data>
+
+  <data name="auth.email_required" xml:space="preserve">
+    <value>E-posta adresi gerekli.</value>
+  </data>
+  <data name="auth.email_invalid" xml:space="preserve">
+    <value>Geçerli bir e-posta adresi girin.</value>
+  </data>
+  <data name="auth.password_required" xml:space="preserve">
+    <value>Parola gerekli.</value>
+  </data>
+  <data name="auth.invalid_credentials" xml:space="preserve">
+    <value>E-posta veya parola hatalı.</value>
+    <comment>Hangisinin yanlış olduğu bilerek belirtilmiyor; bkz. AuthenticationErrors.</comment>
+  </data>
+  <data name="auth.account_suspended" xml:space="preserve">
+    <value>Bu hesap askıya alınmış. Lütfen destek ile iletişime geçin.</value>
+  </data>
+  <data name="auth.email_not_verified" xml:space="preserve">
+    <value>Giriş yapmadan önce e-posta adresinizi doğrulayın.</value>
+  </data>
 </root>

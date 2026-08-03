@@ -82,4 +82,24 @@
   <data name="tenant.membership_not_found" xml:space="preserve">
     <value>You are not a member of this organization.</value>
   </data>
+
+  <data name="auth.email_required" xml:space="preserve">
+    <value>Email is required.</value>
+  </data>
+  <data name="auth.email_invalid" xml:space="preserve">
+    <value>Enter a valid email address.</value>
+  </data>
+  <data name="auth.password_required" xml:space="preserve">
+    <value>Password is required.</value>
+  </data>
+  <data name="auth.invalid_credentials" xml:space="preserve">
+    <value>Email or password is incorrect.</value>
+    <comment>Deliberately does not reveal which one is wrong; see AuthenticationErrors.</comment>
+  </data>
+  <data name="auth.account_suspended" xml:space="preserve">
+    <value>This account has been suspended. Please contact support.</value>
+  </data>
+  <data name="auth.email_not_verified" xml:space="preserve">
+    <value>Verify your email address before signing in.</value>
+  </data>
 </root>

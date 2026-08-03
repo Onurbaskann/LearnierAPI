@@ -64,6 +64,7 @@ Manuel. `ToDto()` extension metotları veya sorgu içinde doğrudan `Select(x =>
 - `OrganizationId` **her tabloya konmaz.** Yalnızca üzerinden erişimin türetilemediği ana tablolara. `CourseModule` gibi `CourseId` üzerinden organizasyona ulaşan tablolara eklenmez.
 - Tenant izolasyonu `ITenantScoped` + EF global query filter ile. Her sorgunun organizasyon filtresi zorunlu.
 - **Uygulama başlangıcında otomatik migration yok.** Migration ayrı adımda uygulanır.
+- **Kaydedilmiş bir aggregate'e alt kayıt eklerken `context.Add(...)` çağırın.** PK'ler istemcide üretildiği için (`Guid.CreateVersion7()`) EF, `Unchanged` bir ebeveynin koleksiyonuna sonradan eklenen çocuğu "anahtarı dolu, demek ki mevcut" sayar; `Added` yerine `Modified` işaretler ve hiçbir satırı etkilemeyen bir UPDATE üretip `DbUpdateConcurrencyException` fırlatır. Örnek: veritabanından okunan bir `OrganizationMembership` üzerinde `AssignRole(...)`.
 
 ## Komutlar
 
@@ -72,7 +73,17 @@ dotnet build Learnier.slnx
 dotnet test
 dotnet ef migrations add <Name> --project src\Learnier.Infrastructure --startup-project src\Learnier.WebApi
 dotnet ef database update --project src\Learnier.Infrastructure --startup-project src\Learnier.WebApi
+dotnet run --project src\Learnier.WebApi -- seed
 docker compose up -d
 ```
 
 Derleme ayarları sıkı: `TreatWarningsAsErrors` açık, NuGet audit `low` seviyesinde hata veriyor. Uyarıyı bastırmak yerine sebebini düzelt.
+
+### Tohumlama
+
+`seed` argümanı sunucuyu ayağa kaldırmaz; veriyi yazıp çıkar. Migration gibi **açık bir adımdır**, başlangıçta kendiliğinden çalışmaz.
+
+- **Referans verisi** (her ortam): izinler ve sistem rolleri. İzin listesi `Permissions` sabitlerinden yansıma ile türetilir — yeni izin eklenince seed'i yeniden çalıştırmak yeterli.
+- **Örnek veri** (yalnız Development): `learnier` kurumu ve istemcideki test hesapları.
+
+Tekrar çalıştırılabilir: mevcut kayıtlar koda/e-postaya göre bulunur, yalnızca eksikler eklenir; hiçbir kayıt silinmez veya üzerine yazılmaz.

@@ -2,6 +2,7 @@ using System.Globalization;
 using Learnier.Application;
 using Learnier.Application.Common.Abstractions;
 using Learnier.Infrastructure;
+using Learnier.Infrastructure.Persistence.Seeding;
 using Learnier.WebApi.Authorization;
 using Learnier.WebApi.Common;
 using Learnier.WebApi.Filters;
@@ -68,6 +69,16 @@ builder.Services.AddOpenApi();
 builder.Services.AddHealthChecks();
 
 var app = builder.Build();
+
+// "seed" argumaniyla calistirildiginda uygulama sunucuyu ayaga kaldirmaz, yalnizca
+// veriyi yazip cikar. Migration'da oldugu gibi tohumlama da acik bir adimdir:
+// baslangicta kendiliginden calissaydi hangi verinin ne zaman yazildigi
+// ongorulemez olurdu. Ornek hesaplar yalnizca gelistirme ortaminda olusur.
+if (args.Contains("seed", StringComparer.OrdinalIgnoreCase))
+{
+    await DatabaseSeeder.RunAsync(app.Services, app.Environment.IsDevelopment());
+    return;
+}
 
 app.UseExceptionHandler();
 app.UseSerilogRequestLogging();

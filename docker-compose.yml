@@ -15,7 +15,10 @@ services:
       # Yerel gelistirmede dotnet ef ve testlerin baglanabilmesi icin disari acilir.
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      # PostgreSQL 18 imaji veriyi /var/lib/postgresql/<surum>/docker altina koyar.
+      # Volume'u /var/lib/postgresql/data'ya baglamak container'in acilmamasina yol
+      # aciyordu; mount tek seviye yukari alindi.
+      - postgres-data:/var/lib/postgresql
     healthcheck:
       # API'nin hazir olmayan veritabanina baglanmaya calismasini engeller.
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-learnier} -d ${POSTGRES_DB:-learnier}"]

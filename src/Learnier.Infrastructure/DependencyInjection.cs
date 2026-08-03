@@ -2,9 +2,10 @@ using System.Text;
 using Learnier.Application.Common.Abstractions;
 using Learnier.Infrastructure.Events;
 using Learnier.Infrastructure.Identity;
-using Learnier.Infrastructure.Identity.Placeholders;
 using Learnier.Infrastructure.Persistence;
 using Learnier.Infrastructure.Persistence.Interceptors;
+using Learnier.Infrastructure.Persistence.Repositories;
+using Learnier.Infrastructure.Persistence.Seeding;
 using Learnier.Infrastructure.Time;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -59,6 +60,12 @@ public static class DependencyInjection
         });
 
         services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<AppDbContext>());
+        services.AddScoped<IUserRepository, EfUserRepository>();
+
+        // Tohumlayicilar yalnizca acik "seed" komutunda calisir; kayitli olmalari
+        // baslangicta bir sey yapmalari anlamina gelmez.
+        services.AddScoped<SystemDataSeeder>();
+        services.AddScoped<DevelopmentDataSeeder>();
 
         services.AddIdentityServices(configuration);
 
@@ -79,10 +86,8 @@ public static class DependencyInjection
         services.AddSingleton<IPasswordHasher, PasswordHasher>();
         services.AddScoped<ITokenService, JwtTokenService>();
 
-        // GECICI: RBAC tablolari Faz 1'de olusturulacak. O zamana kadar kapali varsayilan
-        // implementasyonlar kayitli - hicbir uyelik dogrulanmaz, hicbir izin verilmez.
-        services.AddScoped<IMembershipProvider, DenyAllMembershipProvider>();
-        services.AddScoped<IPermissionProvider, DenyAllPermissionProvider>();
+        services.AddScoped<IMembershipProvider, EfMembershipProvider>();
+        services.AddScoped<IPermissionProvider, EfPermissionProvider>();
 
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(options =>

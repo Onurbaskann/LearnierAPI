@@ -4,6 +4,7 @@ using Learnier.Infrastructure.Events;
 using Learnier.Infrastructure.Identity;
 using Learnier.Infrastructure.Persistence;
 using Learnier.Infrastructure.Persistence.Interceptors;
+using Learnier.Infrastructure.Persistence.Seeding;
 using Learnier.Infrastructure.Time;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -58,6 +59,11 @@ public static class DependencyInjection
         });
 
         services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<AppDbContext>());
+
+        // Tohumlayicilar yalnizca acik "seed" komutunda calisir; kayitli olmalari
+        // baslangicta bir sey yapmalari anlamina gelmez.
+        services.AddScoped<SystemDataSeeder>();
+        services.AddScoped<DevelopmentDataSeeder>();
 
         services.AddIdentityServices(configuration);
 

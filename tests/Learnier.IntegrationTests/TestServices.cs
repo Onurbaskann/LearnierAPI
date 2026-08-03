@@ -16,6 +16,13 @@ namespace Learnier.IntegrationTests;
 internal static class TestServices
 {
     public static AsyncServiceScope CreateScope(PostgresFixture postgres)
+        => BuildProvider(postgres).CreateAsyncScope();
+
+    /// <summary>
+    /// Kok servis saglayicisi. Tohumlayici kendi kapsamini actigi icin ona
+    /// kapsam degil saglayicinin kendisi verilir.
+    /// </summary>
+    public static ServiceProvider BuildProvider(PostgresFixture postgres)
     {
         ArgumentNullException.ThrowIfNull(postgres);
 
@@ -41,7 +48,7 @@ internal static class TestServices
 
         services.AddInfrastructure(configuration);
 
-        return services.BuildServiceProvider().CreateAsyncScope();
+        return services.BuildServiceProvider();
     }
 
     /// <summary>

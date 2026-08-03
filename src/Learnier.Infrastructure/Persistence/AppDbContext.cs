@@ -160,12 +160,19 @@ public sealed class AppDbContext(
                 Expression.Constant(this),
                 nameof(CurrentOrganizationId));
 
-            var noTenant = Expression.Not(
-                Expression.Property(currentOrganizationId, nameof(Nullable<Guid>.HasValue)));
+            // Karsilastirma nullable tarafina yukseltilerek yapilir; ifadede
+            // Nullable.Value kullanilmaz. Sebebi ince ama olumcul: EF, closure
+            // uzerindeki uye erisimini sorgu parametresine cevirirken degerlendirir
+            // ve aktif organizasyon yokken .Value dogrudan
+            // "Nullable object must have a value" firlatirdi - yani filtrenin devre
+            // disi kalmasi gereken durum, tam da patladigi durum olurdu.
+            var noTenant = Expression.Equal(
+                currentOrganizationId,
+                Expression.Constant(null, typeof(Guid?)));
 
             var matchesTenant = Expression.Equal(
-                organizationIdProperty,
-                Expression.Property(currentOrganizationId, nameof(Nullable<Guid>.Value)));
+                Expression.Convert(organizationIdProperty, typeof(Guid?)),
+                currentOrganizationId);
 
             var filter = Expression.Lambda(
                 Expression.OrElse(noTenant, matchesTenant),

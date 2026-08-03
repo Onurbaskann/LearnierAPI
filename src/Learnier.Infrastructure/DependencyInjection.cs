@@ -2,7 +2,6 @@ using System.Text;
 using Learnier.Application.Common.Abstractions;
 using Learnier.Infrastructure.Events;
 using Learnier.Infrastructure.Identity;
-using Learnier.Infrastructure.Identity.Placeholders;
 using Learnier.Infrastructure.Persistence;
 using Learnier.Infrastructure.Persistence.Interceptors;
 using Learnier.Infrastructure.Time;
@@ -79,10 +78,8 @@ public static class DependencyInjection
         services.AddSingleton<IPasswordHasher, PasswordHasher>();
         services.AddScoped<ITokenService, JwtTokenService>();
 
-        // GECICI: RBAC tablolari Faz 1'de olusturulacak. O zamana kadar kapali varsayilan
-        // implementasyonlar kayitli - hicbir uyelik dogrulanmaz, hicbir izin verilmez.
-        services.AddScoped<IMembershipProvider, DenyAllMembershipProvider>();
-        services.AddScoped<IPermissionProvider, DenyAllPermissionProvider>();
+        services.AddScoped<IMembershipProvider, EfMembershipProvider>();
+        services.AddScoped<IPermissionProvider, EfPermissionProvider>();
 
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(options =>

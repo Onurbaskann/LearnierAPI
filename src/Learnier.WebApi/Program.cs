@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.Json.Serialization;
 using Learnier.Application;
 using Learnier.Application.Common.Abstractions;
 using Learnier.Infrastructure;
@@ -40,6 +41,14 @@ builder.Services.AddControllers(options =>
 {
     // Validation her action'da otomatik calisir; tek tek eklemek gerekmez.
     options.Filters.Add<ValidationFilter>();
+})
+.AddJsonOptions(options =>
+{
+    // Enum'lar metin olarak tasinir: istemci "Provider" gonderir, sayi degil.
+    // Bu olmadan enum alan iceren her istek baglama hatasiyla 400 doner.
+    // Gerekce enum'lari veritabaninda metin saklamakla ayni: sayi kullanilirsa
+    // enum uyelerinin sirasi degistiginde mevcut istemcilerin anlami sessizce kayar.
+    options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
 });
 
 builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");

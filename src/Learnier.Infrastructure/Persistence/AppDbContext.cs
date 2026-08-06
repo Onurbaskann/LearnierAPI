@@ -106,6 +106,7 @@ public sealed class AppDbContext(
         // Entity konfigurasyonlari Configurations klasorunde, entity basina bir dosya.
         modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
 
+        ConfigureClientGeneratedKeys(modelBuilder);
         ApplyTenantQueryFilters(modelBuilder);
         ApplyDerivedTenantQueryFilters(modelBuilder);
 
@@ -328,4 +329,40 @@ public sealed class AppDbContext(
     /// filtre sorguyu calistiran context'in guncel organizasyonunu kullanir.
     /// </remarks>
     private Guid? CurrentOrganizationId => currentTenant.OrganizationId;
+
+    /// <summary>
+    /// Birincil anahtarlarin uygulama tarafindan uretildigini EF'e bildirir.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Kimlikler <see cref="Entity"/> icinde <c>Guid.CreateVersion7()</c> ile nesne
+    /// olusturulurken uretilir. EF'in Guid anahtarlar icin varsayilan kurali ise
+    /// degerin veritabaninda uretildigini varsayar.
+    /// </para>
+    /// <para>
+    /// Bu ayar olmadan EF, kaydedilmis bir ebeveynin koleksiyonuna eklenen yeni
+    /// cocugu dolu anahtariyla gorup "zaten var" diye yorumluyor, <c>Added</c> yerine
+    /// <c>Modified</c> isaretliyor ve hicbir satiri etkilemeyen bir UPDATE uretip
+    /// <c>DbUpdateConcurrencyException</c> firlatiyordu.
+    /// </para>
+    /// <para>
+    /// Kok neden burada cozuldugu icin cagri yerlerinde <c>context.Add(...)</c>
+    /// hatirlamak gerekmiyor; unutulabilecek bir disiplin yerine modelde garanti.
+    /// </para>
+    /// </remarks>
+    private static void ConfigureClientGeneratedKeys(ModelBuilder modelBuilder)
+    {
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        {
+            var primaryKey = entityType.FindPrimaryKey();
+
+            if (primaryKey?.Properties is [{ ClrType: Type keyType } keyProperty]
+                && keyType == typeof(Guid))
+            {
+                modelBuilder.Entity(entityType.ClrType)
+                    .Property(keyProperty.Name)
+                    .ValueGeneratedNever();
+            }
+        }
+    }
 }

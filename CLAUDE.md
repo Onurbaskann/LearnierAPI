@@ -64,7 +64,7 @@ Manuel. `ToDto()` extension metotları veya sorgu içinde doğrudan `Select(x =>
 - `OrganizationId` **her tabloya konmaz.** Yalnızca üzerinden erişimin türetilemediği ana tablolara. `CourseModule` gibi `CourseId` üzerinden organizasyona ulaşan tablolara eklenmez.
 - Tenant izolasyonu `ITenantScoped` + EF global query filter ile. Her sorgunun organizasyon filtresi zorunlu.
 - **Uygulama başlangıcında otomatik migration yok.** Migration ayrı adımda uygulanır.
-- **Kaydedilmiş bir aggregate'e alt kayıt eklerken `context.Add(...)` çağırın.** PK'ler istemcide üretildiği için (`Guid.CreateVersion7()`) EF, `Unchanged` bir ebeveynin koleksiyonuna sonradan eklenen çocuğu "anahtarı dolu, demek ki mevcut" sayar; `Added` yerine `Modified` işaretler ve hiçbir satırı etkilemeyen bir UPDATE üretip `DbUpdateConcurrencyException` fırlatır. Örnek: veritabanından okunan bir `OrganizationMembership` üzerinde `AssignRole(...)`.
+- **PK'ler istemcide üretilir** (`Guid.CreateVersion7()`), veritabanında değil. Bu, `AppDbContext.ConfigureClientGeneratedKeys` ile tüm Guid anahtarlar için `ValueGeneratedNever` işaretlenerek EF'e bildirilir. Bu ayar olmasaydı EF, kaydedilmiş bir ebeveynin koleksiyonuna eklenen çocuğu "anahtarı dolu, demek ki mevcut" sayıp `Added` yerine `Modified` işaretler, hiçbir satırı etkilemeyen bir UPDATE üretir ve `DbUpdateConcurrencyException` fırlatırdı. Kök neden modelde çözüldüğü için çağrı yerlerinde ayrıca `context.Add(...)` hatırlamak **gerekmez**.
 
 ## Komutlar
 

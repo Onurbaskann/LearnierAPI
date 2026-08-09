@@ -22,6 +22,15 @@ public interface IUserRepository
     Task<User?> FindByEmailAsync(string email, CancellationToken cancellationToken);
 
     /// <summary>
+    /// Kimlige gore kullaniciyi bulur.
+    /// </summary>
+    /// <remarks>
+    /// Token yenilemede kullanilir: yenileme tokeni kullanici kimligini tasir,
+    /// ancak hesabin hala kullanilabilir durumda oldugu dogrulanmalidir.
+    /// </remarks>
+    Task<User?> FindByIdAsync(Guid userId, CancellationToken cancellationToken);
+
+    /// <summary>
     /// Kullanicinin aktif uyeliklerini, kurum bilgisi ve rol kodlariyla birlikte dondurur.
     /// </summary>
     /// <remarks>

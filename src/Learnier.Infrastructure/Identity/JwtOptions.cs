@@ -31,4 +31,11 @@ public sealed class JwtOptions
     /// </summary>
     [Range(1, 1440)]
     public int AccessTokenLifetimeMinutes { get; init; } = 15;
+
+    /// <summary>
+    /// Yenileme tokeni omru. Erisim tokeninin kisa tutulabilmesi bu sureye dayanir:
+    /// kullanici bu sure boyunca yeniden parola girmeden oturumunu surdurebilir.
+    /// </summary>
+    [Range(1, 365)]
+    public int RefreshTokenLifetimeDays { get; init; } = 30;
 }

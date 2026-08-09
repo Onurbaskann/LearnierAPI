@@ -13,6 +13,8 @@ namespace Learnier.Application.Features.Authentication.Commands.LoginUser;
 /// </remarks>
 public sealed class LoginUserHandler(
     IUserRepository users,
+    IRefreshTokenRepository refreshTokens,
+    IRefreshTokenFactory refreshTokenFactory,
     IPasswordHasher passwordHasher,
     ITokenService tokenService,
     IUnitOfWork unitOfWork)
@@ -60,15 +62,26 @@ public sealed class LoginUserHandler(
             // Parola dogru ancak ozet eski parametrelerle uretilmis. Kullanici
             // farkinda olmadan guncel algoritmaya tasinir.
             user.ChangePasswordHash(passwordHasher.Hash(command.Password));
-            await unitOfWork.SaveChangesAsync(cancellationToken);
         }
 
         var memberships = await users.GetActiveMembershipsAsync(user.Id, cancellationToken);
         var token = tokenService.CreateAccessToken(user.Id, user.Email);
+        var refreshToken = refreshTokenFactory.Create();
+
+        refreshTokens.Add(RefreshToken.Issue(
+            user.Id,
+            refreshToken.TokenHash,
+            refreshToken.IssuedAt,
+            refreshToken.ExpiresAt));
+
+        // Tek kayit: olasi parola ozeti yenilemesi ve yeni yenileme tokeni
+        // ayni islemde yazilir.
+        await unitOfWork.SaveChangesAsync(cancellationToken);
 
         return new LoginUserResult(
             token.Value,
             token.ExpiresAt,
+            refreshToken.RawToken,
             new AuthenticatedUser(user.Id, user.Email, user.FirstName, user.LastName),
             memberships);
     }

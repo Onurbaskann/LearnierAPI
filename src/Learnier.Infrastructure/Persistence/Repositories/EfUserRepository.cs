@@ -22,6 +22,9 @@ internal sealed class EfUserRepository(AppDbContext context) : IUserRepository
             .FirstOrDefaultAsync(u => u.Email == normalized, cancellationToken);
     }
 
+    public async Task<User?> FindByIdAsync(Guid userId, CancellationToken cancellationToken)
+        => await context.Users.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+
     public async Task<IReadOnlyList<UserMembership>> GetActiveMembershipsAsync(
         Guid userId,
         CancellationToken cancellationToken)

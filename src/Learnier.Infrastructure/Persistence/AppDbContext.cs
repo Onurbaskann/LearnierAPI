@@ -33,6 +33,8 @@ public sealed class AppDbContext(
 
     public DbSet<LearnerGuardian> LearnerGuardians => Set<LearnerGuardian>();
 
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+
     public DbSet<Subject> Subjects => Set<Subject>();
 
     public DbSet<Level> Levels => Set<Level>();

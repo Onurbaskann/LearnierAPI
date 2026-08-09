@@ -61,6 +61,7 @@ public static class DependencyInjection
 
         services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<AppDbContext>());
         services.AddScoped<IUserRepository, EfUserRepository>();
+        services.AddScoped<IRefreshTokenRepository, EfRefreshTokenRepository>();
 
         // Tohumlayicilar yalnizca acik "seed" komutunda calisir; kayitli olmalari
         // baslangicta bir sey yapmalari anlamina gelmez.
@@ -84,6 +85,7 @@ public static class DependencyInjection
             .ValidateOnStart();
 
         services.AddSingleton<IPasswordHasher, PasswordHasher>();
+        services.AddSingleton<IRefreshTokenFactory, RefreshTokenFactory>();
         services.AddScoped<ITokenService, JwtTokenService>();
 
         services.AddScoped<IMembershipProvider, EfMembershipProvider>();

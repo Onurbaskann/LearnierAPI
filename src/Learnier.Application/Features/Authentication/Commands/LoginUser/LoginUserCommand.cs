@@ -13,9 +13,14 @@ public sealed record LoginUserCommand(string Email, string Password);
 /// olabilir ve rolu her kurumda farklidir. Istemci aktif kurumu buradan secip
 /// sonraki isteklerde <c>X-Organization-Id</c> basligiyla tasir.
 /// </remarks>
+/// <param name="RefreshToken">
+/// Erisim tokeni suresi dolunca yenilemek icin kullanilir. Ham deger yalnizca burada
+/// gorunur; veritabaninda yalnizca ozeti saklanir.
+/// </param>
 public sealed record LoginUserResult(
     string AccessToken,
     DateTimeOffset ExpiresAt,
+    string RefreshToken,
     AuthenticatedUser User,
     IReadOnlyList<UserMembership> Memberships);
 

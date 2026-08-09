@@ -32,4 +32,13 @@ internal static class AuthenticationErrors
     /// Sebebi net soylemek, her istekte anlamsiz bir 403 almasindan iyidir.
     /// </remarks>
     public static Error EmailNotVerified => Error.Forbidden("auth.email_not_verified");
+
+    /// <summary>
+    /// Yenileme tokeni bulunamadi, suresi doldu veya iptal edilmis.
+    /// </summary>
+    /// <remarks>
+    /// Uc durum icin ayni kod bilerek donuluyor: ayirt edilseydi, elinde gecersiz
+    /// bir token olan biri o tokenin bir zamanlar gecerli olup olmadigini ogrenirdi.
+    /// </remarks>
+    public static Error InvalidRefreshToken => Error.Unauthorized("auth.invalid_refresh_token");
 }

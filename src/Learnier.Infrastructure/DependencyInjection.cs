@@ -70,6 +70,8 @@ public static class DependencyInjection
         services.AddScoped<IMembershipRepository, EfMembershipRepository>();
         services.AddScoped<ICatalogRepository, EfCatalogRepository>();
         services.AddScoped<ICatalogQueries, EfCatalogQueries>();
+        services.AddScoped<IInstructorRepository, EfInstructorRepository>();
+        services.AddScoped<IInstructorQueries, EfInstructorQueries>();
 
         // Gercek bir saglayici baglanana kadar e-postalar yalnizca loga yazilir;
         // uretime cikmadan once degistirilmeli (bkz. LoggingEmailSender).

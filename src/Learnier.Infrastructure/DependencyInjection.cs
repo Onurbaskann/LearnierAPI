@@ -64,6 +64,9 @@ public static class DependencyInjection
         services.AddScoped<IUserRepository, EfUserRepository>();
         services.AddScoped<IRefreshTokenRepository, EfRefreshTokenRepository>();
         services.AddScoped<IEmailVerificationTokenRepository, EfEmailVerificationTokenRepository>();
+        services.AddScoped<IOrganizationRepository, EfOrganizationRepository>();
+        services.AddScoped<IRoleRepository, EfRoleRepository>();
+        services.AddScoped<IMembershipRepository, EfMembershipRepository>();
 
         // Gercek bir saglayici baglanana kadar e-postalar yalnizca loga yazilir;
         // uretime cikmadan once degistirilmeli (bkz. LoggingEmailSender).
@@ -97,6 +100,7 @@ public static class DependencyInjection
 
         services.AddScoped<IMembershipProvider, EfMembershipProvider>();
         services.AddScoped<IPermissionProvider, EfPermissionProvider>();
+        services.AddScoped<IPermissionCacheInvalidator, PermissionCacheInvalidator>();
 
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(options =>

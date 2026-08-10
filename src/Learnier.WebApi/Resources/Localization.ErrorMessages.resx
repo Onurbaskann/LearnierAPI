@@ -139,4 +139,59 @@
   <data name="auth.invalid_verification_token" xml:space="preserve">
     <value>This verification link is invalid or has expired. Request a new one.</value>
   </data>
+
+  <data name="organization.slug_already_taken" xml:space="preserve">
+    <value>The short name "{slug}" is already in use.</value>
+  </data>
+  <data name="organization.not_found" xml:space="preserve">
+    <value>Organization not found.</value>
+  </data>
+  <data name="organization.user_already_member" xml:space="preserve">
+    <value>This user is already a member of the organization.</value>
+  </data>
+  <data name="organization.membership_not_found" xml:space="preserve">
+    <value>Membership not found.</value>
+  </data>
+  <data name="organization.user_not_found" xml:space="preserve">
+    <value>No registered user was found with this email address.</value>
+  </data>
+  <data name="organization.role_not_usable" xml:space="preserve">
+    <value>This role cannot be used in this organization.</value>
+  </data>
+  <data name="organization.name_required" xml:space="preserve">
+    <value>Organization name is required.</value>
+  </data>
+  <data name="organization.name_too_long" xml:space="preserve">
+    <value>Organization name is too long.</value>
+  </data>
+  <data name="organization.slug_required" xml:space="preserve">
+    <value>Short name is required.</value>
+  </data>
+  <data name="organization.slug_too_long" xml:space="preserve">
+    <value>Short name is too long.</value>
+  </data>
+  <data name="organization.slug_invalid" xml:space="preserve">
+    <value>Short name may contain only lowercase letters, digits and hyphens.</value>
+  </data>
+  <data name="organization.type_invalid" xml:space="preserve">
+    <value>Organization type is invalid.</value>
+  </data>
+  <data name="organization.timezone_required" xml:space="preserve">
+    <value>Time zone is required.</value>
+  </data>
+  <data name="organization.timezone_invalid" xml:space="preserve">
+    <value>Time zone is not recognized.</value>
+  </data>
+  <data name="organization.currency_required" xml:space="preserve">
+    <value>Currency is required.</value>
+  </data>
+  <data name="organization.currency_invalid" xml:space="preserve">
+    <value>Currency must be a three-letter code.</value>
+  </data>
+  <data name="organization.role_required" xml:space="preserve">
+    <value>Role is required.</value>
+  </data>
+  <data name="organization.membership_required" xml:space="preserve">
+    <value>Membership is required.</value>
+  </data>
 </root>

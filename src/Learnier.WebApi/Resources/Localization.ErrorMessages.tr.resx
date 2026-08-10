@@ -135,4 +135,59 @@
   <data name="auth.invalid_verification_token" xml:space="preserve">
     <value>Bu doğrulama bağlantısı geçersiz veya süresi dolmuş. Yeni bir bağlantı isteyin.</value>
   </data>
+
+  <data name="organization.slug_already_taken" xml:space="preserve">
+    <value>"{slug}" kısa adı zaten kullanımda.</value>
+  </data>
+  <data name="organization.not_found" xml:space="preserve">
+    <value>Organizasyon bulunamadı.</value>
+  </data>
+  <data name="organization.user_already_member" xml:space="preserve">
+    <value>Bu kullanıcı zaten organizasyonun üyesi.</value>
+  </data>
+  <data name="organization.membership_not_found" xml:space="preserve">
+    <value>Üyelik bulunamadı.</value>
+  </data>
+  <data name="organization.user_not_found" xml:space="preserve">
+    <value>Bu e-posta adresiyle kayıtlı kullanıcı bulunamadı.</value>
+  </data>
+  <data name="organization.role_not_usable" xml:space="preserve">
+    <value>Bu rol bu organizasyonda kullanılamaz.</value>
+  </data>
+  <data name="organization.name_required" xml:space="preserve">
+    <value>Organizasyon adı gerekli.</value>
+  </data>
+  <data name="organization.name_too_long" xml:space="preserve">
+    <value>Organizasyon adı çok uzun.</value>
+  </data>
+  <data name="organization.slug_required" xml:space="preserve">
+    <value>Kısa ad gerekli.</value>
+  </data>
+  <data name="organization.slug_too_long" xml:space="preserve">
+    <value>Kısa ad çok uzun.</value>
+  </data>
+  <data name="organization.slug_invalid" xml:space="preserve">
+    <value>Kısa ad yalnızca küçük harf, rakam ve tire içerebilir.</value>
+  </data>
+  <data name="organization.type_invalid" xml:space="preserve">
+    <value>Organizasyon türü geçersiz.</value>
+  </data>
+  <data name="organization.timezone_required" xml:space="preserve">
+    <value>Saat dilimi gerekli.</value>
+  </data>
+  <data name="organization.timezone_invalid" xml:space="preserve">
+    <value>Saat dilimi tanınmıyor.</value>
+  </data>
+  <data name="organization.currency_required" xml:space="preserve">
+    <value>Para birimi gerekli.</value>
+  </data>
+  <data name="organization.currency_invalid" xml:space="preserve">
+    <value>Para birimi üç harfli kod olmalı.</value>
+  </data>
+  <data name="organization.role_required" xml:space="preserve">
+    <value>Rol gerekli.</value>
+  </data>
+  <data name="organization.membership_required" xml:space="preserve">
+    <value>Üyelik gerekli.</value>
+  </data>
 </root>

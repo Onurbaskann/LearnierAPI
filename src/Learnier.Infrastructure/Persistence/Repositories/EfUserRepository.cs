@@ -25,6 +25,8 @@ internal sealed class EfUserRepository(AppDbContext context) : IUserRepository
     public async Task<User?> FindByIdAsync(Guid userId, CancellationToken cancellationToken)
         => await context.Users.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
 
+    public void Add(User user) => context.Users.Add(user);
+
     public async Task<IReadOnlyList<UserMembership>> GetActiveMembershipsAsync(
         Guid userId,
         CancellationToken cancellationToken)

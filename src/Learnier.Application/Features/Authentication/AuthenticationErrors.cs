@@ -41,4 +41,12 @@ internal static class AuthenticationErrors
     /// bir token olan biri o tokenin bir zamanlar gecerli olup olmadigini ogrenirdi.
     /// </remarks>
     public static Error InvalidRefreshToken => Error.Unauthorized("auth.invalid_refresh_token");
+
+    public static Error EmailAlreadyRegistered => Error.Conflict("auth.email_already_registered");
+
+    /// <summary>
+    /// Dogrulama tokeni bulunamadi, suresi doldu veya daha once kullanilmis.
+    /// </summary>
+    public static Error InvalidVerificationToken
+        => Error.Validation("auth.invalid_verification_token");
 }

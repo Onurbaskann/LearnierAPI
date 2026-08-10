@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Learnier.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260809163056_AddRefreshTokens")]
-    partial class AddRefreshTokens
+    [Migration("20260809165048_AddAuthTokens")]
+    partial class AddAuthTokens
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -1002,6 +1002,50 @@ namespace Learnier.Infrastructure.Persistence.Migrations
                     b.ToTable("subjects", null, t =>
                         {
                             t.HasCheckConstraint("ck_subjects_parent_not_self", "parent_subject_id IS NULL OR parent_subject_id <> id");
+                        });
+                });
+
+            modelBuilder.Entity("Learnier.Domain.Identity.EmailVerificationToken", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("ConsumedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("consumed_at");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("expires_at");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("token_hash");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_email_verification_tokens");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique()
+                        .HasDatabaseName("ix_email_verification_tokens_token_hash");
+
+                    b.HasIndex("UserId", "ExpiresAt")
+                        .HasDatabaseName("ix_email_verification_tokens_user_id_expires_at");
+
+                    b.ToTable("email_verification_tokens", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_email_verification_tokens_expires_after_creation", "expires_at > created_at");
                         });
                 });
 
@@ -2632,6 +2676,18 @@ namespace Learnier.Infrastructure.Persistence.Migrations
                         .HasForeignKey("ParentSubjectId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .HasConstraintName("fk_subjects_subjects_parent_subject_id");
+                });
+
+            modelBuilder.Entity("Learnier.Domain.Identity.EmailVerificationToken", b =>
+                {
+                    b.HasOne("Learnier.Domain.Identity.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_email_verification_tokens_users_user_id");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Learnier.Domain.Identity.LearnerGuardian", b =>

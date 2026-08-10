@@ -1,3 +1,4 @@
+using Learnier.Application.Common.Abstractions;
 using Learnier.Infrastructure.Persistence;
 using Learnier.Infrastructure.Persistence.Seeding;
 using Microsoft.AspNetCore.Hosting;
@@ -29,6 +30,34 @@ public sealed class AuthApiFixture : IAsyncLifetime
     public HttpClient CreateClient()
         => _factory?.CreateClient()
            ?? throw new InvalidOperationException("Fixture henuz baslatilmadi.");
+
+    /// <summary>
+    /// Ayni veritabanina dogrudan baglanan bir context uretir.
+    /// </summary>
+    /// <remarks>
+    /// HTTP ile gorulemeyen kayitlari hazirlamak veya dogrulamak icin. Ornegin
+    /// e-posta dogrulama tokeninin ham hali yalnizca gondericiye verilir; testin
+    /// akisi tamamlayabilmesi icin kaydi kendisi yazmasi gerekir.
+    /// </remarks>
+    public AppDbContext CreateContext()
+    {
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseNpgsql(_container.GetConnectionString())
+            .UseSnakeCaseNamingConvention()
+            .Options;
+
+        return new AppDbContext(options, new NoTenant());
+    }
+
+    /// <summary>Organizasyon kapsami disinda calisir; kiraci filtresi devre disi kalir.</summary>
+    private sealed class NoTenant : ICurrentTenant
+    {
+        public Guid? OrganizationId => null;
+
+        public Guid? MembershipId => null;
+
+        public bool HasTenant => false;
+    }
 
     public async ValueTask InitializeAsync()
     {

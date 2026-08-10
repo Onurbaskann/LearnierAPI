@@ -40,6 +40,8 @@ public interface IUserRepository
     Task<IReadOnlyList<UserMembership>> GetActiveMembershipsAsync(
         Guid userId,
         CancellationToken cancellationToken);
+
+    void Add(User user);
 }
 
 /// <param name="RoleCodes">Uyeligin bu kurumdaki rol kodlari, ornegin <c>student</c>.</param>

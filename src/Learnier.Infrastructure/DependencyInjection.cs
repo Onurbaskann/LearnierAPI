@@ -2,6 +2,7 @@ using System.Text;
 using Learnier.Application.Common.Abstractions;
 using Learnier.Infrastructure.Events;
 using Learnier.Infrastructure.Identity;
+using Learnier.Infrastructure.Notifications;
 using Learnier.Infrastructure.Persistence;
 using Learnier.Infrastructure.Persistence.Interceptors;
 using Learnier.Infrastructure.Persistence.Repositories;
@@ -62,6 +63,11 @@ public static class DependencyInjection
         services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<AppDbContext>());
         services.AddScoped<IUserRepository, EfUserRepository>();
         services.AddScoped<IRefreshTokenRepository, EfRefreshTokenRepository>();
+        services.AddScoped<IEmailVerificationTokenRepository, EfEmailVerificationTokenRepository>();
+
+        // Gercek bir saglayici baglanana kadar e-postalar yalnizca loga yazilir;
+        // uretime cikmadan once degistirilmeli (bkz. LoggingEmailSender).
+        services.AddSingleton<IEmailSender, LoggingEmailSender>();
 
         // Tohumlayicilar yalnizca acik "seed" komutunda calisir; kayitli olmalari
         // baslangicta bir sey yapmalari anlamina gelmez.
@@ -86,6 +92,7 @@ public static class DependencyInjection
 
         services.AddSingleton<IPasswordHasher, PasswordHasher>();
         services.AddSingleton<IRefreshTokenFactory, RefreshTokenFactory>();
+        services.AddSingleton<IEmailVerificationTokenFactory, EmailVerificationTokenFactory>();
         services.AddScoped<ITokenService, JwtTokenService>();
 
         services.AddScoped<IMembershipProvider, EfMembershipProvider>();

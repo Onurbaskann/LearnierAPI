@@ -105,4 +105,34 @@
     <value>Oturumunuzun süresi doldu. Lütfen tekrar giriş yapın.</value>
     <comment>Eksik, süresi dolmuş ve iptal edilmiş token bilerek ayırt edilmiyor; bkz. AuthenticationErrors.</comment>
   </data>
+  <data name="auth.email_already_registered" xml:space="preserve">
+    <value>Bu e-posta adresi zaten kayıtlı.</value>
+  </data>
+  <data name="auth.email_too_long" xml:space="preserve">
+    <value>E-posta adresi çok uzun.</value>
+  </data>
+  <data name="auth.password_too_short" xml:space="preserve">
+    <value>Parola en az 8 karakter olmalı.</value>
+  </data>
+  <data name="auth.password_too_long" xml:space="preserve">
+    <value>Parola çok uzun.</value>
+  </data>
+  <data name="auth.first_name_required" xml:space="preserve">
+    <value>Ad gerekli.</value>
+  </data>
+  <data name="auth.first_name_too_long" xml:space="preserve">
+    <value>Ad çok uzun.</value>
+  </data>
+  <data name="auth.last_name_required" xml:space="preserve">
+    <value>Soyad gerekli.</value>
+  </data>
+  <data name="auth.last_name_too_long" xml:space="preserve">
+    <value>Soyad çok uzun.</value>
+  </data>
+  <data name="auth.verification_token_required" xml:space="preserve">
+    <value>Doğrulama tokeni gerekli.</value>
+  </data>
+  <data name="auth.invalid_verification_token" xml:space="preserve">
+    <value>Bu doğrulama bağlantısı geçersiz veya süresi dolmuş. Yeni bir bağlantı isteyin.</value>
+  </data>
 </root>

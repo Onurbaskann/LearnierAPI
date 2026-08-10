@@ -36,4 +36,7 @@ internal static class AuthenticationErrors
 
     public static Error EmailAlreadyRegistered => Error.Conflict("auth.email_already_registered");
 
+    public static Error InvalidPasswordResetToken
+        => Error.Validation("auth.invalid_password_reset_token");
+
 }

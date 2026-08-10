@@ -442,4 +442,10 @@
   <data name="scheduling.session_required" xml:space="preserve">
     <value>Oturum gerekli.</value>
   </data>
+  <data name="auth.password_reset_token_required" xml:space="preserve">
+    <value>Parola sıfırlama kodu gerekli.</value>
+  </data>
+  <data name="auth.invalid_password_reset_token" xml:space="preserve">
+    <value>Bu parola sıfırlama bağlantısı geçersiz veya süresi dolmuş.</value>
+  </data>
 </root>

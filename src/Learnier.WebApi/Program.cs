@@ -87,6 +87,7 @@ builder.Services.Configure<RequestLocalizationOptions>(options =>
 // Sadece L1 (in-memory). Redis eklendiginde AddStackExchangeRedisCache yeterli olur;
 // GetOrCreateAsync cagrilari degismez.
 builder.Services.AddHybridCache();
+builder.Services.AddMemoryCache();
 
 // Policy adi dogrudan izin kodu olarak yorumlanir; her izin icin ayri kayit gerekmez.
 builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();

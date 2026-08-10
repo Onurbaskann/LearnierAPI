@@ -19,4 +19,12 @@ internal sealed class EfRefreshTokenRepository(AppDbContext context) : IRefreshT
     }
 
     public void Add(RefreshToken token) => context.RefreshTokens.Add(token);
+
+    public async Task<IReadOnlyList<RefreshToken>> FindActiveByUserIdAsync(
+        Guid userId,
+        DateTimeOffset now,
+        CancellationToken cancellationToken)
+        => await context.RefreshTokens
+            .Where(t => t.UserId == userId && t.RevokedAt == null && t.ExpiresAt > now)
+            .ToListAsync(cancellationToken);
 }

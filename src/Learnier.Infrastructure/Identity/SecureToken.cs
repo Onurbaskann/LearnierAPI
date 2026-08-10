@@ -8,8 +8,8 @@ namespace Learnier.Infrastructure.Identity;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Hem yenileme hem e-posta dogrulama tokenleri ayni ureticiyi kullanir: ikisi de
-/// veritabaninda aranan, imzayla dogrulanmayan opak degerlerdir. Tek guvenlik
+/// Yenileme ve parola sifirlama tokenleri ayni ureticiyi kullanir: ikisi de
+/// ozetiyle aranan, imzayla dogrulanmayan opak degerlerdir. Tek guvenlik
 /// dayanaklari tahmin edilemez olmalari.
 /// </para>
 /// <para>
@@ -38,7 +38,7 @@ internal static class SecureToken
 
     /// <summary>
     /// URL ve HTTP basliklarinda sorun cikarmayan bicim: <c>+ / =</c> karakterleri yok.
-    /// E-posta dogrulama baglantisinda token adres icinde tasindigi icin bu onemli.
+    /// Parola sifirlama baglantisinda token adres icinde tasindigi icin bu onemli.
     /// </summary>
     private static string Base64UrlEncode(byte[] bytes)
         => Convert.ToBase64String(bytes)

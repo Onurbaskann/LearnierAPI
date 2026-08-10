@@ -111,8 +111,14 @@ public static class DependencyInjection
             .ValidateOnStart();
 
         services.AddSingleton<IPasswordHasher, PasswordHasher>();
+        services.AddSingleton<IPasswordResetTokenStore, MemoryPasswordResetTokenStore>();
         services.AddSingleton<IRefreshTokenFactory, RefreshTokenFactory>();
         services.AddScoped<ITokenService, JwtTokenService>();
+
+        services.AddOptions<PasswordResetOptions>()
+            .Bind(configuration.GetSection(PasswordResetOptions.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
 
         services.AddScoped<IMembershipProvider, EfMembershipProvider>();
         services.AddScoped<IPermissionProvider, EfPermissionProvider>();

@@ -180,22 +180,35 @@ public sealed class LessonSession : AggregateRoot, IAuditableEntity, ITenantScop
     /// <summary>
     /// Ogrenciye yer ayirir. Kontenjan doluysa rezervasyon bekleme listesine alinir.
     /// </summary>
+    /// <param name="reservedSeatCount">
+    /// Bu rezervasyon oncesindeki dolu koltuk sayisi.
+    /// </param>
+    /// <remarks>
+    /// <para>
+    /// Sayimin disaridan verilmesi bilincli. Rezervasyon akisi oturumu satir kilidiyle,
+    /// rezervasyonlarini yuklemeden okur; <see cref="ReservedSeatCount"/> orada eksik
+    /// kalir ve es zamanli isteklerde kontenjan asilirdi. Cagiran taraf sayimi
+    /// veritabanindan, kilit altinda yapmalidir.
+    /// </para>
+    /// <para>
+    /// Ayni ogrencinin ikinci kez rezervasyon yapmasi burada engellenmez; o kontrol
+    /// de veritabanina aittir ve <c>session_bookings(session_id, learner_user_id)</c>
+    /// UNIQUE kisiti son savunma hatti olarak durur.
+    /// </para>
+    /// </remarks>
     public SessionBooking Book(
         Guid learnerUserId,
         Guid bookedByUserId,
         BookingAccessSource accessSource,
         DateTimeOffset bookedAt,
+        int reservedSeatCount,
         Guid? subscriptionId = null)
     {
-        var existing = _bookings.Find(b =>
-            b.LearnerUserId == learnerUserId && b.Status is not BookingStatus.Cancelled);
+        ArgumentOutOfRangeException.ThrowIfNegative(reservedSeatCount);
 
-        if (existing is not null)
-        {
-            return existing;
-        }
-
-        var status = HasCapacityFor() ? BookingStatus.Reserved : BookingStatus.Waitlisted;
+        var status = reservedSeatCount < Capacity
+            ? BookingStatus.Reserved
+            : BookingStatus.Waitlisted;
 
         var booking = SessionBooking.Create(
             Id,
@@ -213,9 +226,17 @@ public sealed class LessonSession : AggregateRoot, IAuditableEntity, ITenantScop
     /// <summary>
     /// Asgari katilimci sarti saglandiysa oturumu kesinlestirir.
     /// </summary>
-    public void Confirm()
+    /// <param name="reservedSeatCount">
+    /// Dolu koltuk sayisi. Disaridan verilmesi bilincli: rezervasyon akisi oturumu
+    /// satir kilidiyle rezervasyonlarini yuklemeden okur, bu yuzden
+    /// <see cref="ReservedSeatCount"/> orada eksik kalir ve sarti hep yanlis degerlendirirdi.
+    /// Cagiran taraf sayimi veritabanindan yapmalidir.
+    /// </param>
+    public void Confirm(int reservedSeatCount)
     {
-        if (Status is not LessonSessionStatus.Scheduled || ReservedSeatCount < MinimumParticipants)
+        ArgumentOutOfRangeException.ThrowIfNegative(reservedSeatCount);
+
+        if (Status is not LessonSessionStatus.Scheduled || reservedSeatCount < MinimumParticipants)
         {
             return;
         }

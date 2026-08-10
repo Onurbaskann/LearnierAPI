@@ -7,6 +7,7 @@ using Learnier.Infrastructure.Persistence;
 using Learnier.Infrastructure.Persistence.Interceptors;
 using Learnier.Infrastructure.Persistence.Queries;
 using Learnier.Infrastructure.Persistence.Repositories;
+using Learnier.Infrastructure.Scheduling;
 using Learnier.Infrastructure.Persistence.Seeding;
 using Learnier.Infrastructure.Time;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -72,6 +73,11 @@ public static class DependencyInjection
         services.AddScoped<ICatalogQueries, EfCatalogQueries>();
         services.AddScoped<IInstructorRepository, EfInstructorRepository>();
         services.AddScoped<IInstructorQueries, EfInstructorQueries>();
+        services.AddScoped<ISchedulingRepository, EfSchedulingRepository>();
+
+        // GECICI: abonelik ve kredi defteri Faz 4'te gelecek. Bu yer tutucu her
+        // rezervasyona izin verir - bkz. DirectPurchaseEntitlementPolicy.
+        services.AddScoped<IBookingEntitlementPolicy, DirectPurchaseEntitlementPolicy>();
 
         // Gercek bir saglayici baglanana kadar e-postalar yalnizca loga yazilir;
         // uretime cikmadan once degistirilmeli (bkz. LoggingEmailSender).

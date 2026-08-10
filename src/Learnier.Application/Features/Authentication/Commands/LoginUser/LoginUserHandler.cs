@@ -54,7 +54,7 @@ public sealed class LoginUserHandler(
 
         if (user.Status is UserStatus.Pending)
         {
-            return AuthenticationErrors.EmailNotVerified;
+            return AuthenticationErrors.AccountInactive;
         }
 
         if (verification is PasswordVerificationOutcome.SuccessRehashNeeded)

@@ -95,8 +95,8 @@
   <data name="auth.account_suspended" xml:space="preserve">
     <value>Bu hesap askıya alınmış. Lütfen destek ile iletişime geçin.</value>
   </data>
-  <data name="auth.email_not_verified" xml:space="preserve">
-    <value>Giriş yapmadan önce e-posta adresinizi doğrulayın.</value>
+  <data name="auth.account_inactive" xml:space="preserve">
+    <value>Bu hesap henüz aktif değil.</value>
   </data>
   <data name="auth.refresh_token_required" xml:space="preserve">
     <value>Yenileme tokeni gerekli.</value>
@@ -131,9 +131,6 @@
   </data>
   <data name="auth.verification_token_required" xml:space="preserve">
     <value>Doğrulama tokeni gerekli.</value>
-  </data>
-  <data name="auth.invalid_verification_token" xml:space="preserve">
-    <value>Bu doğrulama bağlantısı geçersiz veya süresi dolmuş. Yeni bir bağlantı isteyin.</value>
   </data>
 
   <data name="organization.slug_already_taken" xml:space="preserve">

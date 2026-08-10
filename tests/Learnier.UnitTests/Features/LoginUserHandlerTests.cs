@@ -119,16 +119,16 @@ public sealed class LoginUserHandlerTests
     }
 
     [Fact]
-    public async Task Fails_WhenEmailIsNotVerified()
+    public async Task Fails_WhenAccountIsInactive()
     {
-        // Register sonrasi dogrulanmamis hesap.
+        // Davet gibi baska bir akistan bekleyen hesap.
         SetupUser(User.Register("a@b.com", "Ad", "Soyad", Hash));
         _passwordHasher.Verify(Hash, Password).Returns(PasswordVerificationOutcome.Success);
 
         var result = await _handler.Handle(new LoginUserCommand("a@b.com", Password), TestContext.Current.CancellationToken);
 
         result.IsFailure.ShouldBeTrue();
-        result.Error.Code.ShouldBe("auth.email_not_verified");
+        result.Error.Code.ShouldBe("auth.account_inactive");
     }
 
     [Fact]

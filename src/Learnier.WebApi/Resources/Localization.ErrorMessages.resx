@@ -99,8 +99,8 @@
   <data name="auth.account_suspended" xml:space="preserve">
     <value>This account has been suspended. Please contact support.</value>
   </data>
-  <data name="auth.email_not_verified" xml:space="preserve">
-    <value>Verify your email address before signing in.</value>
+  <data name="auth.account_inactive" xml:space="preserve">
+    <value>This account is not active yet.</value>
   </data>
   <data name="auth.refresh_token_required" xml:space="preserve">
     <value>Refresh token is required.</value>
@@ -135,9 +135,6 @@
   </data>
   <data name="auth.verification_token_required" xml:space="preserve">
     <value>Verification token is required.</value>
-  </data>
-  <data name="auth.invalid_verification_token" xml:space="preserve">
-    <value>This verification link is invalid or has expired. Request a new one.</value>
   </data>
 
   <data name="organization.slug_already_taken" xml:space="preserve">

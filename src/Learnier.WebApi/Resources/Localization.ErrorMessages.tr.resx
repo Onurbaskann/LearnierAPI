@@ -363,4 +363,86 @@
   <data name="teaching.override_reason_too_long" xml:space="preserve">
     <value>Gerekçe çok uzun.</value>
   </data>
+
+  <data name="scheduling.course_not_found" xml:space="preserve">
+    <value>Eğitim bulunamadı.</value>
+  </data>
+  <data name="scheduling.class_group_not_found" xml:space="preserve">
+    <value>Sınıf bulunamadı.</value>
+  </data>
+  <data name="scheduling.class_group_full" xml:space="preserve">
+    <value>Bu sınıfın kontenjanı ({capacity} kişi) dolmuştur.</value>
+  </data>
+  <data name="scheduling.learner_not_found" xml:space="preserve">
+    <value>Seçilen öğrenci mevcut değil.</value>
+  </data>
+  <data name="scheduling.session_not_found" xml:space="preserve">
+    <value>Oturum bulunamadı.</value>
+  </data>
+  <data name="scheduling.instructor_not_found" xml:space="preserve">
+    <value>Seçilen eğitmen mevcut değil.</value>
+  </data>
+  <data name="scheduling.instructor_busy" xml:space="preserve">
+    <value>Eğitmen bu saatte başka bir oturuma atanmış.</value>
+  </data>
+  <data name="scheduling.session_not_bookable" xml:space="preserve">
+    <value>Bu oturum rezervasyona kapalı.</value>
+  </data>
+  <data name="scheduling.already_booked" xml:space="preserve">
+    <value>Bu oturum için zaten bir rezervasyonunuz var.</value>
+  </data>
+  <data name="scheduling.booking_not_found" xml:space="preserve">
+    <value>Rezervasyon bulunamadı.</value>
+  </data>
+  <data name="scheduling.booking_not_owned" xml:space="preserve">
+    <value>Yalnızca kendi rezervasyonlarınızı yönetebilirsiniz.</value>
+  </data>
+  <data name="scheduling.session_already_started" xml:space="preserve">
+    <value>Oturum başlamış durumda.</value>
+  </data>
+  <data name="scheduling.course_required" xml:space="preserve">
+    <value>Eğitim gerekli.</value>
+  </data>
+  <data name="scheduling.class_group_name_required" xml:space="preserve">
+    <value>Sınıf adı gerekli.</value>
+  </data>
+  <data name="scheduling.class_group_name_too_long" xml:space="preserve">
+    <value>Sınıf adı çok uzun.</value>
+  </data>
+  <data name="scheduling.delivery_type_invalid" xml:space="preserve">
+    <value>Sınıf işleyiş türü geçersiz.</value>
+  </data>
+  <data name="scheduling.capacity_invalid" xml:space="preserve">
+    <value>Kontenjan 1 ile 1000 arasında olmalı.</value>
+  </data>
+  <data name="scheduling.date_range_invalid" xml:space="preserve">
+    <value>Bitiş tarihi başlangıçtan önce olamaz.</value>
+  </data>
+  <data name="scheduling.learner_required" xml:space="preserve">
+    <value>Öğrenci gerekli.</value>
+  </data>
+  <data name="scheduling.session_type_invalid" xml:space="preserve">
+    <value>Oturum türü geçersiz.</value>
+  </data>
+  <data name="scheduling.session_time_range_invalid" xml:space="preserve">
+    <value>Bitiş saati başlangıçtan sonra olmalı.</value>
+  </data>
+  <data name="scheduling.minimum_participants_invalid" xml:space="preserve">
+    <value>Asgari katılımcı sayısı negatif olamaz.</value>
+  </data>
+  <data name="scheduling.minimum_exceeds_capacity" xml:space="preserve">
+    <value>Asgari katılımcı sayısı kontenjanı aşamaz.</value>
+  </data>
+  <data name="scheduling.booking_window_invalid" xml:space="preserve">
+    <value>Rezervasyon kapanışı açılıştan önce olamaz.</value>
+  </data>
+  <data name="scheduling.instructor_required" xml:space="preserve">
+    <value>Eğitmen gerekli.</value>
+  </data>
+  <data name="scheduling.instructor_role_invalid" xml:space="preserve">
+    <value>Eğitmen rolü geçersiz.</value>
+  </data>
+  <data name="scheduling.session_required" xml:space="preserve">
+    <value>Oturum gerekli.</value>
+  </data>
 </root>

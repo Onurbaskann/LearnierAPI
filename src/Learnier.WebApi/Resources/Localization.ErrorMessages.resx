@@ -367,4 +367,86 @@
   <data name="teaching.override_reason_too_long" xml:space="preserve">
     <value>Reason is too long.</value>
   </data>
+
+  <data name="scheduling.course_not_found" xml:space="preserve">
+    <value>Course not found.</value>
+  </data>
+  <data name="scheduling.class_group_not_found" xml:space="preserve">
+    <value>Class group not found.</value>
+  </data>
+  <data name="scheduling.class_group_full" xml:space="preserve">
+    <value>This class group is full ({capacity} seats).</value>
+  </data>
+  <data name="scheduling.learner_not_found" xml:space="preserve">
+    <value>The selected learner does not exist.</value>
+  </data>
+  <data name="scheduling.session_not_found" xml:space="preserve">
+    <value>Session not found.</value>
+  </data>
+  <data name="scheduling.instructor_not_found" xml:space="preserve">
+    <value>The selected instructor does not exist.</value>
+  </data>
+  <data name="scheduling.instructor_busy" xml:space="preserve">
+    <value>The instructor is already assigned to another session at this time.</value>
+  </data>
+  <data name="scheduling.session_not_bookable" xml:space="preserve">
+    <value>This session is not open for booking.</value>
+  </data>
+  <data name="scheduling.already_booked" xml:space="preserve">
+    <value>A booking already exists for this session.</value>
+  </data>
+  <data name="scheduling.booking_not_found" xml:space="preserve">
+    <value>Booking not found.</value>
+  </data>
+  <data name="scheduling.booking_not_owned" xml:space="preserve">
+    <value>You can only manage your own bookings.</value>
+  </data>
+  <data name="scheduling.session_already_started" xml:space="preserve">
+    <value>The session has already started.</value>
+  </data>
+  <data name="scheduling.course_required" xml:space="preserve">
+    <value>Course is required.</value>
+  </data>
+  <data name="scheduling.class_group_name_required" xml:space="preserve">
+    <value>Class group name is required.</value>
+  </data>
+  <data name="scheduling.class_group_name_too_long" xml:space="preserve">
+    <value>Class group name is too long.</value>
+  </data>
+  <data name="scheduling.delivery_type_invalid" xml:space="preserve">
+    <value>Delivery type is invalid.</value>
+  </data>
+  <data name="scheduling.capacity_invalid" xml:space="preserve">
+    <value>Capacity must be between 1 and 1000.</value>
+  </data>
+  <data name="scheduling.date_range_invalid" xml:space="preserve">
+    <value>End date cannot be earlier than start date.</value>
+  </data>
+  <data name="scheduling.learner_required" xml:space="preserve">
+    <value>Learner is required.</value>
+  </data>
+  <data name="scheduling.session_type_invalid" xml:space="preserve">
+    <value>Session type is invalid.</value>
+  </data>
+  <data name="scheduling.session_time_range_invalid" xml:space="preserve">
+    <value>End time must be later than start time.</value>
+  </data>
+  <data name="scheduling.minimum_participants_invalid" xml:space="preserve">
+    <value>Minimum participants cannot be negative.</value>
+  </data>
+  <data name="scheduling.minimum_exceeds_capacity" xml:space="preserve">
+    <value>Minimum participants cannot exceed capacity.</value>
+  </data>
+  <data name="scheduling.booking_window_invalid" xml:space="preserve">
+    <value>Booking close time cannot be earlier than open time.</value>
+  </data>
+  <data name="scheduling.instructor_required" xml:space="preserve">
+    <value>Instructor is required.</value>
+  </data>
+  <data name="scheduling.instructor_role_invalid" xml:space="preserve">
+    <value>Instructor role is invalid.</value>
+  </data>
+  <data name="scheduling.session_required" xml:space="preserve">
+    <value>Session is required.</value>
+  </data>
 </root>

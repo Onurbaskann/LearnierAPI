@@ -293,4 +293,74 @@
   <data name="catalog.sort_order_invalid" xml:space="preserve">
     <value>Sıra numarası negatif olamaz.</value>
   </data>
+
+  <data name="teaching.membership_not_found" xml:space="preserve">
+    <value>Üyelik bulunamadı.</value>
+  </data>
+  <data name="teaching.profile_already_exists" xml:space="preserve">
+    <value>Bu üyeliğin zaten bir eğitmen profili var.</value>
+  </data>
+  <data name="teaching.profile_not_found" xml:space="preserve">
+    <value>Eğitmen profili bulunamadı.</value>
+  </data>
+  <data name="teaching.profile_not_owned" xml:space="preserve">
+    <value>Yalnızca kendi eğitmen profilinizi yönetebilirsiniz.</value>
+  </data>
+  <data name="teaching.subject_not_found" xml:space="preserve">
+    <value>Seçilen eğitim alanı mevcut değil.</value>
+  </data>
+  <data name="teaching.level_not_found" xml:space="preserve">
+    <value>Seçilen seviye mevcut değil.</value>
+  </data>
+  <data name="teaching.level_subject_mismatch" xml:space="preserve">
+    <value>Seçilen seviye başka bir alana ait.</value>
+  </data>
+  <data name="teaching.availability_overlaps" xml:space="preserve">
+    <value>Bu saat aralığı mevcut bir uygunlukla çakışıyor.</value>
+  </data>
+  <data name="teaching.availability_not_found" xml:space="preserve">
+    <value>Uygunluk kaydı bulunamadı.</value>
+  </data>
+  <data name="teaching.timezone_required" xml:space="preserve">
+    <value>Saat dilimi gerekli.</value>
+  </data>
+  <data name="teaching.timezone_invalid" xml:space="preserve">
+    <value>Saat dilimi tanınmıyor.</value>
+  </data>
+  <data name="teaching.bio_too_long" xml:space="preserve">
+    <value>Biyografi çok uzun.</value>
+  </data>
+  <data name="teaching.hourly_rate_invalid" xml:space="preserve">
+    <value>Saatlik ücret negatif olamaz.</value>
+  </data>
+  <data name="teaching.hourly_rate_required" xml:space="preserve">
+    <value>Para birimi verildiğinde saatlik ücret de gerekli.</value>
+  </data>
+  <data name="teaching.currency_required" xml:space="preserve">
+    <value>Saatlik ücret verildiğinde para birimi de gerekli.</value>
+  </data>
+  <data name="teaching.currency_invalid" xml:space="preserve">
+    <value>Para birimi üç harfli kod olmalı.</value>
+  </data>
+  <data name="teaching.day_of_week_invalid" xml:space="preserve">
+    <value>Haftanın günü geçersiz.</value>
+  </data>
+  <data name="teaching.availability_time_range_invalid" xml:space="preserve">
+    <value>Bitiş saati başlangıçtan sonra olmalı.</value>
+  </data>
+  <data name="teaching.availability_date_range_invalid" xml:space="preserve">
+    <value>Geçerlilik bitişi başlangıçtan önce olamaz.</value>
+  </data>
+  <data name="teaching.override_type_invalid" xml:space="preserve">
+    <value>İstisna türü geçersiz.</value>
+  </data>
+  <data name="teaching.override_times_incomplete" xml:space="preserve">
+    <value>Başlangıç ve bitiş saatini birlikte verin veya ikisini de boş bırakın.</value>
+  </data>
+  <data name="teaching.override_time_range_invalid" xml:space="preserve">
+    <value>Bitiş saati başlangıçtan sonra olmalı.</value>
+  </data>
+  <data name="teaching.override_reason_too_long" xml:space="preserve">
+    <value>Gerekçe çok uzun.</value>
+  </data>
 </root>

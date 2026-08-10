@@ -20,10 +20,10 @@ namespace Learnier.IntegrationTests;
 /// </remarks>
 public sealed class RegistrationFlowTests(AuthApiFixture fixture) : IClassFixture<AuthApiFixture>
 {
-    private static readonly Uri RegisterEndpoint = new("/api/auth/register", UriKind.Relative);
-    private static readonly Uri VerifyEndpoint = new("/api/auth/verify-email", UriKind.Relative);
-    private static readonly Uri LoginEndpoint = new("/api/auth/login", UriKind.Relative);
-    private static readonly Uri RefreshEndpoint = new("/api/auth/refresh", UriKind.Relative);
+    private static readonly Uri RegisterEndpoint = new("/api/v1/auth/register", UriKind.Relative);
+    private static readonly Uri VerifyEndpoint = new("/api/v1/auth/verify-email", UriKind.Relative);
+    private static readonly Uri LoginEndpoint = new("/api/v1/auth/login", UriKind.Relative);
+    private static readonly Uri RefreshEndpoint = new("/api/v1/auth/refresh", UriKind.Relative);
 
     private const string Password = "CokGuvenli123";
 

@@ -17,7 +17,7 @@ namespace Learnier.IntegrationTests;
 /// </remarks>
 public sealed class AuthEndpointTests(AuthApiFixture fixture) : IClassFixture<AuthApiFixture>
 {
-    private static readonly Uri LoginEndpoint = new("/api/auth/login", UriKind.Relative);
+    private static readonly Uri LoginEndpoint = new("/api/v1/auth/login", UriKind.Relative);
     private static readonly Uri HealthEndpoint = new("/health", UriKind.Relative);
 
     private const string OrganizationHeader = "X-Organization-Id";

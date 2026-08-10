@@ -16,7 +16,7 @@ namespace Learnier.WebApi.Controllers;
 /// <c>X-Organization-Id</c> basligiyla belirtilir.
 /// </remarks>
 [ApiController]
-[Route("api/organizations")]
+[Route("api/v1/organizations")]
 [Authorize]
 public sealed class OrganizationsController : ControllerBase
 {

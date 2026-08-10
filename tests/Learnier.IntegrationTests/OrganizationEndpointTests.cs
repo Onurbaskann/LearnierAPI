@@ -22,9 +22,9 @@ namespace Learnier.IntegrationTests;
 /// </remarks>
 public sealed class OrganizationEndpointTests(AuthApiFixture fixture) : IClassFixture<AuthApiFixture>
 {
-    private static readonly Uri OrganizationsEndpoint = new("/api/organizations", UriKind.Relative);
-    private static readonly Uri MembersEndpoint = new("/api/organizations/members", UriKind.Relative);
-    private static readonly Uri LoginEndpoint = new("/api/auth/login", UriKind.Relative);
+    private static readonly Uri OrganizationsEndpoint = new("/api/v1/organizations", UriKind.Relative);
+    private static readonly Uri MembersEndpoint = new("/api/v1/organizations/members", UriKind.Relative);
+    private static readonly Uri LoginEndpoint = new("/api/v1/auth/login", UriKind.Relative);
 
     private const string OrganizationHeader = "X-Organization-Id";
 

@@ -5,6 +5,7 @@ using Learnier.Infrastructure.Identity;
 using Learnier.Infrastructure.Notifications;
 using Learnier.Infrastructure.Persistence;
 using Learnier.Infrastructure.Persistence.Interceptors;
+using Learnier.Infrastructure.Persistence.Queries;
 using Learnier.Infrastructure.Persistence.Repositories;
 using Learnier.Infrastructure.Persistence.Seeding;
 using Learnier.Infrastructure.Time;
@@ -67,6 +68,8 @@ public static class DependencyInjection
         services.AddScoped<IOrganizationRepository, EfOrganizationRepository>();
         services.AddScoped<IRoleRepository, EfRoleRepository>();
         services.AddScoped<IMembershipRepository, EfMembershipRepository>();
+        services.AddScoped<ICatalogRepository, EfCatalogRepository>();
+        services.AddScoped<ICatalogQueries, EfCatalogQueries>();
 
         // Gercek bir saglayici baglanana kadar e-postalar yalnizca loga yazilir;
         // uretime cikmadan once degistirilmeli (bkz. LoggingEmailSender).

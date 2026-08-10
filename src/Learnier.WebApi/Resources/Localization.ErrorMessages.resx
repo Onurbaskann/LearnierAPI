@@ -194,4 +194,107 @@
   <data name="organization.membership_required" xml:space="preserve">
     <value>Membership is required.</value>
   </data>
+
+  <data name="catalog.subject_slug_already_taken" xml:space="preserve">
+    <value>The subject short name "{slug}" is already in use.</value>
+  </data>
+  <data name="catalog.subject_not_found" xml:space="preserve">
+    <value>Subject not found.</value>
+  </data>
+  <data name="catalog.parent_subject_not_found" xml:space="preserve">
+    <value>The selected parent subject does not exist.</value>
+  </data>
+  <data name="catalog.level_code_already_taken" xml:space="preserve">
+    <value>The level code "{code}" is already used in this subject.</value>
+  </data>
+  <data name="catalog.level_not_found" xml:space="preserve">
+    <value>The selected level does not exist.</value>
+  </data>
+  <data name="catalog.level_subject_mismatch" xml:space="preserve">
+    <value>The selected level belongs to a different subject.</value>
+  </data>
+  <data name="catalog.course_not_found" xml:space="preserve">
+    <value>Course not found.</value>
+  </data>
+  <data name="catalog.module_not_found" xml:space="preserve">
+    <value>Module not found.</value>
+  </data>
+  <data name="catalog.course_not_draft" xml:space="preserve">
+    <value>Only a draft course can be published.</value>
+  </data>
+  <data name="catalog.subject_name_required" xml:space="preserve">
+    <value>Subject name is required.</value>
+  </data>
+  <data name="catalog.subject_name_too_long" xml:space="preserve">
+    <value>Subject name is too long.</value>
+  </data>
+  <data name="catalog.subject_slug_required" xml:space="preserve">
+    <value>Subject short name is required.</value>
+  </data>
+  <data name="catalog.subject_slug_too_long" xml:space="preserve">
+    <value>Subject short name is too long.</value>
+  </data>
+  <data name="catalog.subject_slug_invalid" xml:space="preserve">
+    <value>Short name may contain only lowercase letters, digits and hyphens.</value>
+  </data>
+  <data name="catalog.subject_required" xml:space="preserve">
+    <value>Subject is required.</value>
+  </data>
+  <data name="catalog.level_code_required" xml:space="preserve">
+    <value>Level code is required.</value>
+  </data>
+  <data name="catalog.level_code_too_long" xml:space="preserve">
+    <value>Level code is too long.</value>
+  </data>
+  <data name="catalog.level_name_required" xml:space="preserve">
+    <value>Level name is required.</value>
+  </data>
+  <data name="catalog.level_name_too_long" xml:space="preserve">
+    <value>Level name is too long.</value>
+  </data>
+  <data name="catalog.course_title_required" xml:space="preserve">
+    <value>Course title is required.</value>
+  </data>
+  <data name="catalog.course_title_too_long" xml:space="preserve">
+    <value>Course title is too long.</value>
+  </data>
+  <data name="catalog.course_type_invalid" xml:space="preserve">
+    <value>Course type is invalid.</value>
+  </data>
+  <data name="catalog.course_duration_invalid" xml:space="preserve">
+    <value>Duration must be between 5 and 600 minutes.</value>
+  </data>
+  <data name="catalog.course_min_participants_invalid" xml:space="preserve">
+    <value>Minimum participants must be greater than zero.</value>
+  </data>
+  <data name="catalog.course_max_participants_invalid" xml:space="preserve">
+    <value>Maximum participants cannot be less than the minimum.</value>
+  </data>
+  <data name="catalog.course_description_too_long" xml:space="preserve">
+    <value>Course description is too long.</value>
+  </data>
+  <data name="catalog.module_title_required" xml:space="preserve">
+    <value>Module title is required.</value>
+  </data>
+  <data name="catalog.module_title_too_long" xml:space="preserve">
+    <value>Module title is too long.</value>
+  </data>
+  <data name="catalog.module_description_too_long" xml:space="preserve">
+    <value>Module description is too long.</value>
+  </data>
+  <data name="catalog.lesson_title_required" xml:space="preserve">
+    <value>Lesson title is required.</value>
+  </data>
+  <data name="catalog.lesson_title_too_long" xml:space="preserve">
+    <value>Lesson title is too long.</value>
+  </data>
+  <data name="catalog.lesson_duration_invalid" xml:space="preserve">
+    <value>Estimated duration must be between 1 and 600 minutes.</value>
+  </data>
+  <data name="catalog.lesson_description_too_long" xml:space="preserve">
+    <value>Lesson description is too long.</value>
+  </data>
+  <data name="catalog.sort_order_invalid" xml:space="preserve">
+    <value>Sort order cannot be negative.</value>
+  </data>
 </root>

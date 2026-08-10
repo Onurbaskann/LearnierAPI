@@ -190,4 +190,107 @@
   <data name="organization.membership_required" xml:space="preserve">
     <value>Üyelik gerekli.</value>
   </data>
+
+  <data name="catalog.subject_slug_already_taken" xml:space="preserve">
+    <value>"{slug}" kısa adı zaten kullanımda.</value>
+  </data>
+  <data name="catalog.subject_not_found" xml:space="preserve">
+    <value>Eğitim alanı bulunamadı.</value>
+  </data>
+  <data name="catalog.parent_subject_not_found" xml:space="preserve">
+    <value>Seçilen üst alan mevcut değil.</value>
+  </data>
+  <data name="catalog.level_code_already_taken" xml:space="preserve">
+    <value>"{code}" seviye kodu bu alanda zaten kullanılıyor.</value>
+  </data>
+  <data name="catalog.level_not_found" xml:space="preserve">
+    <value>Seçilen seviye mevcut değil.</value>
+  </data>
+  <data name="catalog.level_subject_mismatch" xml:space="preserve">
+    <value>Seçilen seviye başka bir alana ait.</value>
+  </data>
+  <data name="catalog.course_not_found" xml:space="preserve">
+    <value>Eğitim bulunamadı.</value>
+  </data>
+  <data name="catalog.module_not_found" xml:space="preserve">
+    <value>Modül bulunamadı.</value>
+  </data>
+  <data name="catalog.course_not_draft" xml:space="preserve">
+    <value>Yalnızca taslak durumundaki eğitim yayına alınabilir.</value>
+  </data>
+  <data name="catalog.subject_name_required" xml:space="preserve">
+    <value>Alan adı gerekli.</value>
+  </data>
+  <data name="catalog.subject_name_too_long" xml:space="preserve">
+    <value>Alan adı çok uzun.</value>
+  </data>
+  <data name="catalog.subject_slug_required" xml:space="preserve">
+    <value>Alan kısa adı gerekli.</value>
+  </data>
+  <data name="catalog.subject_slug_too_long" xml:space="preserve">
+    <value>Alan kısa adı çok uzun.</value>
+  </data>
+  <data name="catalog.subject_slug_invalid" xml:space="preserve">
+    <value>Kısa ad yalnızca küçük harf, rakam ve tire içerebilir.</value>
+  </data>
+  <data name="catalog.subject_required" xml:space="preserve">
+    <value>Eğitim alanı gerekli.</value>
+  </data>
+  <data name="catalog.level_code_required" xml:space="preserve">
+    <value>Seviye kodu gerekli.</value>
+  </data>
+  <data name="catalog.level_code_too_long" xml:space="preserve">
+    <value>Seviye kodu çok uzun.</value>
+  </data>
+  <data name="catalog.level_name_required" xml:space="preserve">
+    <value>Seviye adı gerekli.</value>
+  </data>
+  <data name="catalog.level_name_too_long" xml:space="preserve">
+    <value>Seviye adı çok uzun.</value>
+  </data>
+  <data name="catalog.course_title_required" xml:space="preserve">
+    <value>Eğitim başlığı gerekli.</value>
+  </data>
+  <data name="catalog.course_title_too_long" xml:space="preserve">
+    <value>Eğitim başlığı çok uzun.</value>
+  </data>
+  <data name="catalog.course_type_invalid" xml:space="preserve">
+    <value>Eğitim türü geçersiz.</value>
+  </data>
+  <data name="catalog.course_duration_invalid" xml:space="preserve">
+    <value>Süre 5 ile 600 dakika arasında olmalı.</value>
+  </data>
+  <data name="catalog.course_min_participants_invalid" xml:space="preserve">
+    <value>Minimum katılımcı sayısı sıfırdan büyük olmalı.</value>
+  </data>
+  <data name="catalog.course_max_participants_invalid" xml:space="preserve">
+    <value>Maksimum katılımcı sayısı minimumdan az olamaz.</value>
+  </data>
+  <data name="catalog.course_description_too_long" xml:space="preserve">
+    <value>Eğitim açıklaması çok uzun.</value>
+  </data>
+  <data name="catalog.module_title_required" xml:space="preserve">
+    <value>Modül başlığı gerekli.</value>
+  </data>
+  <data name="catalog.module_title_too_long" xml:space="preserve">
+    <value>Modül başlığı çok uzun.</value>
+  </data>
+  <data name="catalog.module_description_too_long" xml:space="preserve">
+    <value>Modül açıklaması çok uzun.</value>
+  </data>
+  <data name="catalog.lesson_title_required" xml:space="preserve">
+    <value>Ders başlığı gerekli.</value>
+  </data>
+  <data name="catalog.lesson_title_too_long" xml:space="preserve">
+    <value>Ders başlığı çok uzun.</value>
+  </data>
+  <data name="catalog.lesson_duration_invalid" xml:space="preserve">
+    <value>Tahmini süre 1 ile 600 dakika arasında olmalı.</value>
+  </data>
+  <data name="catalog.lesson_description_too_long" xml:space="preserve">
+    <value>Ders açıklaması çok uzun.</value>
+  </data>
+  <data name="catalog.sort_order_invalid" xml:space="preserve">
+    <value>Sıra numarası negatif olamaz.</value>
+  </data>
 </root>

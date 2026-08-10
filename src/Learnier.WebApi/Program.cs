@@ -14,6 +14,8 @@ using Microsoft.AspNetCore.Localization;
 using Scalar.AspNetCore;
 using Serilog;
 
+const string frontendCorsPolicy = "Frontend";
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Serilog: yapilandirilmis loglama ve istek basina ozet kayit.
@@ -26,6 +28,26 @@ builder.Host.UseSerilog((context, configuration) => configuration
 
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+
+var allowedOrigins = builder.Configuration
+    .GetSection("Cors:AllowedOrigins")
+    .Get<string[]>() ?? [];
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(frontendCorsPolicy, policy =>
+    {
+        // Origin listesi yapilandirmadan okunur. Bos liste kapali varsayilandir;
+        // uretimde Cors__AllowedOrigins__0 gibi ortam degiskenleriyle acilir.
+        if (allowedOrigins.Length > 0)
+        {
+            policy
+                .WithOrigins(allowedOrigins)
+                .AllowAnyHeader()
+                .AllowAnyMethod();
+        }
+    });
+});
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
@@ -92,6 +114,7 @@ if (args.Contains("seed", StringComparer.OrdinalIgnoreCase))
 app.UseExceptionHandler();
 app.UseSerilogRequestLogging();
 app.UseRequestLocalization();
+app.UseCors(frontendCorsPolicy);
 
 if (app.Environment.IsDevelopment())
 {

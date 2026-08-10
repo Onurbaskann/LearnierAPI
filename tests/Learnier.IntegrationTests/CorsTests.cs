@@ -10,7 +10,7 @@ namespace Learnier.IntegrationTests;
 public sealed class CorsTests(LearnierApiFactory factory)
     : IClassFixture<LearnierApiFactory>
 {
-    private const string AllowedOrigin = "http://localhost:8081";
+    private const string AllowedOrigin = "http://localhost:8082";
     private const string DisallowedOrigin = "https://example.com";
 
     private static readonly Uri HealthEndpoint = new("/health", UriKind.Relative);

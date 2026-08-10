@@ -1,4 +1,5 @@
 using Learnier.Application.Features.Authentication.Commands.LoginUser;
+using Learnier.Application.Features.Authentication.Commands.LogoutUser;
 using Learnier.Application.Features.Authentication.Commands.RefreshAccessToken;
 using Learnier.Application.Features.Authentication.Commands.RegisterUser;
 using Learnier.Application.Features.Authentication.Commands.VerifyEmail;
@@ -103,6 +104,25 @@ public sealed class AuthController : ControllerBase
     public async Task<ActionResult<RefreshAccessTokenResult>> Refresh(
         RefreshAccessTokenCommand command,
         [FromServices] RefreshAccessTokenHandler handler,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(handler);
+
+        var result = await handler.Handle(command, cancellationToken);
+
+        return result.ToActionResult(this);
+    }
+
+    /// <summary>
+    /// Mevcut yenileme tokenini iptal ederek oturumu sonlandirir.
+    /// </summary>
+    [AllowAnonymous]
+    [HttpPost("logout")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult> Logout(
+        LogoutUserCommand command,
+        [FromServices] LogoutUserHandler handler,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(handler);

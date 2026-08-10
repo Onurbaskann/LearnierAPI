@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using Learnier.Application.Features.Authentication.Commands.LoginUser;
+using Learnier.Application.Features.Authentication.Commands.LogoutUser;
 using Learnier.Application.Features.Authentication.Commands.RefreshAccessToken;
 using Learnier.Application.Features.Authentication.Commands.RegisterUser;
 using Learnier.Application.Features.Authentication.Commands.VerifyEmail;
@@ -24,6 +25,7 @@ public sealed class RegistrationFlowTests(AuthApiFixture fixture) : IClassFixtur
     private static readonly Uri VerifyEndpoint = new("/api/v1/auth/verify-email", UriKind.Relative);
     private static readonly Uri LoginEndpoint = new("/api/v1/auth/login", UriKind.Relative);
     private static readonly Uri RefreshEndpoint = new("/api/v1/auth/refresh", UriKind.Relative);
+    private static readonly Uri LogoutEndpoint = new("/api/v1/auth/logout", UriKind.Relative);
 
     private const string Password = "CokGuvenli123";
 
@@ -77,6 +79,8 @@ public sealed class RegistrationFlowTests(AuthApiFixture fixture) : IClassFixtur
 
         session.ShouldNotBeNull();
         session.RefreshToken.ShouldNotBeNullOrWhiteSpace();
+        session.Memberships.Count.ShouldBe(1);
+        session.Memberships[0].RoleCodes.ShouldContain("student");
 
         var refreshed = await client.PostAsJsonAsync(
             RefreshEndpoint,
@@ -125,6 +129,46 @@ public sealed class RegistrationFlowTests(AuthApiFixture fixture) : IClassFixtur
             TestContext.Current.CancellationToken);
 
         second.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task Logout_RevokesRefreshTokenAndRemainsIdempotent()
+    {
+        using var client = fixture.CreateClient();
+        var email = UniqueEmail();
+
+        await Register(client, email);
+        await client.PostAsJsonAsync(
+            VerifyEndpoint,
+            new VerifyEmailCommand(await IssueKnownVerificationToken(email)),
+            TestContext.Current.CancellationToken);
+
+        var login = await client.PostAsJsonAsync(
+            LoginEndpoint,
+            new LoginUserCommand(email, Password),
+            TestContext.Current.CancellationToken);
+        var session = await login.Content.ReadFromJsonAsync<LoginUserResult>(
+            TestContext.Current.CancellationToken);
+
+        session.ShouldNotBeNull();
+
+        var firstLogout = await client.PostAsJsonAsync(
+            LogoutEndpoint,
+            new LogoutUserCommand(session.RefreshToken),
+            TestContext.Current.CancellationToken);
+        firstLogout.StatusCode.ShouldBe(HttpStatusCode.NoContent);
+
+        var refresh = await client.PostAsJsonAsync(
+            RefreshEndpoint,
+            new RefreshAccessTokenCommand(session.RefreshToken),
+            TestContext.Current.CancellationToken);
+        refresh.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+
+        var secondLogout = await client.PostAsJsonAsync(
+            LogoutEndpoint,
+            new LogoutUserCommand(session.RefreshToken),
+            TestContext.Current.CancellationToken);
+        secondLogout.StatusCode.ShouldBe(HttpStatusCode.NoContent);
     }
 
     [Fact]

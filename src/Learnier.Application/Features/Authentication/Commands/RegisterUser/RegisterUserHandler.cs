@@ -16,6 +16,7 @@ public sealed class RegisterUserHandler(
     IEmailVerificationTokenRepository verificationTokens,
     IEmailVerificationTokenFactory verificationTokenFactory,
     IPasswordHasher passwordHasher,
+    IRegistrationMembershipProvisioner membershipProvisioner,
     IEmailSender emailSender,
     IUnitOfWork unitOfWork)
 {
@@ -43,6 +44,8 @@ public sealed class RegisterUserHandler(
             passwordHasher.Hash(command.Password));
 
         users.Add(user);
+
+        await membershipProvisioner.ProvisionAsync(user, cancellationToken);
 
         var token = verificationTokenFactory.Create();
 

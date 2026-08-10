@@ -8,6 +8,7 @@ using Learnier.Infrastructure.Persistence.Interceptors;
 using Learnier.Infrastructure.Persistence.Queries;
 using Learnier.Infrastructure.Persistence.Repositories;
 using Learnier.Infrastructure.Scheduling;
+using Learnier.Infrastructure.Registration;
 using Learnier.Infrastructure.Persistence.Seeding;
 using Learnier.Infrastructure.Time;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -66,6 +67,7 @@ public static class DependencyInjection
         services.AddScoped<IUserRepository, EfUserRepository>();
         services.AddScoped<IRefreshTokenRepository, EfRefreshTokenRepository>();
         services.AddScoped<IEmailVerificationTokenRepository, EfEmailVerificationTokenRepository>();
+        services.AddScoped<IRegistrationMembershipProvisioner, RegistrationMembershipProvisioner>();
         services.AddScoped<IOrganizationRepository, EfOrganizationRepository>();
         services.AddScoped<IRoleRepository, EfRoleRepository>();
         services.AddScoped<IMembershipRepository, EfMembershipRepository>();
@@ -89,6 +91,11 @@ public static class DependencyInjection
         services.AddScoped<DevelopmentDataSeeder>();
 
         services.AddIdentityServices(configuration);
+
+        services.AddOptions<RegistrationOptions>()
+            .Bind(configuration.GetSection(RegistrationOptions.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
 
         return services;
     }

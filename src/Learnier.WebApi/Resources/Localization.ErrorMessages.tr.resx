@@ -382,6 +382,9 @@
   <data name="scheduling.session_not_cancellable" xml:space="preserve">
     <value>Tamamlanmış oturum iptal edilemez.</value>
   </data>
+  <data name="scheduling.instructor_cancellation_deadline_passed" xml:space="preserve">
+    <value>Ders başlangıcına bir saat veya daha az kaldığı için iptal edilemez.</value>
+  </data>
   <data name="scheduling.cancellation_reason_too_long" xml:space="preserve">
     <value>İptal gerekçesi çok uzun.</value>
   </data>
@@ -396,6 +399,9 @@
   </data>
   <data name="scheduling.slot_not_owned" xml:space="preserve">
     <value>Yalnızca kendi ders slotlarınızı yönetebilirsiniz.</value>
+  </data>
+  <data name="scheduling.session_not_owned" xml:space="preserve">
+    <value>Yalnızca kendi derslerinizi iptal edebilirsiniz.</value>
   </data>
   <data name="scheduling.slot_has_booking" xml:space="preserve">
     <value>Rezervasyon alınmış bir ders slotu kapatılamaz.</value>

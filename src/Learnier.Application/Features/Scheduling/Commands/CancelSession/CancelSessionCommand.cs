@@ -5,7 +5,10 @@ using Learnier.Domain.Scheduling;
 
 namespace Learnier.Application.Features.Scheduling.Commands.CancelSession;
 
-public sealed record CancelSessionCommand(Guid SessionId, string? Reason = null);
+public sealed record CancelSessionCommand(
+    Guid SessionId,
+    string? Reason = null,
+    bool IsInstructorInitiated = false);
 
 public sealed record CancelSessionResult(int CancelledBookingCount);
 
@@ -21,6 +24,7 @@ internal sealed class CancelSessionValidator : AbstractValidator<CancelSessionCo
 /// <summary>Oturumu iptal eder ve tum aktif rezervasyon haklarini iade eder.</summary>
 public sealed class CancelSessionHandler(
     ISchedulingRepository scheduling,
+    IInstructorRepository instructors,
     IBookingEntitlementPolicy entitlements,
     ICurrentTenant currentTenant,
     IUnitOfWork unitOfWork,
@@ -44,6 +48,36 @@ public sealed class CancelSessionHandler(
         if (session is null)
         {
             return SchedulingErrors.SessionNotFound;
+        }
+
+        if (command.IsInstructorInitiated)
+        {
+            if (currentTenant.MembershipId is not { } membershipId)
+            {
+                return SchedulingErrors.OrganizationContextRequired;
+            }
+
+            var profile = await instructors.FindByMembershipAsync(membershipId, cancellationToken);
+            if (profile is null)
+            {
+                return SchedulingErrors.InstructorNotFound;
+            }
+
+            session = await scheduling.FindSessionAsync(command.SessionId, true, cancellationToken);
+            if (session is null)
+            {
+                return SchedulingErrors.SessionNotFound;
+            }
+
+            if (session.Instructors.All(item => item.InstructorProfileId != profile.Id))
+            {
+                return SchedulingErrors.SessionNotOwned;
+            }
+
+            if (clock.UtcNow >= session.StartsAt.AddHours(-1))
+            {
+                return SchedulingErrors.InstructorCancellationDeadlinePassed;
+            }
         }
 
         if (session.Status is LessonSessionStatus.Completed)

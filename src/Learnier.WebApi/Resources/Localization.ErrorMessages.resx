@@ -386,6 +386,9 @@
   <data name="scheduling.session_not_cancellable" xml:space="preserve">
     <value>A completed session cannot be cancelled.</value>
   </data>
+  <data name="scheduling.instructor_cancellation_deadline_passed" xml:space="preserve">
+    <value>The lesson cannot be cancelled one hour or less before it starts.</value>
+  </data>
   <data name="scheduling.cancellation_reason_too_long" xml:space="preserve">
     <value>Cancellation reason is too long.</value>
   </data>
@@ -400,6 +403,9 @@
   </data>
   <data name="scheduling.slot_not_owned" xml:space="preserve">
     <value>You can only manage your own lesson slots.</value>
+  </data>
+  <data name="scheduling.session_not_owned" xml:space="preserve">
+    <value>You can only cancel your own lessons.</value>
   </data>
   <data name="scheduling.slot_has_booking" xml:space="preserve">
     <value>A reserved lesson slot cannot be closed.</value>

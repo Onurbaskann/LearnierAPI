@@ -11,6 +11,7 @@ using Learnier.Application.Features.Teaching.Commands.SetInstructorHourlyRate;
 using Learnier.Application.Features.Teaching.Commands.SuspendInstructor;
 using Learnier.Application.Features.Teaching.Commands.UpdateInstructorPublicProfile;
 using Learnier.Application.Features.Teaching.Queries;
+using Learnier.Application.Features.Scheduling.Commands.CancelSession;
 using Learnier.Domain.Teaching;
 using Learnier.WebApi.Common;
 using Microsoft.AspNetCore.Authorization;
@@ -227,6 +228,27 @@ public sealed class InstructorsController : ControllerBase
         return (await handler.Handle(from, to, cancellationToken)).ToActionResult(this);
     }
 
+    /// <summary>Egitmen kendi dersini baslangictan en az bir saat once iptal eder.</summary>
+    [HttpPost("me/schedule/{sessionId:guid}/cancel")]
+    [Authorize(Policy = Permissions.Session.Cancel)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<CancelSessionResult>> CancelMySession(
+        Guid sessionId,
+        CancelInstructorSessionRequest request,
+        [FromServices] CancelSessionHandler handler,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        ArgumentNullException.ThrowIfNull(handler);
+
+        return (await handler.Handle(
+            new CancelSessionCommand(sessionId, request.Reason, IsInstructorInitiated: true),
+            cancellationToken)).ToActionResult(this);
+    }
+
     [HttpGet("me/dashboard")]
     [Authorize(Policy = Permissions.Course.Read)]
     public async Task<ActionResult<InstructorDashboardStats>> GetMyDashboard(
@@ -395,6 +417,8 @@ public sealed class InstructorsController : ControllerBase
         return result.Succeeded;
     }
 }
+
+public sealed record CancelInstructorSessionRequest(string? Reason);
 
 /// <summary>Profil kimligi rotadan geldigi icin govdede tasinmaz.</summary>
 public sealed record AddInstructorSubjectRequest(Guid SubjectId, Guid? LevelId);

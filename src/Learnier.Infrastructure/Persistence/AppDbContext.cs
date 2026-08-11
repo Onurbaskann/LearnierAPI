@@ -7,6 +7,7 @@ using Learnier.Domain.Common;
 using Learnier.Domain.Identity;
 using Learnier.Domain.Progress;
 using Learnier.Domain.Scheduling;
+using Learnier.Domain.Social;
 using Learnier.Domain.Teaching;
 using Microsoft.EntityFrameworkCore;
 
@@ -34,6 +35,8 @@ public sealed class AppDbContext(
     public DbSet<LearnerGuardian> LearnerGuardians => Set<LearnerGuardian>();
 
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+
+    public DbSet<Friendship> Friendships => Set<Friendship>();
 
     public DbSet<Subject> Subjects => Set<Subject>();
 

@@ -475,4 +475,31 @@
   <data name="account.current_password_invalid" xml:space="preserve">
     <value>Mevcut şifre yanlış.</value>
   </data>
+  <data name="friends.user_not_found" xml:space="preserve">
+    <value>Bu e-posta adresiyle kayıtlı kullanıcı bulunamadı.</value>
+  </data>
+  <data name="friends.cannot_add_self" xml:space="preserve">
+    <value>Kendinize arkadaşlık isteği gönderemezsiniz.</value>
+  </data>
+  <data name="friends.already_friends" xml:space="preserve">
+    <value>Bu kullanıcıyla zaten arkadaşsınız.</value>
+  </data>
+  <data name="friends.request_already_pending" xml:space="preserve">
+    <value>Bu kullanıcılar arasında zaten bekleyen bir arkadaşlık isteği var.</value>
+  </data>
+  <data name="friends.request_not_found" xml:space="preserve">
+    <value>Arkadaşlık isteği bulunamadı.</value>
+  </data>
+  <data name="friends.request_not_owned" xml:space="preserve">
+    <value>Bu arkadaşlık isteğini yanıtlama yetkiniz yok.</value>
+  </data>
+  <data name="friends.email_required" xml:space="preserve">
+    <value>E-posta adresi gerekli.</value>
+  </data>
+  <data name="friends.email_invalid" xml:space="preserve">
+    <value>Geçerli bir e-posta adresi girin.</value>
+  </data>
+  <data name="friends.email_too_long" xml:space="preserve">
+    <value>E-posta adresi 320 karakterden uzun olamaz.</value>
+  </data>
 </root>

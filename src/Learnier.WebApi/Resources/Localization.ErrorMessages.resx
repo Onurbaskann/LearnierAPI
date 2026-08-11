@@ -479,4 +479,31 @@
   <data name="account.current_password_invalid" xml:space="preserve">
     <value>Current password is incorrect.</value>
   </data>
+  <data name="friends.user_not_found" xml:space="preserve">
+    <value>No user was found with this email address.</value>
+  </data>
+  <data name="friends.cannot_add_self" xml:space="preserve">
+    <value>You cannot send a friend request to yourself.</value>
+  </data>
+  <data name="friends.already_friends" xml:space="preserve">
+    <value>You are already friends with this user.</value>
+  </data>
+  <data name="friends.request_already_pending" xml:space="preserve">
+    <value>A pending friend request already exists between these users.</value>
+  </data>
+  <data name="friends.request_not_found" xml:space="preserve">
+    <value>The friend request was not found.</value>
+  </data>
+  <data name="friends.request_not_owned" xml:space="preserve">
+    <value>You are not allowed to respond to this friend request.</value>
+  </data>
+  <data name="friends.email_required" xml:space="preserve">
+    <value>Email is required.</value>
+  </data>
+  <data name="friends.email_invalid" xml:space="preserve">
+    <value>Enter a valid email address.</value>
+  </data>
+  <data name="friends.email_too_long" xml:space="preserve">
+    <value>Email cannot exceed 320 characters.</value>
+  </data>
 </root>

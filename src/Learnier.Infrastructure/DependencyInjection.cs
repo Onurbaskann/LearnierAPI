@@ -65,6 +65,7 @@ public static class DependencyInjection
 
         services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<AppDbContext>());
         services.AddScoped<IUserRepository, EfUserRepository>();
+        services.AddScoped<IFriendshipRepository, EfFriendshipRepository>();
         services.AddScoped<IRefreshTokenRepository, EfRefreshTokenRepository>();
         services.AddScoped<IRegistrationMembershipProvisioner, RegistrationMembershipProvisioner>();
         services.AddScoped<IOrganizationRepository, EfOrganizationRepository>();

@@ -4,7 +4,8 @@ using Learnier.Application.Features.Scheduling.Commands.AssignSessionInstructor;
 using Learnier.Application.Features.Scheduling.Commands.CancelBooking;
 using Learnier.Application.Features.Scheduling.Commands.CancelSession;
 using Learnier.Application.Features.Scheduling.Commands.CreateBooking;
-using Learnier.Application.Features.Scheduling.Commands.BookInstructorSlot;
+using Learnier.Application.Features.Scheduling.Commands.CloseInstructorSlot;
+using Learnier.Application.Features.Scheduling.Commands.OpenInstructorSlot;
 using Learnier.Application.Features.Scheduling.Commands.CreateClassGroup;
 using Learnier.Application.Features.Scheduling.Commands.CreateSession;
 using Learnier.Application.Features.Scheduling.Commands.EnrollLearner;
@@ -250,28 +251,42 @@ public sealed class SchedulingController : ControllerBase
         return result.ToActionResult(this);
     }
 
-    /// <summary>Egitmenin uygunluk takviminden birebir ders rezervasyonu olusturur.</summary>
-    [HttpPost("instructors/{instructorProfileId:guid}/bookings")]
-    [Authorize(Policy = Permissions.Booking.Create)]
+    /// <summary>Egitmen kendi takviminde tek bir birebir ders slotu acar.</summary>
+    [HttpPost("instructors/me/slots")]
+    [Authorize(Policy = Permissions.Session.Create)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async Task<ActionResult<BookInstructorSlotResult>> BookInstructorSlot(
-        Guid instructorProfileId,
-        BookInstructorSlotRequest request,
-        [FromServices] BookInstructorSlotHandler handler,
+    public async Task<ActionResult<OpenInstructorSlotResult>> OpenMyInstructorSlot(
+        OpenInstructorSlotCommand command,
+        [FromServices] OpenInstructorSlotHandler handler,
         CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(request);
+        ArgumentNullException.ThrowIfNull(handler);
+
+        var result = await handler.Handle(command, cancellationToken);
+
+        return result.ToActionResult(this);
+    }
+
+    /// <summary>Egitmen kendisine ait bos bir slotu kapatir.</summary>
+    [HttpDelete("instructors/me/slots/{sessionId:guid}")]
+    [Authorize(Policy = Permissions.Session.Create)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult> CloseMyInstructorSlot(
+        Guid sessionId,
+        [FromServices] CloseInstructorSlotHandler handler,
+        CancellationToken cancellationToken)
+    {
         ArgumentNullException.ThrowIfNull(handler);
 
         var result = await handler.Handle(
-            new BookInstructorSlotCommand(
-                instructorProfileId,
-                request.CourseId,
-                request.StartsAt),
+            new CloseInstructorSlotCommand(sessionId),
             cancellationToken);
 
         return result.ToActionResult(this);
@@ -286,7 +301,7 @@ public sealed class SchedulingController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<IReadOnlyList<InstructorSlotListItem>>> ListInstructorSlots(
         Guid instructorProfileId,
-        Guid courseId,
+        Guid? courseId,
         DateTimeOffset from,
         DateTimeOffset until,
         [FromServices] ListInstructorSlotsHandler handler,
@@ -296,6 +311,26 @@ public sealed class SchedulingController : ControllerBase
 
         var result = await handler.Handle(
             new ListInstructorSlotsQuery(instructorProfileId, courseId, from, until),
+            cancellationToken);
+
+        return result.ToActionResult(this);
+    }
+
+    /// <summary>Egitmenin actigi gelecek slotlari kendi paneli icin listeler.</summary>
+    [HttpGet("instructors/me/slots")]
+    [Authorize(Policy = Permissions.Session.Create)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<ActionResult<IReadOnlyList<InstructorSlotListItem>>> ListMyInstructorSlots(
+        DateTimeOffset from,
+        DateTimeOffset until,
+        [FromServices] ListMyInstructorSlotsHandler handler,
+        CancellationToken cancellationToken,
+        [FromQuery] Guid? courseId = null)
+    {
+        var result = await handler.Handle(
+            courseId,
+            from,
+            until,
             cancellationToken);
 
         return result.ToActionResult(this);
@@ -381,5 +416,3 @@ public sealed record CancelSessionRequest(string? Reason);
 /// Bos birakilirsa istegi yapan kullanici adina rezervasyon yapilir.
 /// </param>
 public sealed record CreateBookingRequest(Guid? LearnerUserId);
-
-public sealed record BookInstructorSlotRequest(Guid CourseId, DateTimeOffset StartsAt);

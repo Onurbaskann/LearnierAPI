@@ -9,8 +9,8 @@ namespace Learnier.Domain.Scheduling;
 /// <remarks>
 /// <para>
 /// <see cref="Course"/> egitimin tanimi, bu kayit ise onun belirli bir tarihte
-/// gerceklesen ornegidir. Birebir derslerde oturum rezervasyon aninda uretilir;
-/// grup derslerinde ise once oturum acilir, ogrenciler sonra rezervasyon yapar.
+/// gerceklesen ornegidir. Birebir derslerde egitmen tekil oturumu acar ve ogrenci
+/// bu oturumu rezerve eder; grup derslerinde de oturum once olusturulur.
 /// </para>
 /// <para>
 /// <b>Kontenjan uyarisi:</b> <see cref="HasCapacityFor"/> yalnizca bellege yuklenmis

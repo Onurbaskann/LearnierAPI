@@ -398,6 +398,12 @@
   <data name="scheduling.session_not_bookable" xml:space="preserve">
     <value>This session is not open for booking.</value>
   </data>
+  <data name="scheduling.slot_not_owned" xml:space="preserve">
+    <value>You can only manage your own lesson slots.</value>
+  </data>
+  <data name="scheduling.slot_has_booking" xml:space="preserve">
+    <value>A reserved lesson slot cannot be closed.</value>
+  </data>
   <data name="scheduling.already_booked" xml:space="preserve">
     <value>A booking already exists for this session.</value>
   </data>

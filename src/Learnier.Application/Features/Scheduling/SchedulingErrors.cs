@@ -54,4 +54,8 @@ internal static class SchedulingErrors
     public static Error BookingNotOwned => Error.Forbidden("scheduling.booking_not_owned");
 
     public static Error SessionAlreadyStarted => Error.Conflict("scheduling.session_already_started");
+
+    public static Error SlotNotOwned => Error.Forbidden("scheduling.slot_not_owned");
+
+    public static Error SlotHasBooking => Error.Conflict("scheduling.slot_has_booking");
 }

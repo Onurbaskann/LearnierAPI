@@ -8,11 +8,14 @@ namespace Learnier.Application.Features.Scheduling.Queries;
 
 public sealed record ListInstructorSlotsQuery(
     Guid InstructorProfileId,
-    Guid CourseId,
+    Guid? CourseId,
     DateTimeOffset From,
     DateTimeOffset Until);
 
 public sealed record InstructorSlotListItem(
+    Guid SessionId,
+    Guid CourseId,
+    string CourseTitle,
     DateTimeOffset StartsAt,
     DateTimeOffset EndsAt,
     bool IsAvailable);
@@ -24,24 +27,24 @@ internal sealed class ListInstructorSlotsValidator : AbstractValidator<ListInstr
         RuleFor(query => query.InstructorProfileId)
             .NotEmpty().WithErrorCode("scheduling.instructor_required");
 
-        RuleFor(query => query.CourseId)
-            .NotEmpty().WithErrorCode("scheduling.course_required");
-
         RuleFor(query => query.Until)
             .GreaterThan(query => query.From)
             .WithErrorCode("scheduling.slot_range_invalid");
 
         RuleFor(query => query.Until - query.From)
-            .LessThanOrEqualTo(TimeSpan.FromDays(14))
+            .LessThanOrEqualTo(TimeSpan.FromDays(90))
             .WithErrorCode("scheduling.slot_range_too_large");
     }
 }
 
+/// <summary>
+/// Egitmenin elle actigi birebir oturumlari listeler. Haftalik uygunluk kayitlari
+/// bu sorguda bilincli olarak kullanilmaz.
+/// </summary>
 public sealed class ListInstructorSlotsHandler(
     IInstructorRepository instructors,
-    IInstructorQueries instructorQueries,
     ICatalogRepository catalog,
-    ISchedulingRepository scheduling,
+    ISchedulingQueries scheduling,
     IClock clock)
 {
     public async Task<Result<IReadOnlyList<InstructorSlotListItem>>> Handle(
@@ -50,14 +53,9 @@ public sealed class ListInstructorSlotsHandler(
     {
         ArgumentNullException.ThrowIfNull(query);
 
-        if (query.Until <= query.From)
+        if (query.Until <= query.From || query.Until - query.From > TimeSpan.FromDays(90))
         {
             return Error.Validation("scheduling.slot_range_invalid");
-        }
-
-        if (query.Until - query.From > TimeSpan.FromDays(14))
-        {
-            return Error.Validation("scheduling.slot_range_too_large");
         }
 
         var profile = await instructors.FindWithDetailsAsync(
@@ -68,122 +66,65 @@ public sealed class ListInstructorSlotsHandler(
             return SchedulingErrors.InstructorNotFound;
         }
 
-        var course = await catalog.FindCourseAsync(
-            query.CourseId,
-            includeModules: false,
-            cancellationToken);
-        if (course is null)
+        if (query.CourseId is { } courseId)
         {
-            return SchedulingErrors.CourseNotFound;
-        }
+            var course = await catalog.FindCourseAsync(courseId, false, cancellationToken);
+            if (course is null)
+            {
+                return SchedulingErrors.CourseNotFound;
+            }
 
-        if (course.Status is not CourseStatus.Published)
-        {
-            return SchedulingErrors.CourseNotBookable;
-        }
+            if (course.Status is not CourseStatus.Published)
+            {
+                return SchedulingErrors.CourseNotBookable;
+            }
 
-        if (!profile.Subjects.Any(subject =>
-                subject.SubjectId == course.SubjectId
-                && subject.Status == InstructorSubjectStatus.Active))
-        {
-            return SchedulingErrors.InstructorSubjectMismatch;
-        }
-
-        TimeZoneInfo zone;
-        try
-        {
-            zone = TimeZoneInfo.FindSystemTimeZoneById(profile.TimeZoneId);
-        }
-        catch (Exception exception) when (
-            exception is TimeZoneNotFoundException or InvalidTimeZoneException)
-        {
-            return SchedulingErrors.InstructorUnavailable;
+            if (!profile.Subjects.Any(subject =>
+                    subject.SubjectId == course.SubjectId
+                    && subject.Status == InstructorSubjectStatus.Active))
+            {
+                return SchedulingErrors.InstructorSubjectMismatch;
+            }
         }
 
         var from = query.From.ToUniversalTime();
         var until = query.Until.ToUniversalTime();
-        var firstDate = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(from, zone).DateTime);
-        var lastDate = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(until, zone).DateTime);
-        var overrides = await instructorQueries.ListOverridesAsync(
+        var visibleFrom = from > clock.UtcNow ? from : clock.UtcNow;
+
+        return Result.Success(await scheduling.ListInstructorSlotsAsync(
             profile.Id,
-            firstDate,
-            cancellationToken);
-
-        var candidates = new HashSet<DateTimeOffset>();
-        for (var date = firstDate; date <= lastDate; date = date.AddDays(1))
-        {
-            foreach (var availability in profile.Availabilities.Where(item =>
-                         item.DayOfWeek == date.DayOfWeek
-                         && item.ValidFrom <= date
-                         && (item.ValidUntil is null || item.ValidUntil >= date)))
-            {
-                AddCandidates(
-                    candidates,
-                    date,
-                    availability.StartLocalTime,
-                    availability.EndLocalTime,
-                    course.DefaultDurationMinutes,
-                    profile.TimeZoneId);
-            }
-
-            foreach (var addition in overrides.Where(item =>
-                         item.OverrideDate == date
-                         && item.OverrideType == AvailabilityOverrideType.Available))
-            {
-                AddCandidates(
-                    candidates,
-                    date,
-                    addition.StartLocalTime ?? TimeOnly.MinValue,
-                    addition.EndLocalTime ?? new TimeOnly(23, 59, 59),
-                    course.DefaultDurationMinutes,
-                    profile.TimeZoneId);
-            }
-        }
-
-        var visible = candidates
-            .Where(start => start >= from && start >= clock.UtcNow)
-            .Where(start => start.AddMinutes(course.DefaultDurationMinutes) <= until)
-            .OrderBy(start => start)
-            .ToList();
-
-        var result = new List<InstructorSlotListItem>(visible.Count);
-        foreach (var startsAt in visible)
-        {
-            var endsAt = startsAt.AddMinutes(course.DefaultDurationMinutes);
-            if (!InstructorSlotPolicy.IsAllowed(profile, overrides, startsAt, endsAt))
-            {
-                continue;
-            }
-
-            var busy = await scheduling.HasInstructorConflictAsync(
-                profile.Id,
-                startsAt,
-                endsAt,
-                excludeSessionId: null,
-                cancellationToken);
-
-            result.Add(new InstructorSlotListItem(startsAt, endsAt, !busy));
-        }
-
-        return result;
+            query.CourseId,
+            visibleFrom,
+            until,
+            cancellationToken));
     }
+}
 
-    private static void AddCandidates(
-        HashSet<DateTimeOffset> candidates,
-        DateOnly date,
-        TimeOnly rangeStart,
-        TimeOnly rangeEnd,
-        int durationMinutes,
-        string timeZoneId)
+/// <summary>Aktif uyeligin egitmen profilindeki manuel slotlari listeler.</summary>
+public sealed class ListMyInstructorSlotsHandler(
+    ICurrentTenant currentTenant,
+    IInstructorRepository instructors,
+    ListInstructorSlotsHandler slots)
+{
+    public async Task<Result<IReadOnlyList<InstructorSlotListItem>>> Handle(
+        Guid? courseId,
+        DateTimeOffset from,
+        DateTimeOffset until,
+        CancellationToken cancellationToken)
     {
-        for (var time = rangeStart;
-             time.AddMinutes(durationMinutes) <= rangeEnd;
-             time = time.AddMinutes(durationMinutes))
+        if (currentTenant.MembershipId is not { } membershipId)
         {
-            if (InstructorSlotPolicy.ToUtc(date, time, timeZoneId) is { } startsAt)
-            {
-                candidates.Add(startsAt);
-            }
+            return SchedulingErrors.OrganizationContextRequired;
         }
+
+        var profile = await instructors.FindByMembershipAsync(membershipId, cancellationToken);
+        if (profile is null)
+        {
+            return SchedulingErrors.InstructorNotFound;
+        }
+
+        return await slots.Handle(
+            new ListInstructorSlotsQuery(profile.Id, courseId, from, until),
+            cancellationToken);
     }
 }

@@ -106,6 +106,13 @@ public sealed class CreateBookingHandler(
         // eksik olabilir ve es zamanlilikta yaniltir.
         var reservedSeats = await scheduling.CountReservedSeatsAsync(session.Id, cancellationToken);
 
+        // Birebir slot tek ogrenci icindir; doldugunda bekleme listesi olusmaz.
+        // Bekleme listesi grup ve webinar oturumlarinda kullanilmaya devam eder.
+        if (session.SessionType is SessionType.Private && reservedSeats >= session.Capacity)
+        {
+            return SchedulingErrors.SessionNotBookable;
+        }
+
         var booking = session.Book(
             learnerUserId,
             actingUserId,

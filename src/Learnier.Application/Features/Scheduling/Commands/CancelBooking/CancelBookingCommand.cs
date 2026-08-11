@@ -109,8 +109,9 @@ public sealed class CancelBookingHandler(
             }
             else if (session.SessionType is SessionType.Private)
             {
-                // Birebir oturum rezervasyon aninda uretilir. Tek katilimci iptal
-                // edince oturumu da kapatmak egitmenin slotunu yeniden acar.
+                // Birebir slot egitmen tarafindan tekil olarak acilir. Rezervasyon
+                // iptal edilince ayni oturum tekrar acilmaz; egitmen isterse yeni
+                // bir slot acar.
                 session.Cancel("Rezervasyon iptal edildi.");
             }
         }

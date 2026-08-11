@@ -175,6 +175,43 @@ internal sealed class EfSchedulingQueries(AppDbContext context) : ISchedulingQue
                     .ToList()))
             .FirstOrDefaultAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<InstructorSlotListItem>> ListInstructorSlotsAsync(
+        Guid instructorProfileId,
+        Guid? courseId,
+        DateTimeOffset from,
+        DateTimeOffset until,
+        CancellationToken cancellationToken)
+    {
+        var query = context.LessonSessions
+            .AsNoTracking()
+            .Where(session => session.SessionType == SessionType.Private)
+            .Where(session => session.Status != LessonSessionStatus.Cancelled
+                              && session.Status != LessonSessionStatus.Completed)
+            .Where(session => session.StartsAt >= from && session.StartsAt < until)
+            .Where(session => session.Instructors.Any(instructor =>
+                instructor.InstructorProfileId == instructorProfileId));
+
+        if (courseId is { } selectedCourseId)
+        {
+            query = query.Where(session => session.CourseId == selectedCourseId);
+        }
+
+        return await query
+            .OrderBy(session => session.StartsAt)
+            .ThenBy(session => session.Id)
+            .Select(session => new InstructorSlotListItem(
+                session.Id,
+                session.CourseId,
+                session.Course.Title,
+                session.StartsAt,
+                session.EndsAt,
+                session.Bookings.Count(booking => booking.Status == BookingStatus.Reserved
+                                                  || booking.Status == BookingStatus.Attended
+                                                  || booking.Status == BookingStatus.NoShow)
+                    < session.Capacity))
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<PagedResult<LearnerBookingListItem>> ListLearnerBookingsAsync(
         PageRequest page,
         Guid learnerUserId,

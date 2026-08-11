@@ -65,7 +65,7 @@ public interface ISchedulingRepository
     Task<bool> InstructorExistsAsync(Guid instructorProfileId, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Birebir slot rezervasyonlarini siraya koymak icin egitmen profilini satir kilidiyle kilitler.
+    /// Es zamanli manuel slot acma islemlerini siraya koymak icin egitmen profilini kilitler.
     /// </summary>
     Task<bool> LockInstructorAsync(Guid instructorProfileId, CancellationToken cancellationToken);
 

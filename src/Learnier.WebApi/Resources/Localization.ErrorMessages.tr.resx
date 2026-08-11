@@ -394,6 +394,12 @@
   <data name="scheduling.session_not_bookable" xml:space="preserve">
     <value>Bu oturum rezervasyona kapalı.</value>
   </data>
+  <data name="scheduling.slot_not_owned" xml:space="preserve">
+    <value>Yalnızca kendi ders slotlarınızı yönetebilirsiniz.</value>
+  </data>
+  <data name="scheduling.slot_has_booking" xml:space="preserve">
+    <value>Rezervasyon alınmış bir ders slotu kapatılamaz.</value>
+  </data>
   <data name="scheduling.already_booked" xml:space="preserve">
     <value>Bu oturum için zaten bir rezervasyonunuz var.</value>
   </data>

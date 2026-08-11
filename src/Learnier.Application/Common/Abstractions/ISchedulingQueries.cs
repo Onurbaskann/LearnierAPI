@@ -29,6 +29,13 @@ public interface ISchedulingQueries
         Guid sessionId,
         CancellationToken cancellationToken);
 
+    Task<IReadOnlyList<InstructorSlotListItem>> ListInstructorSlotsAsync(
+        Guid instructorProfileId,
+        Guid? courseId,
+        DateTimeOffset from,
+        DateTimeOffset until,
+        CancellationToken cancellationToken);
+
     Task<PagedResult<LearnerBookingListItem>> ListLearnerBookingsAsync(
         PageRequest page,
         Guid learnerUserId,

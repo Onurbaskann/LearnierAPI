@@ -1,5 +1,6 @@
 using Learnier.Application.Features.Accounts;
 using Learnier.Application.Features.Accounts.Commands.UpdateMyContact;
+using Learnier.Application.Features.Accounts.Commands.ChangeMyPassword;
 using Learnier.Application.Features.Accounts.Queries.GetMyContact;
 using Learnier.WebApi.Common;
 using Microsoft.AspNetCore.Authorization;
@@ -31,6 +32,19 @@ public sealed class AccountController : ControllerBase
     public async Task<ActionResult<AccountContact>> UpdateContact(
         UpdateMyContactCommand command,
         [FromServices] UpdateMyContactHandler handler,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(handler);
+        return (await handler.Handle(command, cancellationToken)).ToActionResult(this);
+    }
+
+    [HttpPut("password")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult> ChangePassword(
+        ChangeMyPasswordCommand command,
+        [FromServices] ChangeMyPasswordHandler handler,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(handler);

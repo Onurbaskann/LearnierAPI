@@ -3,6 +3,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Learnier.Application.Features.Accounts;
 using Learnier.Application.Features.Accounts.Commands.UpdateMyContact;
+using Learnier.Application.Features.Accounts.Commands.ChangeMyPassword;
 using Learnier.Application.Features.Authentication.Commands.LoginUser;
 using Learnier.Application.Features.Authentication.Commands.RegisterUser;
 using Shouldly;
@@ -11,6 +12,51 @@ namespace Learnier.IntegrationTests;
 
 public sealed class AccountEndpointTests(AuthApiFixture fixture) : IClassFixture<AuthApiFixture>
 {
+    [Fact]
+    public async Task Password_CanBeChangedOnlyWithCurrentPassword()
+    {
+        using var client = fixture.CreateClient();
+        var suffix = Guid.CreateVersion7().ToString("N");
+        var email = $"parola-{suffix}@ornek.com";
+
+        (await client.PostAsJsonAsync(
+            new Uri("/api/v1/auth/register", UriKind.Relative),
+            new RegisterUserCommand(email, "eskiParola123", "Parola", "Testi"),
+            TestContext.Current.CancellationToken)).StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        var loginResponse = await client.PostAsJsonAsync(
+            new Uri("/api/v1/auth/login", UriKind.Relative),
+            new LoginUserCommand(email, "eskiParola123"),
+            TestContext.Current.CancellationToken);
+        var login = await loginResponse.Content.ReadFromJsonAsync<LoginUserResult>(
+            TestContext.Current.CancellationToken);
+        client.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", login!.AccessToken);
+
+        var wrongCurrent = await client.PutAsJsonAsync(
+            new Uri("/api/v1/account/password", UriKind.Relative),
+            new ChangeMyPasswordCommand("yanlisParola", "yeniParola123"),
+            TestContext.Current.CancellationToken);
+        wrongCurrent.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+
+        var changed = await client.PutAsJsonAsync(
+            new Uri("/api/v1/account/password", UriKind.Relative),
+            new ChangeMyPasswordCommand("eskiParola123", "yeniParola123"),
+            TestContext.Current.CancellationToken);
+        changed.StatusCode.ShouldBe(HttpStatusCode.NoContent);
+
+        using var loginClient = fixture.CreateClient();
+        (await loginClient.PostAsJsonAsync(
+            new Uri("/api/v1/auth/login", UriKind.Relative),
+            new LoginUserCommand(email, "eskiParola123"),
+            TestContext.Current.CancellationToken)).StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+
+        (await loginClient.PostAsJsonAsync(
+            new Uri("/api/v1/auth/login", UriKind.Relative),
+            new LoginUserCommand(email, "yeniParola123"),
+            TestContext.Current.CancellationToken)).StatusCode.ShouldBe(HttpStatusCode.OK);
+    }
+
     [Fact]
     public async Task Contact_CanBeReadAndUpdatedForCurrentUser()
     {

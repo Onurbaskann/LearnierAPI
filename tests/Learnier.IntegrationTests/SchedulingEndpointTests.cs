@@ -24,6 +24,31 @@ public sealed class SchedulingEndpointTests(AuthApiFixture fixture) : IClassFixt
 {
     private const string OrganizationHeader = "X-Organization-Id";
 
+    [Fact]
+    public async Task Session_TimesWithOffset_AreStoredAsUtc()
+    {
+        var context = await NewOrganization();
+        var courseId = await CreateCourse(context.Client);
+        var startsAt = new DateTimeOffset(2026, 9, 7, 10, 0, 0, TimeSpan.FromHours(3));
+
+        var sessionId = await CreateSession(
+            context.Client,
+            courseId,
+            startsAt,
+            startsAt.AddHours(1));
+
+        var detail = await context.Client.GetFromJsonAsync<SessionDetail>(
+            new Uri($"/api/v1/sessions/{sessionId}", UriKind.Relative),
+            TestJson.Options,
+            TestContext.Current.CancellationToken);
+
+        detail!.StartsAt.Offset.ShouldBe(TimeSpan.Zero);
+        detail.StartsAt.ShouldBe(startsAt.ToUniversalTime());
+        detail.EndsAt.Offset.ShouldBe(TimeSpan.Zero);
+
+        context.Dispose();
+    }
+
     /// <summary>
     /// Ayni egitmen ayni saatte iki oturuma atanamaz.
     /// </summary>

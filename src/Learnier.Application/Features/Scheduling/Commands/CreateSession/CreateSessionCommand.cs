@@ -93,17 +93,17 @@ public sealed class CreateSessionHandler(
             organizationId,
             course.Id,
             command.SessionType,
-            command.StartsAt,
-            command.EndsAt,
+            command.StartsAt.ToUniversalTime(),
+            command.EndsAt.ToUniversalTime(),
             command.Capacity,
             command.MinimumParticipants,
             command.ClassGroupId,
             command.CourseLessonId);
 
         session.SetBookingWindow(
-            command.BookingOpensAt,
-            command.BookingClosesAt,
-            command.CancellationDeadlineAt);
+            command.BookingOpensAt?.ToUniversalTime(),
+            command.BookingClosesAt?.ToUniversalTime(),
+            command.CancellationDeadlineAt?.ToUniversalTime());
 
         scheduling.AddSession(session);
         await unitOfWork.SaveChangesAsync(cancellationToken);

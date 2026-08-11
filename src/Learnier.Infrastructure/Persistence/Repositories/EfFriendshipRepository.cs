@@ -1,4 +1,5 @@
 using Learnier.Application.Common.Abstractions;
+using Learnier.Domain.Identity;
 using Learnier.Domain.Social;
 using Microsoft.EntityFrameworkCore;
 
@@ -87,6 +88,60 @@ internal sealed class EfFriendshipRepository(AppDbContext context) : IFriendship
 
     public void Add(Friendship friendship) => context.Friendships.Add(friendship);
 
+    public void Remove(Friendship friendship) => context.Friendships.Remove(friendship);
+
+    public async Task<IReadOnlyList<FriendshipSearchPeer>> SearchUsersAsync(
+        Guid currentUserId,
+        string searchTerm,
+        int limit,
+        CancellationToken cancellationToken)
+    {
+        var pattern = $"%{EscapeLikePattern(searchTerm.Trim())}%";
+        var users = await context.Users
+            .AsNoTracking()
+            .Where(user => user.Id != currentUserId && user.Status == UserStatus.Active)
+            .Where(user => EF.Functions.ILike(user.Email, pattern, "\\")
+                           || EF.Functions.ILike(user.FirstName, pattern, "\\")
+                           || EF.Functions.ILike(user.LastName, pattern, "\\")
+                           || EF.Functions.ILike(user.FirstName + " " + user.LastName, pattern, "\\"))
+            .OrderBy(user => user.FirstName)
+            .ThenBy(user => user.LastName)
+            .Take(limit)
+            .Select(user => new { user.Id, user.Email, user.FirstName, user.LastName })
+            .ToListAsync(cancellationToken);
+
+        if (users.Count == 0)
+        {
+            return [];
+        }
+
+        var userIds = users.Select(user => user.Id).ToList();
+        var relations = await context.Friendships
+            .AsNoTracking()
+            .Where(friendship =>
+                (friendship.FirstUserId == currentUserId
+                 && userIds.Contains(friendship.SecondUserId))
+                || (friendship.SecondUserId == currentUserId
+                    && userIds.Contains(friendship.FirstUserId)))
+            .ToListAsync(cancellationToken);
+
+        var relationByUserId = relations.ToDictionary(
+            friendship => friendship.OtherUserId(currentUserId));
+
+        return users.Select(user =>
+        {
+            relationByUserId.TryGetValue(user.Id, out var friendship);
+            return new FriendshipSearchPeer(
+                user.Id,
+                user.Email,
+                user.FirstName,
+                user.LastName,
+                friendship?.Id,
+                friendship?.Status,
+                friendship?.RequestedByUserId);
+        }).ToList();
+    }
+
     private static IQueryable<FriendshipPeer> ProjectPeers(
         IQueryable<Friendship> query,
         Guid currentUserId)
@@ -108,4 +163,9 @@ internal sealed class EfFriendshipRepository(AppDbContext context) : IFriendship
 
     private static (Guid First, Guid Second) OrderPair(Guid left, Guid right)
         => left.CompareTo(right) < 0 ? (left, right) : (right, left);
+
+    private static string EscapeLikePattern(string value)
+        => value.Replace("\\", "\\\\", StringComparison.Ordinal)
+            .Replace("%", "\\%", StringComparison.Ordinal)
+            .Replace("_", "\\_", StringComparison.Ordinal);
 }

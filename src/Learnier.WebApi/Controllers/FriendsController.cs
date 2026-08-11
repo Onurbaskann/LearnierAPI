@@ -10,6 +10,13 @@ namespace Learnier.WebApi.Controllers;
 [Authorize]
 public sealed class FriendsController : ControllerBase
 {
+    [HttpGet("search")]
+    public async Task<ActionResult<IReadOnlyList<FriendUserSearchItem>>> SearchUsers(
+        [FromQuery] SearchUsersQuery request,
+        [FromServices] SearchUsersHandler handler,
+        CancellationToken cancellationToken)
+        => (await handler.Handle(request, cancellationToken)).ToActionResult(this);
+
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<FriendListItem>>> List(
         [FromServices] ListFriendsHandler handler,
@@ -48,4 +55,18 @@ public sealed class FriendsController : ControllerBase
         [FromServices] DeclineFriendRequestHandler handler,
         CancellationToken cancellationToken)
         => (await handler.Handle(requestId, cancellationToken)).ToActionResult(this);
+
+    [HttpDelete("requests/{requestId:guid}")]
+    public async Task<ActionResult> CancelSentRequest(
+        Guid requestId,
+        [FromServices] CancelSentFriendRequestHandler handler,
+        CancellationToken cancellationToken)
+        => (await handler.Handle(requestId, cancellationToken)).ToActionResult(this);
+
+    [HttpDelete("{friendshipId:guid}")]
+    public async Task<ActionResult> RemoveFriend(
+        Guid friendshipId,
+        [FromServices] RemoveFriendHandler handler,
+        CancellationToken cancellationToken)
+        => (await handler.Handle(friendshipId, cancellationToken)).ToActionResult(this);
 }

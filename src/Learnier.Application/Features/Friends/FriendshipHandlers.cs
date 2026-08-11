@@ -23,6 +23,24 @@ public sealed record FriendRequestListItem(
 
 public sealed record SendFriendRequestCommand(string Email);
 
+public sealed record SearchUsersQuery(string Query);
+
+public enum FriendshipRelationState
+{
+    None,
+    IncomingRequest,
+    SentRequest,
+    Friends
+}
+
+public sealed record FriendUserSearchItem(
+    Guid UserId,
+    string Email,
+    string FirstName,
+    string LastName,
+    Guid? FriendshipId,
+    FriendshipRelationState RelationState);
+
 internal sealed class SendFriendRequestValidator : AbstractValidator<SendFriendRequestCommand>
 {
     public SendFriendRequestValidator()
@@ -32,6 +50,63 @@ internal sealed class SendFriendRequestValidator : AbstractValidator<SendFriendR
             .EmailAddress().WithErrorCode("friends.email_invalid")
             .MaximumLength(320).WithErrorCode("friends.email_too_long");
     }
+}
+
+internal sealed class SearchUsersValidator : AbstractValidator<SearchUsersQuery>
+{
+    public SearchUsersValidator()
+    {
+        RuleFor(query => query.Query)
+            .NotEmpty().WithErrorCode("friends.search_term_required")
+            .MinimumLength(2).WithErrorCode("friends.search_term_too_short")
+            .MaximumLength(100).WithErrorCode("friends.search_term_too_long");
+    }
+}
+
+public sealed class SearchUsersHandler(IFriendshipRepository friendships, ICurrentUser currentUser)
+{
+    private const int ResultLimit = 20;
+
+    public async Task<Result<IReadOnlyList<FriendUserSearchItem>>> Handle(
+        SearchUsersQuery query,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+        if (currentUser.UserId is not { } userId)
+        {
+            return Error.Unauthorized("common.unauthorized");
+        }
+
+        var users = await friendships.SearchUsersAsync(
+            userId,
+            query.Query,
+            ResultLimit,
+            cancellationToken);
+
+        return users.Select(user => ToSearchItem(user, userId)).ToList();
+    }
+
+    private static FriendUserSearchItem ToSearchItem(FriendshipSearchPeer user, Guid currentUserId)
+    {
+        var relationState = ToRelationState(user, currentUserId);
+        return new FriendUserSearchItem(
+            user.UserId,
+            user.Email,
+            user.FirstName,
+            user.LastName,
+            relationState is FriendshipRelationState.None ? null : user.FriendshipId,
+            relationState);
+    }
+
+    private static FriendshipRelationState ToRelationState(FriendshipSearchPeer user, Guid currentUserId)
+        => user.FriendshipStatus switch
+        {
+            FriendshipStatus.Accepted => FriendshipRelationState.Friends,
+            FriendshipStatus.Pending when user.RequestedByUserId == currentUserId
+                => FriendshipRelationState.SentRequest,
+            FriendshipStatus.Pending => FriendshipRelationState.IncomingRequest,
+            _ => FriendshipRelationState.None
+        };
 }
 
 public sealed class ListFriendsHandler(IFriendshipRepository friendships, ICurrentUser currentUser)
@@ -192,6 +267,64 @@ public sealed class DeclineFriendRequestHandler(
         }
 
         friendship.Decline(userId, clock.UtcNow);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+        return Result.Success();
+    }
+}
+
+public sealed class CancelSentFriendRequestHandler(
+    IFriendshipRepository friendships,
+    ICurrentUser currentUser,
+    IUnitOfWork unitOfWork)
+{
+    public async Task<Result> Handle(Guid requestId, CancellationToken cancellationToken)
+    {
+        if (currentUser.UserId is not { } userId)
+        {
+            return Error.Unauthorized("common.unauthorized");
+        }
+
+        var friendship = await friendships.FindByIdAsync(requestId, cancellationToken);
+        if (friendship is null || friendship.Status is not FriendshipStatus.Pending)
+        {
+            return FriendshipErrors.RequestNotFound;
+        }
+
+        if (!friendship.Includes(userId) || friendship.RequestedByUserId != userId)
+        {
+            return FriendshipErrors.RequestNotOwned;
+        }
+
+        friendships.Remove(friendship);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+        return Result.Success();
+    }
+}
+
+public sealed class RemoveFriendHandler(
+    IFriendshipRepository friendships,
+    ICurrentUser currentUser,
+    IUnitOfWork unitOfWork)
+{
+    public async Task<Result> Handle(Guid friendshipId, CancellationToken cancellationToken)
+    {
+        if (currentUser.UserId is not { } userId)
+        {
+            return Error.Unauthorized("common.unauthorized");
+        }
+
+        var friendship = await friendships.FindByIdAsync(friendshipId, cancellationToken);
+        if (friendship is null || friendship.Status is not FriendshipStatus.Accepted)
+        {
+            return FriendshipErrors.FriendshipNotFound;
+        }
+
+        if (!friendship.Includes(userId))
+        {
+            return FriendshipErrors.FriendshipNotOwned;
+        }
+
+        friendships.Remove(friendship);
         await unitOfWork.SaveChangesAsync(cancellationToken);
         return Result.Success();
     }

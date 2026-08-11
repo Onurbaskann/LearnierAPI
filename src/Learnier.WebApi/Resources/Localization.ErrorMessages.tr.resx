@@ -502,4 +502,19 @@
   <data name="friends.email_too_long" xml:space="preserve">
     <value>E-posta adresi 320 karakterden uzun olamaz.</value>
   </data>
+  <data name="friends.friendship_not_found" xml:space="preserve">
+    <value>Arkadaşlık bulunamadı.</value>
+  </data>
+  <data name="friends.friendship_not_owned" xml:space="preserve">
+    <value>Bu arkadaşlığı silme yetkiniz yok.</value>
+  </data>
+  <data name="friends.search_term_required" xml:space="preserve">
+    <value>Arama metni gerekli.</value>
+  </data>
+  <data name="friends.search_term_too_short" xml:space="preserve">
+    <value>Arama metni en az 2 karakter olmalı.</value>
+  </data>
+  <data name="friends.search_term_too_long" xml:space="preserve">
+    <value>Arama metni 100 karakterden uzun olamaz.</value>
+  </data>
 </root>

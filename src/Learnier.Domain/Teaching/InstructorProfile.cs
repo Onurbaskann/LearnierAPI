@@ -112,6 +112,7 @@ public sealed class InstructorProfile : AggregateRoot, IAuditableEntity
         var existing = _subjects.Find(s => s.SubjectId == subjectId && s.LevelId == levelId);
         if (existing is not null)
         {
+            existing.Activate();
             return existing;
         }
 

@@ -306,6 +306,9 @@
   <data name="teaching.subject_not_found" xml:space="preserve">
     <value>Seçilen eğitim alanı mevcut değil.</value>
   </data>
+  <data name="teaching.instructor_subject_not_found" xml:space="preserve">
+    <value>Eğitmen branş yetkinliği bulunamadı.</value>
+  </data>
   <data name="teaching.level_not_found" xml:space="preserve">
     <value>Seçilen seviye mevcut değil.</value>
   </data>

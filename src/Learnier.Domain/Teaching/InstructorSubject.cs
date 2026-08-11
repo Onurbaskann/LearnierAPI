@@ -47,4 +47,6 @@ public sealed class InstructorSubject : Entity, IAuditableEntity
         };
 
     public void Deactivate() => Status = InstructorSubjectStatus.Inactive;
+
+    public void Activate() => Status = InstructorSubjectStatus.Active;
 }

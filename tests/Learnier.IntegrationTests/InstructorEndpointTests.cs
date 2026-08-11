@@ -315,6 +315,10 @@ public sealed class InstructorEndpointTests(AuthApiFixture fixture) : IClassFixt
             new Uri("/api/v1/instructors/me/earnings", UriKind.Relative),
             TestJson.Options,
             TestContext.Current.CancellationToken);
+        var schedule = await instructorClient.GetFromJsonAsync<IReadOnlyList<InstructorScheduleListItem>>(
+            new Uri("/api/v1/instructors/me/schedule", UriKind.Relative),
+            TestJson.Options,
+            TestContext.Current.CancellationToken);
 
         students!.ShouldBeEmpty();
         dashboard!.StudentCount.ShouldBe(0);
@@ -322,6 +326,7 @@ public sealed class InstructorEndpointTests(AuthApiFixture fixture) : IClassFixt
         dashboard.ThisMonthTotal.ShouldBe(0m);
         dashboard.AverageRating.ShouldBeNull();
         earnings!.ShouldBeEmpty();
+        schedule!.ShouldBeEmpty();
 
         context.Dispose();
     }

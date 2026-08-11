@@ -113,6 +113,29 @@ public sealed class ListMyInstructorStudentsHandler(
     }
 }
 
+public sealed class ListMyInstructorScheduleHandler(
+    IInstructorQueries queries,
+    ICurrentTenant currentTenant)
+{
+    public async Task<Result<IReadOnlyList<InstructorScheduleListItem>>> Handle(
+        DateTimeOffset? from,
+        DateTimeOffset? until,
+        CancellationToken cancellationToken)
+    {
+        if (currentTenant.MembershipId is not { } membershipId)
+        {
+            return TeachingErrors.OrganizationContextRequired;
+        }
+
+        var result = await queries.ListMyScheduleAsync(
+            membershipId,
+            from,
+            until,
+            cancellationToken);
+        return result is null ? TeachingErrors.ProfileNotFound : Result.Success(result);
+    }
+}
+
 public sealed class ListMyInstructorEarningsHandler(
     IInstructorQueries queries,
     ICurrentTenant currentTenant)

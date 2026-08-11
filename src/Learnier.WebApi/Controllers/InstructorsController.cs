@@ -214,6 +214,19 @@ public sealed class InstructorsController : ControllerBase
         return (await handler.Handle(cancellationToken)).ToActionResult(this);
     }
 
+    /// <summary>Yalnizca aktif rezervasyonu bulunan egitmen derslerini listeler.</summary>
+    [HttpGet("me/schedule")]
+    [Authorize(Policy = Permissions.Course.Read)]
+    public async Task<ActionResult<IReadOnlyList<InstructorScheduleListItem>>> ListMySchedule(
+        [FromServices] ListMyInstructorScheduleHandler handler,
+        CancellationToken cancellationToken,
+        [FromQuery] DateTimeOffset? from = null,
+        [FromQuery] DateTimeOffset? to = null)
+    {
+        ArgumentNullException.ThrowIfNull(handler);
+        return (await handler.Handle(from, to, cancellationToken)).ToActionResult(this);
+    }
+
     [HttpGet("me/dashboard")]
     [Authorize(Policy = Permissions.Course.Read)]
     public async Task<ActionResult<InstructorDashboardStats>> GetMyDashboard(

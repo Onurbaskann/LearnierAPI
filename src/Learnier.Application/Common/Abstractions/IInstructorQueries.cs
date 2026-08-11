@@ -30,6 +30,12 @@ public interface IInstructorQueries
         Guid membershipId,
         CancellationToken cancellationToken);
 
+    Task<IReadOnlyList<InstructorScheduleListItem>?> ListMyScheduleAsync(
+        Guid membershipId,
+        DateTimeOffset? from,
+        DateTimeOffset? until,
+        CancellationToken cancellationToken);
+
     Task<InstructorDashboardStats?> FindMyDashboardAsync(
         Guid membershipId,
         DateTimeOffset monthStartsAt,

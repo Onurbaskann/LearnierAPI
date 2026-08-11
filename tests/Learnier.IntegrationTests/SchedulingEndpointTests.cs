@@ -13,6 +13,7 @@ using Learnier.Application.Features.Scheduling.Commands.CreateBooking;
 using Learnier.Application.Features.Scheduling.Commands.CreateSession;
 using Learnier.Application.Features.Scheduling.Queries;
 using Learnier.Application.Features.Teaching.Commands.CreateInstructorProfile;
+using Learnier.Application.Features.Teaching.Queries;
 using Learnier.Domain.Identity;
 using Microsoft.EntityFrameworkCore;
 using Shouldly;
@@ -93,6 +94,16 @@ public sealed class SchedulingEndpointTests(AuthApiFixture fixture) : IClassFixt
             TestJson.Options,
             TestContext.Current.CancellationToken);
         reservation!.Status.ShouldBe(Domain.Scheduling.BookingStatus.Reserved);
+
+        var instructorSchedule = await instructorClient.GetFromJsonAsync<
+            IReadOnlyList<InstructorScheduleListItem>>(
+            new Uri("/api/v1/instructors/me/schedule", UriKind.Relative),
+            TestJson.Options,
+            TestContext.Current.CancellationToken);
+        var scheduledLesson = instructorSchedule.ShouldHaveSingleItem();
+        scheduledLesson.SessionId.ShouldBe(opened.SessionId);
+        scheduledLesson.Learners.ShouldHaveSingleItem().FirstName.ShouldBe("Deniz");
+        scheduledLesson.Learners.ShouldHaveSingleItem().LastName.ShouldBe("Yilmaz");
 
         var occupiedSlots = await context.Client.GetFromJsonAsync<
             IReadOnlyList<InstructorSlotListItem>>(

@@ -1,4 +1,5 @@
 using Learnier.Domain.Teaching;
+using Learnier.Domain.Scheduling;
 
 namespace Learnier.Application.Features.Teaching.Queries;
 
@@ -60,6 +61,19 @@ public sealed record InstructorStudentListItem(
     IReadOnlyList<string> CourseTitles,
     int TotalLessons,
     DateTimeOffset LastLessonAt);
+
+public sealed record InstructorScheduleLearner(
+    Guid UserId,
+    string FirstName,
+    string LastName);
+
+public sealed record InstructorScheduleListItem(
+    Guid SessionId,
+    string CourseTitle,
+    DateTimeOffset StartsAt,
+    DateTimeOffset EndsAt,
+    LessonSessionStatus Status,
+    IReadOnlyList<InstructorScheduleLearner> Learners);
 
 public sealed record InstructorDashboardStats(
     int StudentCount,

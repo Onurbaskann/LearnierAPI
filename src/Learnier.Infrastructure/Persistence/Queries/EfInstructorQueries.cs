@@ -168,6 +168,64 @@ internal sealed class EfInstructorQueries(AppDbContext context) : IInstructorQue
             .ToList();
     }
 
+    public async Task<IReadOnlyList<InstructorScheduleListItem>?> ListMyScheduleAsync(
+        Guid membershipId,
+        DateTimeOffset? from,
+        DateTimeOffset? until,
+        CancellationToken cancellationToken)
+    {
+        var profileId = await context.InstructorProfiles
+            .Where(profile => profile.MembershipId == membershipId)
+            .Select(profile => (Guid?)profile.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (profileId is null)
+        {
+            return null;
+        }
+
+        var query = context.LessonSessions
+            .AsNoTracking()
+            .Where(session => session.Status != LessonSessionStatus.Cancelled)
+            .Where(session => session.Instructors.Any(instructor =>
+                instructor.InstructorProfileId == profileId))
+            .Where(session => session.Bookings.Any(booking =>
+                booking.Status == BookingStatus.Reserved
+                || booking.Status == BookingStatus.Attended
+                || booking.Status == BookingStatus.NoShow));
+
+        if (from is { } startsAfter)
+        {
+            query = query.Where(session => session.EndsAt >= startsAfter);
+        }
+
+        if (until is { } startsBefore)
+        {
+            query = query.Where(session => session.StartsAt <= startsBefore);
+        }
+
+        return await query
+            .OrderBy(session => session.StartsAt)
+            .ThenBy(session => session.Id)
+            .Select(session => new InstructorScheduleListItem(
+                session.Id,
+                session.Course.Title,
+                session.StartsAt,
+                session.EndsAt,
+                session.Status,
+                session.Bookings
+                    .Where(booking => booking.Status == BookingStatus.Reserved
+                                      || booking.Status == BookingStatus.Attended
+                                      || booking.Status == BookingStatus.NoShow)
+                    .OrderBy(booking => booking.BookedAt)
+                    .ThenBy(booking => booking.Id)
+                    .Select(booking => new InstructorScheduleLearner(
+                        booking.LearnerUserId,
+                        booking.Learner.FirstName,
+                        booking.Learner.LastName))
+                    .ToList()))
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<InstructorDashboardStats?> FindMyDashboardAsync(
         Guid membershipId,
         DateTimeOffset monthStartsAt,

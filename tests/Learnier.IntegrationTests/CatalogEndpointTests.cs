@@ -329,6 +329,84 @@ public sealed class CatalogEndpointTests(AuthApiFixture fixture) : IClassFixture
     }
 
     [Fact]
+    public async Task Course_CanBeArchivedWithoutDeletingItsCurriculum()
+    {
+        var (ownerClient, organizationId) = await NewOrganizationClient();
+        var subjectId = await CreateSubject(ownerClient, "Arsiv Alani");
+        var courseId = await CreateCourse(ownerClient, subjectId, "Arsivlenecek Egitim", publish: true);
+        var moduleId = await AddModule(ownerClient, courseId, "Korunan Modul", 1);
+        await AddLesson(ownerClient, moduleId, "Korunan Ders", 1, 30);
+        using var readerClient = await InviteReader(ownerClient, organizationId);
+
+        var archived = await ownerClient.PostAsync(
+            new Uri($"/api/v1/courses/{courseId}/archive", UriKind.Relative),
+            content: null,
+            TestContext.Current.CancellationToken);
+
+        archived.StatusCode.ShouldBe(HttpStatusCode.NoContent);
+
+        var ownerDetail = await ownerClient.GetFromJsonAsync<CourseDetail>(
+            new Uri($"/api/v1/courses/{courseId}", UriKind.Relative),
+            TestJson.Options,
+            TestContext.Current.CancellationToken);
+
+        ownerDetail!.Status.ShouldBe(Domain.Catalog.CourseStatus.Archived);
+        ownerDetail.Modules.Single().Lessons.Single().Title.ShouldBe("Korunan Ders");
+
+        var readerDetail = await readerClient.GetAsync(
+            new Uri($"/api/v1/courses/{courseId}", UriKind.Relative),
+            TestContext.Current.CancellationToken);
+
+        readerDetail.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+
+        var archivedAgain = await ownerClient.PostAsync(
+            new Uri($"/api/v1/courses/{courseId}/archive", UriKind.Relative),
+            content: null,
+            TestContext.Current.CancellationToken);
+
+        archivedAgain.StatusCode.ShouldBe(HttpStatusCode.NoContent);
+
+        ownerClient.Dispose();
+    }
+
+    [Fact]
+    public async Task CourseArchive_IsIsolatedBetweenOrganizations()
+    {
+        var (ownerClient, _) = await NewOrganizationClient();
+        var subjectId = await CreateSubject(ownerClient, "Sahip Alan");
+        var courseId = await CreateCourse(ownerClient, subjectId, "Gizli Egitim");
+        var (otherClient, _) = await NewOrganizationClient();
+
+        var archive = await otherClient.PostAsync(
+            new Uri($"/api/v1/courses/{courseId}/archive", UriKind.Relative),
+            content: null,
+            TestContext.Current.CancellationToken);
+
+        archive.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+
+        ownerClient.Dispose();
+        otherClient.Dispose();
+    }
+
+    [Fact]
+    public async Task CourseArchive_RequiresCatalogManagePermission()
+    {
+        var (ownerClient, organizationId) = await NewOrganizationClient();
+        var subjectId = await CreateSubject(ownerClient, "Yetki Alani");
+        var courseId = await CreateCourse(ownerClient, subjectId, "Yonetilen Egitim", publish: true);
+        using var readerClient = await InviteReader(ownerClient, organizationId);
+
+        var archive = await readerClient.PostAsync(
+            new Uri($"/api/v1/courses/{courseId}/archive", UriKind.Relative),
+            content: null,
+            TestContext.Current.CancellationToken);
+
+        archive.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+
+        ownerClient.Dispose();
+    }
+
+    [Fact]
     public async Task CourseList_IsPaged()
     {
         var (client, _) = await NewOrganizationClient();

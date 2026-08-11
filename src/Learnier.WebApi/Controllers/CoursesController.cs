@@ -2,6 +2,7 @@ using Learnier.Application.Common.Models;
 using Learnier.Application.Common.Security;
 using Learnier.Application.Features.Catalog.Commands.AddCourseLesson;
 using Learnier.Application.Features.Catalog.Commands.AddCourseModule;
+using Learnier.Application.Features.Catalog.Commands.ArchiveCourse;
 using Learnier.Application.Features.Catalog.Commands.CreateCourse;
 using Learnier.Application.Features.Catalog.Commands.PublishCourse;
 using Learnier.Application.Features.Catalog.Queries;
@@ -49,6 +50,24 @@ public sealed class CoursesController : ControllerBase
     public async Task<ActionResult> Publish(
         Guid courseId,
         [FromServices] PublishCourseHandler handler,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(handler);
+
+        var result = await handler.Handle(courseId, cancellationToken);
+
+        return result.ToActionResult(this);
+    }
+
+    /// <summary>Egitimi gecmis baglantilarini silmeden arsivler.</summary>
+    [HttpPost("{courseId:guid}/archive")]
+    [Authorize(Policy = Permissions.Course.Manage)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult> Archive(
+        Guid courseId,
+        [FromServices] ArchiveCourseHandler handler,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(handler);

@@ -215,6 +215,7 @@ internal sealed class EfSchedulingQueries(AppDbContext context) : ISchedulingQue
                 b.SessionId,
                 b.Session.CourseId,
                 b.Session.Course.Title,
+                b.Session.Course.Subject.Name,
                 b.Session.SessionType,
                 b.Session.StartsAt,
                 b.Session.EndsAt,

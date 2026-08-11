@@ -64,6 +64,11 @@ public interface ISchedulingRepository
 
     Task<bool> InstructorExistsAsync(Guid instructorProfileId, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Birebir slot rezervasyonlarini siraya koymak icin egitmen profilini satir kilidiyle kilitler.
+    /// </summary>
+    Task<bool> LockInstructorAsync(Guid instructorProfileId, CancellationToken cancellationToken);
+
     Task<int> CountActiveMembersAsync(Guid classGroupId, CancellationToken cancellationToken);
 
     void AddClassGroup(ClassGroup classGroup);

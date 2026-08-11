@@ -155,6 +155,22 @@ internal sealed class EfSchedulingRepository(AppDbContext context) : IScheduling
             .Where(p => p.Id == instructorProfileId)
             .AnyAsync(p => context.Memberships.Any(m => m.Id == p.MembershipId), cancellationToken);
 
+    public async Task<bool> LockInstructorAsync(
+        Guid instructorProfileId,
+        CancellationToken cancellationToken)
+    {
+        var locked = await context.InstructorProfiles
+            .FromSqlInterpolated(
+                $"SELECT * FROM instructor_profiles WHERE id = {instructorProfileId} FOR UPDATE")
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return locked is not null
+               && await context.Memberships.AnyAsync(
+                   m => m.Id == locked.MembershipId,
+                   cancellationToken);
+    }
+
     public async Task<int> CountActiveMembersAsync(Guid classGroupId, CancellationToken cancellationToken)
         => await context.ClassGroupMembers
             .CountAsync(

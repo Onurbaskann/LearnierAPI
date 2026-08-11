@@ -2,12 +2,14 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Globalization;
 using Learnier.Application.Common.Models;
 using Learnier.Application.Features.Authentication.Commands.LoginUser;
 using Learnier.Application.Features.Catalog.Commands.CreateCourse;
 using Learnier.Application.Features.Catalog.Commands.CreateSubject;
 using Learnier.Application.Features.Organizations.Commands.CreateOrganization;
 using Learnier.Application.Features.Scheduling.Commands.CreateClassGroup;
+using Learnier.Application.Features.Scheduling.Commands.BookInstructorSlot;
 using Learnier.Application.Features.Scheduling.Commands.CreateSession;
 using Learnier.Application.Features.Scheduling.Queries;
 using Learnier.Application.Features.Teaching.Commands.CreateInstructorProfile;
@@ -23,6 +25,101 @@ namespace Learnier.IntegrationTests;
 public sealed class SchedulingEndpointTests(AuthApiFixture fixture) : IClassFixture<AuthApiFixture>
 {
     private const string OrganizationHeader = "X-Organization-Id";
+
+    [Fact]
+    public async Task InstructorSlot_CanBeListedBookedCancelledAndReopened()
+    {
+        var context = await NewOrganization();
+        var (courseId, subjectId) = await CreatePublishedPrivateCourse(context.Client);
+        var profileId = await CreateInstructor(context);
+
+        (await context.Client.PostAsync(
+            new Uri($"/api/v1/instructors/{profileId}/activate", UriKind.Relative),
+            content: null,
+            TestContext.Current.CancellationToken)).StatusCode.ShouldBe(HttpStatusCode.NoContent);
+
+        (await context.Client.PostAsJsonAsync(
+            new Uri($"/api/v1/instructors/{profileId}/subjects", UriKind.Relative),
+            new { subjectId, levelId = (Guid?)null },
+            TestContext.Current.CancellationToken)).StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        var localDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(7));
+        var localStart = new DateTimeOffset(
+            localDate.ToDateTime(new TimeOnly(10, 0)),
+            TimeSpan.FromHours(3));
+        var rangeStart = new DateTimeOffset(
+            localDate.ToDateTime(TimeOnly.MinValue),
+            TimeSpan.FromHours(3));
+        var rangeEnd = rangeStart.AddDays(1);
+
+        (await context.Client.PostAsJsonAsync(
+            new Uri($"/api/v1/instructors/{profileId}/availabilities", UriKind.Relative),
+            new
+            {
+                dayOfWeek = localStart.DayOfWeek.ToString(),
+                startLocalTime = "10:00:00",
+                endLocalTime = "12:00:00",
+                validFrom = localDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                validUntil = (string?)null
+            },
+            TestContext.Current.CancellationToken)).StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        var slotsUri = new Uri(
+            $"/api/v1/instructors/{profileId}/slots?courseId={courseId}"
+            + $"&from={Uri.EscapeDataString(rangeStart.ToString("O"))}"
+            + $"&until={Uri.EscapeDataString(rangeEnd.ToString("O"))}",
+            UriKind.Relative);
+
+        var initialSlots = await context.Client.GetFromJsonAsync<
+            IReadOnlyList<InstructorSlotListItem>>(
+            slotsUri,
+            TestJson.Options,
+            TestContext.Current.CancellationToken);
+
+        initialSlots!.Count.ShouldBe(2);
+        initialSlots.ShouldAllBe(slot => slot.IsAvailable);
+
+        var booked = await context.Client.PostAsJsonAsync(
+            new Uri($"/api/v1/instructors/{profileId}/bookings", UriKind.Relative),
+            new { courseId, startsAt = initialSlots[0].StartsAt },
+            TestContext.Current.CancellationToken);
+
+        booked.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var reservation = await booked.Content.ReadFromJsonAsync<BookInstructorSlotResult>(
+            TestJson.Options,
+            TestContext.Current.CancellationToken);
+        reservation!.Status.ShouldBe(Domain.Scheduling.BookingStatus.Reserved);
+
+        var occupiedSlots = await context.Client.GetFromJsonAsync<
+            IReadOnlyList<InstructorSlotListItem>>(
+            slotsUri,
+            TestJson.Options,
+            TestContext.Current.CancellationToken);
+        occupiedSlots!.Single(slot => slot.StartsAt == reservation.StartsAt)
+            .IsAvailable.ShouldBeFalse();
+
+        var bookings = await context.Client.GetFromJsonAsync<PagedResult<LearnerBookingListItem>>(
+            new Uri("/api/v1/bookings/me", UriKind.Relative),
+            TestJson.Options,
+            TestContext.Current.CancellationToken);
+        bookings!.Items.Single(item => item.Id == reservation.BookingId)
+            .SessionId.ShouldBe(reservation.SessionId);
+
+        var cancelled = await context.Client.DeleteAsync(
+            new Uri($"/api/v1/bookings/{reservation.BookingId}", UriKind.Relative),
+            TestContext.Current.CancellationToken);
+        cancelled.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        var reopenedSlots = await context.Client.GetFromJsonAsync<
+            IReadOnlyList<InstructorSlotListItem>>(
+            slotsUri,
+            TestJson.Options,
+            TestContext.Current.CancellationToken);
+        reopenedSlots!.Single(slot => slot.StartsAt == reservation.StartsAt)
+            .IsAvailable.ShouldBeTrue();
+
+        context.Dispose();
+    }
 
     [Fact]
     public async Task Session_TimesWithOffset_AreStoredAsUtc()
@@ -384,6 +481,40 @@ public sealed class SchedulingEndpointTests(AuthApiFixture fixture) : IClassFixt
             TestJson.Options, TestContext.Current.CancellationToken);
 
         return created!.CourseId;
+    }
+
+    private static async Task<(Guid CourseId, Guid SubjectId)> CreatePublishedPrivateCourse(
+        HttpClient client)
+    {
+        var subject = await client.PostAsJsonAsync(
+            new Uri("/api/v1/subjects", UriKind.Relative),
+            new CreateSubjectCommand("Ingilizce", $"alan-{Guid.CreateVersion7():N}"[..20], null),
+            TestContext.Current.CancellationToken);
+        var subjectId = (await subject.Content.ReadFromJsonAsync<CreateSubjectResult>(
+            TestContext.Current.CancellationToken))!.SubjectId;
+
+        var course = await client.PostAsJsonAsync(
+            new Uri("/api/v1/courses", UriKind.Relative),
+            new
+            {
+                subjectId,
+                title = "Birebir Ingilizce",
+                courseType = "Private",
+                defaultDurationMinutes = 60,
+                minParticipants = 1,
+                maxParticipants = 1
+            },
+            TestContext.Current.CancellationToken);
+        var created = await course.Content.ReadFromJsonAsync<CreateCourseResult>(
+            TestJson.Options,
+            TestContext.Current.CancellationToken);
+
+        (await client.PostAsync(
+            new Uri($"/api/v1/courses/{created!.CourseId}/publish", UriKind.Relative),
+            content: null,
+            TestContext.Current.CancellationToken)).StatusCode.ShouldBe(HttpStatusCode.NoContent);
+
+        return (created.CourseId, subjectId);
     }
 
     private async Task<Guid> CreateInstructor(OrganizationContext context)

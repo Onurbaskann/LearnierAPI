@@ -107,6 +107,12 @@ public sealed class CancelBookingHandler(
                 next.Promote();
                 promotedBookingId = next.Id;
             }
+            else if (session.SessionType is SessionType.Private)
+            {
+                // Birebir oturum rezervasyon aninda uretilir. Tek katilimci iptal
+                // edince oturumu da kapatmak egitmenin slotunu yeniden acar.
+                session.Cancel("Rezervasyon iptal edildi.");
+            }
         }
 
         await unitOfWork.SaveChangesAsync(cancellationToken);

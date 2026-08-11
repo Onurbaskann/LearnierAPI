@@ -84,6 +84,7 @@ public sealed record LearnerBookingListItem(
     Guid SessionId,
     Guid CourseId,
     string CourseTitle,
+    string SubjectName,
     SessionType SessionType,
     DateTimeOffset StartsAt,
     DateTimeOffset EndsAt,

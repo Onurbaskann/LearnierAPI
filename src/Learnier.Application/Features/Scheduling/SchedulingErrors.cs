@@ -34,6 +34,15 @@ internal static class SchedulingErrors
     /// </remarks>
     public static Error InstructorBusy => Error.Conflict("scheduling.instructor_busy");
 
+    public static Error InstructorUnavailable
+        => Error.Conflict("scheduling.instructor_unavailable");
+
+    public static Error InstructorSubjectMismatch
+        => Error.Validation("scheduling.instructor_subject_mismatch");
+
+    public static Error CourseNotBookable
+        => Error.Conflict("scheduling.course_not_bookable");
+
     /// <summary>Oturum su anda rezervasyona kapali: pencere disinda veya iptal edilmis.</summary>
     public static Error SessionNotBookable => Error.Conflict("scheduling.session_not_bookable");
 

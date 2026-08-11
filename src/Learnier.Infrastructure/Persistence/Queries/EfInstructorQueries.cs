@@ -1,6 +1,8 @@
 using Learnier.Application.Common.Abstractions;
 using Learnier.Application.Common.Models;
 using Learnier.Application.Features.Teaching.Queries;
+using Learnier.Domain.Progress;
+using Learnier.Domain.Scheduling;
 using Learnier.Domain.Teaching;
 using Microsoft.EntityFrameworkCore;
 
@@ -118,4 +120,161 @@ internal sealed class EfInstructorQueries(AppDbContext context) : IInstructorQue
                 o.OverrideType,
                 o.Reason))
             .ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<InstructorStudentListItem>?> ListMyStudentsAsync(
+        Guid membershipId,
+        CancellationToken cancellationToken)
+    {
+        var profileId = await context.InstructorProfiles
+            .Where(p => p.MembershipId == membershipId)
+            .Select(p => (Guid?)p.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (profileId is null)
+        {
+            return null;
+        }
+
+        var bookings = await context.SessionBookings
+            .AsNoTracking()
+            .Where(b => b.Status == BookingStatus.Reserved
+                        || b.Status == BookingStatus.Attended
+                        || b.Status == BookingStatus.NoShow)
+            .Where(b => b.Session.Status != LessonSessionStatus.Cancelled)
+            .Where(b => b.Session.Instructors.Any(i => i.InstructorProfileId == profileId))
+            .Select(b => new
+            {
+                b.LearnerUserId,
+                b.Learner.FirstName,
+                b.Learner.LastName,
+                CourseTitle = b.Session.Course.Title,
+                b.Session.StartsAt
+            })
+            .ToListAsync(cancellationToken);
+
+        return bookings
+            .GroupBy(b => new { b.LearnerUserId, b.FirstName, b.LastName })
+            .Select(group => new InstructorStudentListItem(
+                group.Key.LearnerUserId,
+                group.Key.FirstName,
+                group.Key.LastName,
+                group.Select(b => b.CourseTitle).Distinct().Order().ToList(),
+                group.Count(),
+                group.Max(b => b.StartsAt)))
+            .OrderBy(item => item.FirstName)
+            .ThenBy(item => item.UserId)
+            .ToList();
+    }
+
+    public async Task<InstructorDashboardStats?> FindMyDashboardAsync(
+        Guid membershipId,
+        DateTimeOffset monthStartsAt,
+        DateTimeOffset monthEndsAt,
+        CancellationToken cancellationToken)
+    {
+        var profile = await context.InstructorProfiles
+            .AsNoTracking()
+            .Where(p => p.MembershipId == membershipId)
+            .Select(p => new { p.Id, p.DefaultHourlyRate, p.DefaultHourlyRateCurrency })
+            .FirstOrDefaultAsync(cancellationToken);
+        if (profile is null)
+        {
+            return null;
+        }
+
+        var sessions = context.LessonSessions
+            .AsNoTracking()
+            .Where(s => s.Instructors.Any(i => i.InstructorProfileId == profile.Id));
+
+        var studentCount = await context.SessionBookings
+            .AsNoTracking()
+            .Where(b => b.Status == BookingStatus.Reserved
+                        || b.Status == BookingStatus.Attended
+                        || b.Status == BookingStatus.NoShow)
+            .Where(b => b.Session.Status != LessonSessionStatus.Cancelled)
+            .Where(b => b.Session.Instructors.Any(i => i.InstructorProfileId == profile.Id))
+            .Select(b => b.LearnerUserId)
+            .Distinct()
+            .CountAsync(cancellationToken);
+
+        var completedLessons = await sessions
+            .CountAsync(s => s.Status == LessonSessionStatus.Completed, cancellationToken);
+        var monthDurations = await sessions
+            .Where(s => s.Status == LessonSessionStatus.Completed
+                        && s.StartsAt >= monthStartsAt
+                        && s.StartsAt < monthEndsAt)
+            .Select(s => new { s.StartsAt, s.EndsAt })
+            .ToListAsync(cancellationToken);
+        var hourlyRate = profile.DefaultHourlyRate ?? 0m;
+        var thisMonthTotal = monthDurations.Sum(
+            session => hourlyRate * (decimal)(session.EndsAt - session.StartsAt).TotalHours);
+        var averageRating = await context.SessionFeedback
+            .AsNoTracking()
+            .Where(f => f.TargetInstructorProfileId == profile.Id)
+            .Select(f => (double?)f.Rating)
+            .AverageAsync(cancellationToken);
+
+        return new InstructorDashboardStats(
+            studentCount,
+            completedLessons,
+            decimal.Round(thisMonthTotal, 2),
+            profile.DefaultHourlyRateCurrency ?? "TRY",
+            averageRating);
+    }
+
+    public async Task<IReadOnlyList<InstructorEarningListItem>?> ListMyEarningsAsync(
+        Guid membershipId,
+        DateTimeOffset? from,
+        DateTimeOffset? until,
+        CancellationToken cancellationToken)
+    {
+        var profile = await context.InstructorProfiles
+            .AsNoTracking()
+            .Where(p => p.MembershipId == membershipId)
+            .Select(p => new { p.Id, p.DefaultHourlyRate, p.DefaultHourlyRateCurrency })
+            .FirstOrDefaultAsync(cancellationToken);
+        if (profile is null)
+        {
+            return null;
+        }
+
+        var query = context.LessonSessions
+            .AsNoTracking()
+            .Where(s => s.Status == LessonSessionStatus.Completed)
+            .Where(s => s.Instructors.Any(i => i.InstructorProfileId == profile.Id));
+        if (from is { } after)
+        {
+            query = query.Where(s => s.EndsAt >= after);
+        }
+
+        if (until is { } before)
+        {
+            query = query.Where(s => s.StartsAt <= before);
+        }
+
+        var sessions = await query
+            .OrderByDescending(s => s.StartsAt)
+            .Select(s => new
+            {
+                s.Id,
+                s.Course.Title,
+                s.StartsAt,
+                s.EndsAt,
+                LearnerCount = s.Bookings.Count(b =>
+                    b.Status == BookingStatus.Reserved
+                    || b.Status == BookingStatus.Attended
+                    || b.Status == BookingStatus.NoShow)
+            })
+            .ToListAsync(cancellationToken);
+        var hourlyRate = profile.DefaultHourlyRate ?? 0m;
+        var currency = profile.DefaultHourlyRateCurrency ?? "TRY";
+
+        return sessions.Select(session => new InstructorEarningListItem(
+            session.Id,
+            session.Title,
+            session.StartsAt,
+            session.LearnerCount,
+            decimal.Round(
+                hourlyRate * (decimal)(session.EndsAt - session.StartsAt).TotalHours, 2),
+            currency)).ToList();
+    }
 }

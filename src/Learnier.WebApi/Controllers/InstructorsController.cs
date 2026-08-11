@@ -178,6 +178,38 @@ public sealed class InstructorsController : ControllerBase
         return result.ToActionResult(this);
     }
 
+    [HttpGet("me/students")]
+    [Authorize(Policy = Permissions.Course.Read)]
+    public async Task<ActionResult<IReadOnlyList<InstructorStudentListItem>>> ListMyStudents(
+        [FromServices] ListMyInstructorStudentsHandler handler,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(handler);
+        return (await handler.Handle(cancellationToken)).ToActionResult(this);
+    }
+
+    [HttpGet("me/dashboard")]
+    [Authorize(Policy = Permissions.Course.Read)]
+    public async Task<ActionResult<InstructorDashboardStats>> GetMyDashboard(
+        [FromServices] GetMyInstructorDashboardHandler handler,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(handler);
+        return (await handler.Handle(cancellationToken)).ToActionResult(this);
+    }
+
+    [HttpGet("me/earnings")]
+    [Authorize(Policy = Permissions.Course.Read)]
+    public async Task<ActionResult<IReadOnlyList<InstructorEarningListItem>>> ListMyEarnings(
+        [FromServices] ListMyInstructorEarningsHandler handler,
+        CancellationToken cancellationToken,
+        [FromQuery] DateTimeOffset? from = null,
+        [FromQuery] DateTimeOffset? to = null)
+    {
+        ArgumentNullException.ThrowIfNull(handler);
+        return (await handler.Handle(from, to, cancellationToken)).ToActionResult(this);
+    }
+
     /// <summary>Egitmenin brans yetkinligini pasiflestirir.</summary>
     [HttpPost("{profileId:guid}/subjects/{instructorSubjectId:guid}/deactivate")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]

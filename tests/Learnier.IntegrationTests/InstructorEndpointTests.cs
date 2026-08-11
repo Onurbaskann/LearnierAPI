@@ -297,6 +297,36 @@ public sealed class InstructorEndpointTests(AuthApiFixture fixture) : IClassFixt
     }
 
     [Fact]
+    public async Task Instructor_CanReadOwnStudentsAndDashboard()
+    {
+        var context = await NewOrganization();
+        await CreateProfile(context.OwnerClient, context.InstructorMembershipId);
+        using var instructorClient = await context.SignInAsInstructor();
+
+        var students = await instructorClient.GetFromJsonAsync<IReadOnlyList<InstructorStudentListItem>>(
+            new Uri("/api/v1/instructors/me/students", UriKind.Relative),
+            TestJson.Options,
+            TestContext.Current.CancellationToken);
+        var dashboard = await instructorClient.GetFromJsonAsync<InstructorDashboardStats>(
+            new Uri("/api/v1/instructors/me/dashboard", UriKind.Relative),
+            TestJson.Options,
+            TestContext.Current.CancellationToken);
+        var earnings = await instructorClient.GetFromJsonAsync<IReadOnlyList<InstructorEarningListItem>>(
+            new Uri("/api/v1/instructors/me/earnings", UriKind.Relative),
+            TestJson.Options,
+            TestContext.Current.CancellationToken);
+
+        students!.ShouldBeEmpty();
+        dashboard!.StudentCount.ShouldBe(0);
+        dashboard.CompletedLessons.ShouldBe(0);
+        dashboard.ThisMonthTotal.ShouldBe(0m);
+        dashboard.AverageRating.ShouldBeNull();
+        earnings!.ShouldBeEmpty();
+
+        context.Dispose();
+    }
+
+    [Fact]
     public async Task InstructorManagement_CanCompleteTheProfileLifecycle()
     {
         var context = await NewOrganization();

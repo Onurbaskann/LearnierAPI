@@ -71,3 +71,64 @@ public sealed class ListAvailabilityOverridesHandler(
         return Result.Success(overrides);
     }
 }
+
+public sealed class GetMyInstructorDashboardHandler(
+    IInstructorQueries queries,
+    ICurrentTenant currentTenant,
+    IClock clock)
+{
+    public async Task<Result<InstructorDashboardStats>> Handle(
+        CancellationToken cancellationToken)
+    {
+        if (currentTenant.MembershipId is not { } membershipId)
+        {
+            return TeachingErrors.OrganizationContextRequired;
+        }
+
+        var now = clock.UtcNow;
+        var monthStartsAt = new DateTimeOffset(
+            now.Year, now.Month, 1, 0, 0, 0, TimeSpan.Zero);
+        var monthEndsAt = monthStartsAt.AddMonths(1);
+        var result = await queries.FindMyDashboardAsync(
+            membershipId, monthStartsAt, monthEndsAt, cancellationToken);
+
+        return result is null ? TeachingErrors.ProfileNotFound : Result.Success(result);
+    }
+}
+
+public sealed class ListMyInstructorStudentsHandler(
+    IInstructorQueries queries,
+    ICurrentTenant currentTenant)
+{
+    public async Task<Result<IReadOnlyList<InstructorStudentListItem>>> Handle(
+        CancellationToken cancellationToken)
+    {
+        if (currentTenant.MembershipId is not { } membershipId)
+        {
+            return TeachingErrors.OrganizationContextRequired;
+        }
+
+        var result = await queries.ListMyStudentsAsync(membershipId, cancellationToken);
+        return result is null ? TeachingErrors.ProfileNotFound : Result.Success(result);
+    }
+}
+
+public sealed class ListMyInstructorEarningsHandler(
+    IInstructorQueries queries,
+    ICurrentTenant currentTenant)
+{
+    public async Task<Result<IReadOnlyList<InstructorEarningListItem>>> Handle(
+        DateTimeOffset? from,
+        DateTimeOffset? until,
+        CancellationToken cancellationToken)
+    {
+        if (currentTenant.MembershipId is not { } membershipId)
+        {
+            return TeachingErrors.OrganizationContextRequired;
+        }
+
+        var result = await queries.ListMyEarningsAsync(
+            membershipId, from, until, cancellationToken);
+        return result is null ? TeachingErrors.ProfileNotFound : Result.Success(result);
+    }
+}

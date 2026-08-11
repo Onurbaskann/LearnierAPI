@@ -49,3 +49,26 @@ public sealed record AvailabilityOverrideDetail(
     TimeOnly? EndLocalTime,
     AvailabilityOverrideType OverrideType,
     string? Reason);
+
+public sealed record InstructorStudentListItem(
+    Guid UserId,
+    string FirstName,
+    string LastName,
+    IReadOnlyList<string> CourseTitles,
+    int TotalLessons,
+    DateTimeOffset LastLessonAt);
+
+public sealed record InstructorDashboardStats(
+    int StudentCount,
+    int CompletedLessons,
+    decimal ThisMonthTotal,
+    string Currency,
+    double? AverageRating);
+
+public sealed record InstructorEarningListItem(
+    Guid SessionId,
+    string CourseTitle,
+    DateTimeOffset StartsAt,
+    int LearnerCount,
+    decimal Amount,
+    string Currency);

@@ -7,6 +7,7 @@ public sealed record InstructorListItem(
     Guid MembershipId,
     string FirstName,
     string LastName,
+    string? Headline,
     InstructorStatus Status,
     string TimeZoneId,
     IReadOnlyList<string> SubjectNames);
@@ -16,7 +17,9 @@ public sealed record InstructorDetail(
     Guid MembershipId,
     string FirstName,
     string LastName,
+    string? Headline,
     string? Bio,
+    string? Hobbies,
     string TimeZoneId,
     InstructorStatus Status,
     decimal? DefaultHourlyRate,

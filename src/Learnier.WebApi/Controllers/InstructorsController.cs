@@ -9,6 +9,7 @@ using Learnier.Application.Features.Teaching.Commands.CreateInstructorProfile;
 using Learnier.Application.Features.Teaching.Commands.DeactivateInstructorSubject;
 using Learnier.Application.Features.Teaching.Commands.SetInstructorHourlyRate;
 using Learnier.Application.Features.Teaching.Commands.SuspendInstructor;
+using Learnier.Application.Features.Teaching.Commands.UpdateInstructorPublicProfile;
 using Learnier.Application.Features.Teaching.Queries;
 using Learnier.Domain.Teaching;
 using Learnier.WebApi.Common;
@@ -107,6 +108,31 @@ public sealed class InstructorsController : ControllerBase
 
         var result = await handler.Handle(
             new SetInstructorHourlyRateCommand(profileId, request.HourlyRate, request.Currency),
+            await CanManageInstructors(authorization),
+            cancellationToken);
+
+        return result.ToActionResult(this);
+    }
+
+    /// <summary>Egitmenin ogrencilere gorunen profil metinlerini gunceller.</summary>
+    [HttpPatch("{profileId:guid}/public-profile")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult> UpdatePublicProfile(
+        Guid profileId,
+        UpdateInstructorPublicProfileRequest request,
+        [FromServices] UpdateInstructorPublicProfileHandler handler,
+        [FromServices] IAuthorizationService authorization,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        ArgumentNullException.ThrowIfNull(handler);
+
+        var result = await handler.Handle(
+            new UpdateInstructorPublicProfileCommand(
+                profileId, request.Headline, request.Bio, request.Hobbies),
             await CanManageInstructors(authorization),
             cancellationToken);
 
@@ -361,6 +387,11 @@ public sealed class InstructorsController : ControllerBase
 public sealed record AddInstructorSubjectRequest(Guid SubjectId, Guid? LevelId);
 
 public sealed record SetInstructorHourlyRateRequest(decimal? HourlyRate, string? Currency);
+
+public sealed record UpdateInstructorPublicProfileRequest(
+    string? Headline,
+    string? Bio,
+    string? Hobbies);
 
 public sealed record AddAvailabilityRequest(
     DayOfWeek DayOfWeek,

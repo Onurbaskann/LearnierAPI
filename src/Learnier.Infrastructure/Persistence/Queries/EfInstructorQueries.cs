@@ -46,6 +46,7 @@ internal sealed class EfInstructorQueries(AppDbContext context) : IInstructorQue
                 p.MembershipId,
                 p.Membership.User.FirstName,
                 p.Membership.User.LastName,
+                p.Headline,
                 p.Status,
                 p.TimeZoneId,
                 p.Subjects
@@ -70,7 +71,9 @@ internal sealed class EfInstructorQueries(AppDbContext context) : IInstructorQue
                 p.MembershipId,
                 p.Membership.User.FirstName,
                 p.Membership.User.LastName,
+                p.Headline,
                 p.Bio,
+                p.Hobbies,
                 p.TimeZoneId,
                 p.Status,
                 p.DefaultHourlyRate,

@@ -391,6 +391,18 @@ public sealed class InstructorEndpointTests(AuthApiFixture fixture) : IClassFixt
         reactivateSubject.StatusCode.ShouldBe(HttpStatusCode.OK);
 
         using var instructorClient = await context.SignInAsInstructor();
+        var publicProfile = await instructorClient.PatchAsJsonAsync(
+            new Uri($"/api/v1/instructors/{profileId}/public-profile", UriKind.Relative),
+            new
+            {
+                headline = "Yazilim egitmeni",
+                bio = "Uygulamali dersler veriyorum.",
+                hobbies = "Kitap, kosu"
+            },
+            TestContext.Current.CancellationToken);
+
+        publicProfile.StatusCode.ShouldBe(HttpStatusCode.NoContent);
+
         var selfSuspend = await instructorClient.PostAsync(
             new Uri($"/api/v1/instructors/{profileId}/suspend", UriKind.Relative),
             content: null,
@@ -408,6 +420,9 @@ public sealed class InstructorEndpointTests(AuthApiFixture fixture) : IClassFixt
         var detail = await GetDetail(context.OwnerClient, profileId);
         detail.DefaultHourlyRate.ShouldBe(750m);
         detail.DefaultHourlyRateCurrency.ShouldBe("TRY");
+        detail.Headline.ShouldBe("Yazilim egitmeni");
+        detail.Bio.ShouldBe("Uygulamali dersler veriyorum.");
+        detail.Hobbies.ShouldBe("Kitap, kosu");
         detail.Subjects.Single().Status.ShouldBe(InstructorSubjectStatus.Active);
         detail.Subjects.Single().Id.ShouldBe(instructorSubjectId);
         detail.Availabilities.Single().ValidUntil.ShouldBe(new DateOnly(2026, 6, 30));

@@ -379,6 +379,12 @@
   <data name="scheduling.session_not_found" xml:space="preserve">
     <value>Oturum bulunamadı.</value>
   </data>
+  <data name="scheduling.session_not_cancellable" xml:space="preserve">
+    <value>Tamamlanmış oturum iptal edilemez.</value>
+  </data>
+  <data name="scheduling.cancellation_reason_too_long" xml:space="preserve">
+    <value>İptal gerekçesi çok uzun.</value>
+  </data>
   <data name="scheduling.instructor_not_found" xml:space="preserve">
     <value>Seçilen eğitmen mevcut değil.</value>
   </data>

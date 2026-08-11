@@ -75,6 +75,7 @@ public static class DependencyInjection
         services.AddScoped<IInstructorRepository, EfInstructorRepository>();
         services.AddScoped<IInstructorQueries, EfInstructorQueries>();
         services.AddScoped<ISchedulingRepository, EfSchedulingRepository>();
+        services.AddScoped<ISchedulingQueries, EfSchedulingQueries>();
 
         // GECICI: abonelik ve kredi defteri Faz 4'te gelecek. Bu yer tutucu her
         // rezervasyona izin verir - bkz. DirectPurchaseEntitlementPolicy.

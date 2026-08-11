@@ -47,6 +47,11 @@ public interface ISchedulingRepository
     /// </remarks>
     Task<SessionBooking?> FindNextWaitlistedAsync(Guid sessionId, CancellationToken cancellationToken);
 
+    /// <summary>Oturum iptalinde kapatilacak rezervasyonlar.</summary>
+    Task<IReadOnlyList<SessionBooking>> ListActiveBookingsAsync(
+        Guid sessionId,
+        CancellationToken cancellationToken);
+
     /// <summary>
     /// Egitmenin verilen aralikta baska bir oturumu var mi?
     /// </summary>

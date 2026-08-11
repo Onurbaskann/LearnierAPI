@@ -2,11 +2,14 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Learnier.Application.Common.Models;
 using Learnier.Application.Features.Authentication.Commands.LoginUser;
 using Learnier.Application.Features.Catalog.Commands.CreateCourse;
 using Learnier.Application.Features.Catalog.Commands.CreateSubject;
 using Learnier.Application.Features.Organizations.Commands.CreateOrganization;
+using Learnier.Application.Features.Scheduling.Commands.CreateClassGroup;
 using Learnier.Application.Features.Scheduling.Commands.CreateSession;
+using Learnier.Application.Features.Scheduling.Queries;
 using Learnier.Application.Features.Teaching.Commands.CreateInstructorProfile;
 using Learnier.Domain.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -144,6 +147,110 @@ public sealed class SchedulingEndpointTests(AuthApiFixture fixture) : IClassFixt
         booking.StatusCode.ShouldBe(HttpStatusCode.Conflict);
 
         context.Dispose();
+    }
+
+    [Fact]
+    public async Task Scheduling_CanBeReadAndRemainsTenantIsolated()
+    {
+        var context = await NewOrganization();
+        var courseId = await CreateCourse(context.Client);
+        var profileId = await CreateInstructor(context);
+        var startsAt = DateTimeOffset.UtcNow.AddDays(20);
+        var sessionId = await CreateSession(
+            context.Client, courseId, startsAt, startsAt.AddHours(1));
+
+        (await AssignInstructor(context.Client, sessionId, profileId))
+            .StatusCode.ShouldBe(HttpStatusCode.NoContent);
+
+        var classGroupResponse = await context.Client.PostAsJsonAsync(
+            new Uri("/api/v1/class-groups", UriKind.Relative),
+            new
+            {
+                courseId,
+                name = "Hafta Ici Grubu",
+                deliveryType = "Cohort",
+                capacity = 12,
+                startsOn = "2026-09-01",
+                endsOn = "2026-12-31"
+            },
+            TestContext.Current.CancellationToken);
+
+        classGroupResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var classGroup = await classGroupResponse.Content.ReadFromJsonAsync<CreateClassGroupResult>(
+            TestJson.Options, TestContext.Current.CancellationToken);
+        classGroup.ShouldNotBeNull();
+
+        var sessions = await context.Client.GetFromJsonAsync<PagedResult<SessionListItem>>(
+            new Uri($"/api/v1/sessions?courseId={courseId}", UriKind.Relative),
+            TestJson.Options,
+            TestContext.Current.CancellationToken);
+
+        sessions!.Items.Single(s => s.Id == sessionId).CourseId.ShouldBe(courseId);
+
+        var sessionDetail = await context.Client.GetFromJsonAsync<SessionDetail>(
+            new Uri($"/api/v1/sessions/{sessionId}", UriKind.Relative),
+            TestJson.Options,
+            TestContext.Current.CancellationToken);
+
+        sessionDetail!.Instructors.ShouldHaveSingleItem()
+            .InstructorProfileId.ShouldBe(profileId);
+
+        var booking = await context.Client.PostAsJsonAsync(
+            new Uri($"/api/v1/sessions/{sessionId}/bookings", UriKind.Relative),
+            new { learnerUserId = (Guid?)null },
+            TestContext.Current.CancellationToken);
+
+        booking.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        var cancelled = await context.Client.PostAsJsonAsync(
+            new Uri($"/api/v1/sessions/{sessionId}/cancel", UriKind.Relative),
+            new { reason = "Program degisikligi" },
+            TestContext.Current.CancellationToken);
+
+        cancelled.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        var cancelResult = await cancelled.Content.ReadFromJsonAsync<JsonElement>(
+            TestContext.Current.CancellationToken);
+        cancelResult.GetProperty("cancelledBookingCount").GetInt32().ShouldBe(1);
+
+        var cancelledDetail = await context.Client.GetFromJsonAsync<SessionDetail>(
+            new Uri($"/api/v1/sessions/{sessionId}", UriKind.Relative),
+            TestJson.Options,
+            TestContext.Current.CancellationToken);
+
+        cancelledDetail!.Status.ShouldBe(Domain.Scheduling.LessonSessionStatus.Cancelled);
+        cancelledDetail.ReservedSeatCount.ShouldBe(0);
+        cancelledDetail.CancellationReason.ShouldBe("Program degisikligi");
+
+        var classGroups = await context.Client.GetFromJsonAsync<PagedResult<ClassGroupListItem>>(
+            new Uri($"/api/v1/class-groups?courseId={courseId}", UriKind.Relative),
+            TestJson.Options,
+            TestContext.Current.CancellationToken);
+
+        classGroups!.Items.Single(g => g.Id == classGroup.ClassGroupId)
+            .Name.ShouldBe("Hafta Ici Grubu");
+
+        var classGroupDetail = await context.Client.GetFromJsonAsync<ClassGroupDetail>(
+            new Uri($"/api/v1/class-groups/{classGroup.ClassGroupId}", UriKind.Relative),
+            TestJson.Options,
+            TestContext.Current.CancellationToken);
+
+        classGroupDetail!.Capacity.ShouldBe(12);
+
+        var other = await NewOrganization();
+
+        (await other.Client.GetAsync(
+            new Uri($"/api/v1/sessions/{sessionId}", UriKind.Relative),
+            TestContext.Current.CancellationToken))
+            .StatusCode.ShouldBe(HttpStatusCode.NotFound);
+
+        (await other.Client.GetAsync(
+            new Uri($"/api/v1/class-groups/{classGroup.ClassGroupId}", UriKind.Relative),
+            TestContext.Current.CancellationToken))
+            .StatusCode.ShouldBe(HttpStatusCode.NotFound);
+
+        context.Dispose();
+        other.Dispose();
     }
 
     private static Task<HttpResponseMessage> AssignInstructor(

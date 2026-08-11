@@ -383,6 +383,12 @@
   <data name="scheduling.session_not_found" xml:space="preserve">
     <value>Session not found.</value>
   </data>
+  <data name="scheduling.session_not_cancellable" xml:space="preserve">
+    <value>A completed session cannot be cancelled.</value>
+  </data>
+  <data name="scheduling.cancellation_reason_too_long" xml:space="preserve">
+    <value>Cancellation reason is too long.</value>
+  </data>
   <data name="scheduling.instructor_not_found" xml:space="preserve">
     <value>The selected instructor does not exist.</value>
   </data>

@@ -1,10 +1,13 @@
+using Learnier.Application.Common.Models;
 using Learnier.Application.Common.Security;
 using Learnier.Application.Features.Scheduling.Commands.AssignSessionInstructor;
 using Learnier.Application.Features.Scheduling.Commands.CancelBooking;
+using Learnier.Application.Features.Scheduling.Commands.CancelSession;
 using Learnier.Application.Features.Scheduling.Commands.CreateBooking;
 using Learnier.Application.Features.Scheduling.Commands.CreateClassGroup;
 using Learnier.Application.Features.Scheduling.Commands.CreateSession;
 using Learnier.Application.Features.Scheduling.Commands.EnrollLearner;
+using Learnier.Application.Features.Scheduling.Queries;
 using Learnier.Domain.Scheduling;
 using Learnier.WebApi.Common;
 using Microsoft.AspNetCore.Authorization;
@@ -20,6 +23,48 @@ namespace Learnier.WebApi.Controllers;
 [Authorize]
 public sealed class SchedulingController : ControllerBase
 {
+    /// <summary>Siniflari sayfali listeler.</summary>
+    [HttpGet("class-groups")]
+    [Authorize(Policy = Permissions.Course.Read)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<PagedResult<ClassGroupListItem>>> ListClassGroups(
+        [FromServices] ListClassGroupsHandler handler,
+        CancellationToken cancellationToken,
+        [FromQuery] Guid? courseId = null,
+        [FromQuery] ClassGroupStatus? status = null,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20)
+    {
+        ArgumentNullException.ThrowIfNull(handler);
+
+        var result = await handler.Handle(
+            new PageRequest { Page = page, PageSize = pageSize },
+            courseId,
+            status,
+            cancellationToken);
+
+        return result.ToActionResult(this);
+    }
+
+    /// <summary>Sinifin ogrencileriyle birlikte detayi.</summary>
+    [HttpGet("class-groups/{classGroupId:guid}")]
+    [Authorize(Policy = Permissions.Session.Create)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ClassGroupDetail>> GetClassGroupDetail(
+        Guid classGroupId,
+        [FromServices] GetClassGroupDetailHandler handler,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(handler);
+
+        var result = await handler.Handle(classGroupId, cancellationToken);
+
+        return result.ToActionResult(this);
+    }
+
     /// <summary>Egitim icin sinif olusturur.</summary>
     [HttpPost("class-groups")]
     [Authorize(Policy = Permissions.Session.Create)]
@@ -77,6 +122,76 @@ public sealed class SchedulingController : ControllerBase
         ArgumentNullException.ThrowIfNull(handler);
 
         var result = await handler.Handle(command, cancellationToken);
+
+        return result.ToActionResult(this);
+    }
+
+    /// <summary>Takvim oturumlarini sayfali listeler.</summary>
+    [HttpGet("sessions")]
+    [Authorize(Policy = Permissions.Course.Read)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<PagedResult<SessionListItem>>> ListSessions(
+        [FromServices] ListSessionsHandler handler,
+        CancellationToken cancellationToken,
+        [FromQuery] Guid? courseId = null,
+        [FromQuery] DateTimeOffset? from = null,
+        [FromQuery] DateTimeOffset? to = null,
+        [FromQuery] LessonSessionStatus? status = null,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20)
+    {
+        ArgumentNullException.ThrowIfNull(handler);
+
+        var result = await handler.Handle(
+            new PageRequest { Page = page, PageSize = pageSize },
+            courseId,
+            from,
+            to,
+            status,
+            cancellationToken);
+
+        return result.ToActionResult(this);
+    }
+
+    /// <summary>Oturumun egitmenleri ve kontenjan durumuyla detayi.</summary>
+    [HttpGet("sessions/{sessionId:guid}")]
+    [Authorize(Policy = Permissions.Course.Read)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<SessionDetail>> GetSessionDetail(
+        Guid sessionId,
+        [FromServices] GetSessionDetailHandler handler,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(handler);
+
+        var result = await handler.Handle(sessionId, cancellationToken);
+
+        return result.ToActionResult(this);
+    }
+
+    /// <summary>Oturumu ve tum aktif rezervasyonlarini iptal eder.</summary>
+    [HttpPost("sessions/{sessionId:guid}/cancel")]
+    [Authorize(Policy = Permissions.Session.Cancel)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<CancelSessionResult>> CancelSession(
+        Guid sessionId,
+        CancelSessionRequest request,
+        [FromServices] CancelSessionHandler handler,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        ArgumentNullException.ThrowIfNull(handler);
+
+        var result = await handler.Handle(
+            new CancelSessionCommand(sessionId, request.Reason),
+            cancellationToken);
 
         return result.ToActionResult(this);
     }
@@ -181,6 +296,8 @@ public sealed class SchedulingController : ControllerBase
 public sealed record EnrollLearnerRequest(Guid LearnerUserId);
 
 public sealed record AssignInstructorRequest(Guid InstructorProfileId, SessionInstructorRole Role);
+
+public sealed record CancelSessionRequest(string? Reason);
 
 /// <param name="LearnerUserId">
 /// Bos birakilirsa istegi yapan kullanici adina rezervasyon yapilir.

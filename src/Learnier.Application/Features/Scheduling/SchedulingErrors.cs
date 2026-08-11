@@ -20,6 +20,9 @@ internal static class SchedulingErrors
 
     public static Error SessionNotFound => Error.NotFound("scheduling.session_not_found");
 
+    public static Error SessionNotCancellable
+        => Error.Conflict("scheduling.session_not_cancellable");
+
     public static Error InstructorNotFound => Error.Validation("scheduling.instructor_not_found");
 
     /// <summary>

@@ -111,6 +111,13 @@ internal sealed class EfSchedulingRepository(AppDbContext context) : IScheduling
             .ThenBy(b => b.Id)
             .FirstOrDefaultAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<SessionBooking>> ListActiveBookingsAsync(
+        Guid sessionId,
+        CancellationToken cancellationToken)
+        => await context.SessionBookings
+            .Where(b => b.SessionId == sessionId && b.Status != BookingStatus.Cancelled)
+            .ToListAsync(cancellationToken);
+
     /// <inheritdoc />
     /// <remarks>
     /// Cakisma esitlik degil aralik kesisimi sorusudur: yeni oturum mevcut oturum

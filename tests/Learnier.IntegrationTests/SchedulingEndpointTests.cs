@@ -49,6 +49,49 @@ public sealed class SchedulingEndpointTests(AuthApiFixture fixture) : IClassFixt
         context.Dispose();
     }
 
+    [Fact]
+    public async Task Learner_CanListOnlyOwnBookings()
+    {
+        var context = await NewOrganization();
+        var courseId = await CreateCourse(context.Client);
+        var profileId = await CreateInstructor(context);
+        var startsAt = DateTimeOffset.UtcNow.AddDays(8);
+        var sessionId = await CreateSession(
+            context.Client, courseId, startsAt, startsAt.AddHours(1));
+
+        (await AssignInstructor(context.Client, sessionId, profileId))
+            .StatusCode.ShouldBe(HttpStatusCode.NoContent);
+
+        var booking = await context.Client.PostAsJsonAsync(
+            new Uri($"/api/v1/sessions/{sessionId}/bookings", UriKind.Relative),
+            new { learnerUserId = (Guid?)null },
+            TestContext.Current.CancellationToken);
+
+        booking.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        var result = await context.Client.GetFromJsonAsync<PagedResult<LearnerBookingListItem>>(
+            new Uri($"/api/v1/bookings/me?from={Uri.EscapeDataString(startsAt.AddDays(-1).ToString("O"))}", UriKind.Relative),
+            TestJson.Options,
+            TestContext.Current.CancellationToken);
+
+        var item = result!.Items.ShouldHaveSingleItem();
+        item.SessionId.ShouldBe(sessionId);
+        item.CourseTitle.ShouldBe("Planlama Testi");
+        item.Status.ShouldBe(Domain.Scheduling.BookingStatus.Reserved);
+        item.Instructors.ShouldHaveSingleItem().InstructorProfileId.ShouldBe(profileId);
+
+        var other = await NewOrganization();
+        var otherResult = await other.Client.GetFromJsonAsync<PagedResult<LearnerBookingListItem>>(
+            new Uri("/api/v1/bookings/me", UriKind.Relative),
+            TestJson.Options,
+            TestContext.Current.CancellationToken);
+
+        otherResult!.Items.ShouldBeEmpty();
+
+        context.Dispose();
+        other.Dispose();
+    }
+
     /// <summary>
     /// Ayni egitmen ayni saatte iki oturuma atanamaz.
     /// </summary>

@@ -249,6 +249,32 @@ public sealed class SchedulingController : ControllerBase
         return result.ToActionResult(this);
     }
 
+    /// <summary>Oturum acan kullanicinin kendi rezervasyonlarini listeler.</summary>
+    [HttpGet("bookings/me")]
+    [Authorize(Policy = Permissions.Booking.Create)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<PagedResult<LearnerBookingListItem>>> ListMyBookings(
+        [FromServices] ListMyBookingsHandler handler,
+        CancellationToken cancellationToken,
+        [FromQuery] DateTimeOffset? from = null,
+        [FromQuery] DateTimeOffset? to = null,
+        [FromQuery] BookingStatus? status = null,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20)
+    {
+        ArgumentNullException.ThrowIfNull(handler);
+
+        var result = await handler.Handle(
+            new PageRequest { Page = page, PageSize = pageSize },
+            from,
+            to,
+            status,
+            cancellationToken);
+
+        return result.ToActionResult(this);
+    }
+
     /// <summary>
     /// Rezervasyonu iptal eder. Yer bosalirsa bekleme listesindeki ilk kayit yukseltilir.
     /// </summary>

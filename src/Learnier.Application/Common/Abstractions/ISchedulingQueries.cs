@@ -28,4 +28,12 @@ public interface ISchedulingQueries
     Task<SessionDetail?> FindSessionDetailAsync(
         Guid sessionId,
         CancellationToken cancellationToken);
+
+    Task<PagedResult<LearnerBookingListItem>> ListLearnerBookingsAsync(
+        PageRequest page,
+        Guid learnerUserId,
+        DateTimeOffset? from,
+        DateTimeOffset? until,
+        BookingStatus? status,
+        CancellationToken cancellationToken);
 }

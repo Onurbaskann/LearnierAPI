@@ -76,3 +76,18 @@ public sealed record SessionInstructorDetail(
     string FirstName,
     string LastName,
     SessionInstructorRole Role);
+
+public sealed record LearnerBookingListItem(
+    Guid Id,
+    BookingStatus Status,
+    DateTimeOffset BookedAt,
+    Guid SessionId,
+    Guid CourseId,
+    string CourseTitle,
+    SessionType SessionType,
+    DateTimeOffset StartsAt,
+    DateTimeOffset EndsAt,
+    LessonSessionStatus SessionStatus,
+    string? MeetingProvider,
+    string? MeetingReference,
+    IReadOnlyList<SessionInstructorDetail> Instructors);

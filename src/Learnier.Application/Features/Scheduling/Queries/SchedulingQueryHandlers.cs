@@ -80,3 +80,30 @@ public sealed class GetSessionDetailHandler(
         return detail is null ? SchedulingErrors.SessionNotFound : Result.Success(detail);
     }
 }
+
+public sealed class ListMyBookingsHandler(
+    ISchedulingQueries queries,
+    ICurrentTenant currentTenant,
+    ICurrentUser currentUser)
+{
+    public async Task<Result<PagedResult<LearnerBookingListItem>>> Handle(
+        PageRequest page,
+        DateTimeOffset? from,
+        DateTimeOffset? until,
+        BookingStatus? status,
+        CancellationToken cancellationToken)
+    {
+        if (!currentTenant.HasTenant)
+        {
+            return SchedulingErrors.OrganizationContextRequired;
+        }
+
+        if (currentUser.UserId is not { } userId)
+        {
+            return Error.Unauthorized("common.unauthorized");
+        }
+
+        return await queries.ListLearnerBookingsAsync(
+            page, userId, from, until, status, cancellationToken);
+    }
+}

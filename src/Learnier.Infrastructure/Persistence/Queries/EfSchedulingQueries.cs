@@ -174,4 +174,65 @@ internal sealed class EfSchedulingQueries(AppDbContext context) : ISchedulingQue
                         i.Role))
                     .ToList()))
             .FirstOrDefaultAsync(cancellationToken);
+
+    public async Task<PagedResult<LearnerBookingListItem>> ListLearnerBookingsAsync(
+        PageRequest page,
+        Guid learnerUserId,
+        DateTimeOffset? from,
+        DateTimeOffset? until,
+        BookingStatus? status,
+        CancellationToken cancellationToken)
+    {
+        var query = context.SessionBookings
+            .AsNoTracking()
+            .Where(b => b.LearnerUserId == learnerUserId);
+
+        if (from is { } startsAfter)
+        {
+            query = query.Where(b => b.Session.EndsAt >= startsAfter);
+        }
+
+        if (until is { } startsBefore)
+        {
+            query = query.Where(b => b.Session.StartsAt <= startsBefore);
+        }
+
+        if (status is { } selectedStatus)
+        {
+            query = query.Where(b => b.Status == selectedStatus);
+        }
+
+        var totalCount = await query.CountAsync(cancellationToken);
+        var items = await query
+            .OrderBy(b => b.Session.StartsAt)
+            .ThenBy(b => b.Id)
+            .Skip(page.Skip)
+            .Take(page.PageSize)
+            .Select(b => new LearnerBookingListItem(
+                b.Id,
+                b.Status,
+                b.BookedAt,
+                b.SessionId,
+                b.Session.CourseId,
+                b.Session.Course.Title,
+                b.Session.SessionType,
+                b.Session.StartsAt,
+                b.Session.EndsAt,
+                b.Session.Status,
+                b.Session.MeetingProvider,
+                b.Session.MeetingReference,
+                b.Session.Instructors
+                    .OrderBy(i => i.Role)
+                    .ThenBy(i => i.Id)
+                    .Select(i => new SessionInstructorDetail(
+                        i.InstructorProfileId,
+                        i.InstructorProfile.Membership.User.FirstName,
+                        i.InstructorProfile.Membership.User.LastName,
+                        i.Role))
+                    .ToList()))
+            .ToListAsync(cancellationToken);
+
+        return new PagedResult<LearnerBookingListItem>(
+            items, page.Page, page.PageSize, totalCount);
+    }
 }

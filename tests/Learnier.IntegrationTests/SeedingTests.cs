@@ -117,6 +117,32 @@ public sealed class SeedingTests(PostgresFixture postgres) : IClassFixture<Postg
     }
 
     [Fact]
+    public async Task AdminAccount_GetsClubManagementPermission()
+    {
+        await using var provider = TestServices.BuildProvider(postgres);
+        await DatabaseSeeder.RunAsync(provider, includeDevelopmentData: true, TestContext.Current.CancellationToken);
+
+        await using var scope = provider.CreateAsyncScope();
+        var memberships = scope.ServiceProvider.GetRequiredService<IMembershipProvider>();
+        var permissions = scope.ServiceProvider.GetRequiredService<IPermissionProvider>();
+        var (userId, organizationId) = await FindAccountAsync("admin@hotmail.com");
+
+        var membership = await memberships.FindActiveMembership(
+            userId,
+            organizationId,
+            TestContext.Current.CancellationToken);
+
+        membership.ShouldNotBeNull();
+        var codes = await permissions.GetPermissions(
+            membership.MembershipId,
+            TestContext.Current.CancellationToken);
+
+        codes.ShouldContain(Permissions.Club.Manage);
+        codes.ShouldContain(Permissions.Course.Manage);
+        codes.ShouldContain(Permissions.Organization.MemberManage);
+    }
+
+    [Fact]
     public async Task WithoutDevelopmentData_OnlyReferenceDataIsWritten()
     {
         // Bu test sinifin paylasilan veritabanini kullanamaz: kardes testler oraya

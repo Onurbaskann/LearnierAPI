@@ -39,6 +39,7 @@ internal sealed partial class DevelopmentDataSeeder(
     /// </summary>
     private static readonly DevelopmentAccount[] Accounts =
     [
+        new("admin@hotmail.com", "admin123", "Learnier", "Admin", SystemRoles.OrganizationAdmin),
         new("ogrenci@hotmail.com", "ogrenci123", "Deniz", "Yilmaz", SystemRoles.Student),
         new("ogretmen@hotmail.com", "ogretmen123", "Emine", "Tekin", SystemRoles.Instructor),
         // Paketsiz panel durumunu test etmek icin kullanilan hesap; abonelik verilmez.

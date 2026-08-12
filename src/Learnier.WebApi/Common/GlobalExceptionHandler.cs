@@ -48,25 +48,32 @@ internal sealed partial class GlobalExceptionHandler(
             httpContext.Request.Method,
             httpContext.Request.Path);
 
-        var isFriendshipPairConflict = exception is DbUpdateException
+        var uniqueConstraint = exception is DbUpdateException
         {
             InnerException: PostgresException
             {
                 SqlState: PostgresErrorCodes.UniqueViolation,
-                ConstraintName: "ix_friendships_first_user_id_second_user_id"
+                ConstraintName: { } constraintName
             }
+        }
+            ? constraintName
+            : null;
+        var errorCode = uniqueConstraint switch
+        {
+            "ix_friendships_first_user_id_second_user_id" => "friends.request_already_pending",
+            "ix_clubs_organization_id_subject_id" => "clubs.already_exists_for_subject",
+            "ix_club_rooms_club_id_name" => "clubs.room_already_exists",
+            _ => "common.unexpected_error"
         };
-        var status = isFriendshipPairConflict
+        var isConflict = errorCode != "common.unexpected_error";
+        var status = isConflict
             ? StatusCodes.Status409Conflict
             : StatusCodes.Status500InternalServerError;
-        var errorCode = isFriendshipPairConflict
-            ? "friends.request_already_pending"
-            : "common.unexpected_error";
 
         var problem = new ProblemDetails
         {
             Status = status,
-            Title = isFriendshipPairConflict ? "Conflict" : "Server Error",
+            Title = isConflict ? "Conflict" : "Server Error",
             // Istisna detaylari istemciye sizdirilmaz; ayrinti loglarda kalir.
             Detail = localizer[errorCode],
             Instance = httpContext.Request.Path

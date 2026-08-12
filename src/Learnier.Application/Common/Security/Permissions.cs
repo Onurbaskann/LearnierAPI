@@ -50,4 +50,11 @@ public static class Permissions
     {
         public const string MemberManage = "organization.member.manage";
     }
+
+    public static class Club
+    {
+        public const string Read = "club.read";
+        public const string Manage = "club.manage";
+        public const string MessageSend = "club.message.send";
+    }
 }

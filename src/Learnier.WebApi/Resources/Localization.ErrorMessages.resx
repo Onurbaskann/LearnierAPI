@@ -524,4 +524,61 @@
   <data name="friends.user_id_required" xml:space="preserve">
     <value>User is required.</value>
   </data>
+  <data name="clubs.subject_not_found" xml:space="preserve">
+    <value>The subject was not found.</value>
+  </data>
+  <data name="clubs.already_exists_for_subject" xml:space="preserve">
+    <value>A club already exists for this subject.</value>
+  </data>
+  <data name="clubs.club_not_found" xml:space="preserve">
+    <value>The club was not found.</value>
+  </data>
+  <data name="clubs.already_closed" xml:space="preserve">
+    <value>The club is already closed.</value>
+  </data>
+  <data name="clubs.already_open" xml:space="preserve">
+    <value>The club is already open.</value>
+  </data>
+  <data name="clubs.subject_id_required" xml:space="preserve">
+    <value>Subject is required.</value>
+  </data>
+  <data name="clubs.name_required" xml:space="preserve">
+    <value>Club name is required.</value>
+  </data>
+  <data name="clubs.name_too_long" xml:space="preserve">
+    <value>Club name cannot exceed 200 characters.</value>
+  </data>
+  <data name="clubs.description_too_long" xml:space="preserve">
+    <value>Club description cannot exceed 1000 characters.</value>
+  </data>
+  <data name="clubs.package_required" xml:space="preserve">
+    <value>An active package covering this subject is required.</value>
+  </data>
+  <data name="clubs.room_not_found" xml:space="preserve">
+    <value>The club room was not found.</value>
+  </data>
+  <data name="clubs.room_already_exists" xml:space="preserve">
+    <value>A room with this name already exists in the club.</value>
+  </data>
+  <data name="clubs.text_room_required" xml:space="preserve">
+    <value>Messages can only be sent to text rooms.</value>
+  </data>
+  <data name="clubs.room_name_required" xml:space="preserve">
+    <value>Room name is required.</value>
+  </data>
+  <data name="clubs.room_name_too_long" xml:space="preserve">
+    <value>Room name cannot exceed 100 characters.</value>
+  </data>
+  <data name="clubs.room_type_invalid" xml:space="preserve">
+    <value>Room type is invalid.</value>
+  </data>
+  <data name="clubs.room_sort_order_invalid" xml:space="preserve">
+    <value>Room sort order cannot be negative.</value>
+  </data>
+  <data name="clubs.message_required" xml:space="preserve">
+    <value>Message is required.</value>
+  </data>
+  <data name="clubs.message_too_long" xml:space="preserve">
+    <value>Message cannot exceed 2000 characters.</value>
+  </data>
 </root>

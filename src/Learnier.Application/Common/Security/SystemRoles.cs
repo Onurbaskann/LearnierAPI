@@ -48,7 +48,10 @@ public static class SystemRoles
             Permissions.Session.Create,
             Permissions.Session.Cancel,
             Permissions.Booking.ManageAll,
-            Permissions.Student.ProgressRead
+            Permissions.Student.ProgressRead,
+            Permissions.Club.Read,
+            Permissions.Club.Manage,
+            Permissions.Club.MessageSend
         ]),
 
         new(Instructor, "Egitmen",
@@ -56,13 +59,17 @@ public static class SystemRoles
             Permissions.Course.Read,
             Permissions.Session.Create,
             Permissions.Session.Cancel,
-            Permissions.Student.ProgressRead
+            Permissions.Student.ProgressRead,
+            Permissions.Club.Read,
+            Permissions.Club.MessageSend
         ]),
 
         new(Student, "Ogrenci",
         [
             Permissions.Course.Read,
-            Permissions.Booking.Create
+            Permissions.Booking.Create,
+            Permissions.Club.Read,
+            Permissions.Club.MessageSend
         ]),
 
         // Veli, sorumlu oldugu ogrenci adina rezervasyon yapabilir ve ilerlemesini

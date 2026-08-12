@@ -38,6 +38,12 @@ public sealed class AppDbContext(
 
     public DbSet<Friendship> Friendships => Set<Friendship>();
 
+    public DbSet<Club> Clubs => Set<Club>();
+
+    public DbSet<ClubRoom> ClubRooms => Set<ClubRoom>();
+
+    public DbSet<ClubMessage> ClubMessages => Set<ClubMessage>();
+
     public DbSet<Subject> Subjects => Set<Subject>();
 
     public DbSet<Level> Levels => Set<Level>();
@@ -221,6 +227,17 @@ public sealed class AppDbContext(
             TenantFilterName,
             l => CurrentOrganizationId == null
                  || l.Module.Course.OrganizationId == CurrentOrganizationId);
+
+        // Sosyal alan: oda kulube, mesaj odaya baglidir.
+        modelBuilder.Entity<ClubRoom>().HasQueryFilter(
+            TenantFilterName,
+            room => CurrentOrganizationId == null
+                    || room.Club.OrganizationId == CurrentOrganizationId);
+
+        modelBuilder.Entity<ClubMessage>().HasQueryFilter(
+            TenantFilterName,
+            message => CurrentOrganizationId == null
+                       || message.Room.Club.OrganizationId == CurrentOrganizationId);
 
         // Egitmen kayitlari uyelik uzerinden organizasyona baglidir.
         modelBuilder.Entity<InstructorProfile>().HasQueryFilter(

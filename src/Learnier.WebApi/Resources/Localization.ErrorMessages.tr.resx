@@ -520,4 +520,61 @@
   <data name="friends.user_id_required" xml:space="preserve">
     <value>Kullanıcı gerekli.</value>
   </data>
+  <data name="clubs.subject_not_found" xml:space="preserve">
+    <value>Ders alanı bulunamadı.</value>
+  </data>
+  <data name="clubs.already_exists_for_subject" xml:space="preserve">
+    <value>Bu ders alanı için zaten bir kulüp bulunuyor.</value>
+  </data>
+  <data name="clubs.club_not_found" xml:space="preserve">
+    <value>Kulüp bulunamadı.</value>
+  </data>
+  <data name="clubs.already_closed" xml:space="preserve">
+    <value>Kulüp zaten kapalı.</value>
+  </data>
+  <data name="clubs.already_open" xml:space="preserve">
+    <value>Kulüp zaten açık.</value>
+  </data>
+  <data name="clubs.subject_id_required" xml:space="preserve">
+    <value>Ders alanı gerekli.</value>
+  </data>
+  <data name="clubs.name_required" xml:space="preserve">
+    <value>Kulüp adı gerekli.</value>
+  </data>
+  <data name="clubs.name_too_long" xml:space="preserve">
+    <value>Kulüp adı 200 karakterden uzun olamaz.</value>
+  </data>
+  <data name="clubs.description_too_long" xml:space="preserve">
+    <value>Kulüp açıklaması 1000 karakterden uzun olamaz.</value>
+  </data>
+  <data name="clubs.package_required" xml:space="preserve">
+    <value>Bu ders alanını kapsayan aktif bir paket gerekli.</value>
+  </data>
+  <data name="clubs.room_not_found" xml:space="preserve">
+    <value>Kulüp odası bulunamadı.</value>
+  </data>
+  <data name="clubs.room_already_exists" xml:space="preserve">
+    <value>Kulüpte bu ada sahip bir oda zaten bulunuyor.</value>
+  </data>
+  <data name="clubs.text_room_required" xml:space="preserve">
+    <value>Mesaj yalnızca metin odalarına gönderilebilir.</value>
+  </data>
+  <data name="clubs.room_name_required" xml:space="preserve">
+    <value>Oda adı gerekli.</value>
+  </data>
+  <data name="clubs.room_name_too_long" xml:space="preserve">
+    <value>Oda adı 100 karakterden uzun olamaz.</value>
+  </data>
+  <data name="clubs.room_type_invalid" xml:space="preserve">
+    <value>Oda türü geçersiz.</value>
+  </data>
+  <data name="clubs.room_sort_order_invalid" xml:space="preserve">
+    <value>Oda sırası negatif olamaz.</value>
+  </data>
+  <data name="clubs.message_required" xml:space="preserve">
+    <value>Mesaj gerekli.</value>
+  </data>
+  <data name="clubs.message_too_long" xml:space="preserve">
+    <value>Mesaj 2000 karakterden uzun olamaz.</value>
+  </data>
 </root>

@@ -42,7 +42,7 @@ public sealed class FriendEndpointTests(AuthApiFixture fixture) : IClassFixture<
 
         var sendResponse = await studentClient.PostAsJsonAsync(
             "/api/v1/friends/requests",
-            new SendFriendRequestCommand("ogretmen@hotmail.com"),
+            new SendFriendRequestCommand(initialInstructorResult.UserId),
             TestContext.Current.CancellationToken);
         sendResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
         var request = await sendResponse.Content.ReadFromJsonAsync<FriendRequestListItem>(
@@ -61,8 +61,8 @@ public sealed class FriendEndpointTests(AuthApiFixture fixture) : IClassFixture<
             "/api/v1/friends/search?query=ogrenci",
             JsonOptions,
             TestContext.Current.CancellationToken);
-        incomingSearch.ShouldNotBeNull().ShouldHaveSingleItem().RelationState
-            .ShouldBe(FriendshipRelationState.IncomingRequest);
+        var incomingStudentResult = incomingSearch.ShouldNotBeNull().ShouldHaveSingleItem();
+        incomingStudentResult.RelationState.ShouldBe(FriendshipRelationState.IncomingRequest);
 
         var sentResponse = await studentClient.GetAsync(
             "/api/v1/friends/requests/sent",
@@ -103,7 +103,7 @@ public sealed class FriendEndpointTests(AuthApiFixture fixture) : IClassFixture<
 
         var duplicateResponse = await studentClient.PostAsJsonAsync(
             "/api/v1/friends/requests",
-            new SendFriendRequestCommand("ogretmen@hotmail.com"),
+            new SendFriendRequestCommand(initialInstructorResult.UserId),
             TestContext.Current.CancellationToken);
         duplicateResponse.StatusCode.ShouldBe(HttpStatusCode.Conflict);
 
@@ -127,7 +127,7 @@ public sealed class FriendEndpointTests(AuthApiFixture fixture) : IClassFixture<
 
         var reverseSendResponse = await instructorClient.PostAsJsonAsync(
             "/api/v1/friends/requests",
-            new SendFriendRequestCommand("ogrenci@hotmail.com"),
+            new SendFriendRequestCommand(incomingStudentResult.UserId),
             TestContext.Current.CancellationToken);
         reverseSendResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
         var reverseRequest = await reverseSendResponse.Content.ReadFromJsonAsync<FriendRequestListItem>(

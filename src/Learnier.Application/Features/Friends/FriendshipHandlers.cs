@@ -21,7 +21,7 @@ public sealed record FriendRequestListItem(
     string LastName,
     DateTimeOffset RequestedAt);
 
-public sealed record SendFriendRequestCommand(string Email);
+public sealed record SendFriendRequestCommand(Guid UserId);
 
 public sealed record SearchUsersQuery(string Query);
 
@@ -45,10 +45,8 @@ internal sealed class SendFriendRequestValidator : AbstractValidator<SendFriendR
 {
     public SendFriendRequestValidator()
     {
-        RuleFor(command => command.Email)
-            .NotEmpty().WithErrorCode("friends.email_required")
-            .EmailAddress().WithErrorCode("friends.email_invalid")
-            .MaximumLength(320).WithErrorCode("friends.email_too_long");
+        RuleFor(command => command.UserId)
+            .NotEmpty().WithErrorCode("friends.user_id_required");
     }
 }
 
@@ -171,7 +169,7 @@ public sealed class SendFriendRequestHandler(
             return Error.Unauthorized("common.unauthorized");
         }
 
-        var target = await users.FindByEmailAsync(command.Email, cancellationToken);
+        var target = await users.FindByIdAsync(command.UserId, cancellationToken);
         if (target is null)
         {
             return FriendshipErrors.UserNotFound;

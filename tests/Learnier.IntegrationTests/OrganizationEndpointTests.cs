@@ -6,6 +6,7 @@ using Learnier.Application.Common.Security;
 using Learnier.Application.Features.Authentication.Commands.LoginUser;
 using Learnier.Application.Features.Organizations.Commands.CreateOrganization;
 using Learnier.Application.Features.Organizations.Commands.InviteMember;
+using Learnier.Application.Features.Organizations.Queries;
 using Learnier.Domain.Identity;
 using Microsoft.EntityFrameworkCore;
 using Shouldly;
@@ -53,6 +54,20 @@ public sealed class OrganizationEndpointTests(AuthApiFixture fixture) : IClassFi
             TestContext.Current.CancellationToken);
 
         invited.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        var members = await client.GetFromJsonAsync<IReadOnlyList<OrganizationMemberListItem>>(
+            MembersEndpoint,
+            TestContext.Current.CancellationToken);
+        members.ShouldNotBeNull().ShouldContain(member =>
+            member.Email == "ogretmen@hotmail.com"
+            && member.Roles.Any(role => role.Code == SystemRoles.Instructor));
+
+        var roles = await client.GetFromJsonAsync<IReadOnlyList<OrganizationRoleListItem>>(
+            "/api/v1/organizations/roles",
+            TestContext.Current.CancellationToken);
+        roles.ShouldNotBeNull().ShouldContain(role => role.Code == SystemRoles.OrganizationAdmin);
+        roles.ShouldNotContain(role => role.Code == SystemRoles.PlatformAdmin);
+        roles.ShouldNotContain(role => role.Code == SystemRoles.OrganizationOwner);
     }
 
     [Fact]

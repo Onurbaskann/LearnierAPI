@@ -9,7 +9,9 @@ public interface IClubRepository
         bool includeRooms,
         CancellationToken cancellationToken);
 
-    Task<IReadOnlyList<Club>> ListActiveAsync(CancellationToken cancellationToken);
+    Task<IReadOnlyList<Club>> ListAsync(
+        bool includeInactive,
+        CancellationToken cancellationToken);
 
     Task<ClubRoom?> FindRoomAsync(Guid roomId, CancellationToken cancellationToken);
 

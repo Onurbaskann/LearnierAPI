@@ -20,14 +20,23 @@ internal sealed class EfClubRepository(AppDbContext context) : IClubRepository
         return await query.FirstOrDefaultAsync(club => club.Id == clubId, cancellationToken);
     }
 
-    public async Task<IReadOnlyList<Club>> ListActiveAsync(CancellationToken cancellationToken)
-        => await context.Clubs
+    public async Task<IReadOnlyList<Club>> ListAsync(
+        bool includeInactive,
+        CancellationToken cancellationToken)
+    {
+        var query = context.Clubs
             .AsNoTracking()
             .Include(club => club.Subject)
             .Include(club => club.Rooms)
-            .Where(club => club.IsActive)
-            .OrderBy(club => club.Name)
-            .ToListAsync(cancellationToken);
+            .AsQueryable();
+
+        if (!includeInactive)
+        {
+            query = query.Where(club => club.IsActive);
+        }
+
+        return await query.OrderBy(club => club.Name).ToListAsync(cancellationToken);
+    }
 
     public async Task<ClubRoom?> FindRoomAsync(Guid roomId, CancellationToken cancellationToken)
         => await context.ClubRooms

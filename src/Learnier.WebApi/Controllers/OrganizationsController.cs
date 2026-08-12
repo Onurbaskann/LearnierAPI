@@ -2,6 +2,7 @@ using Learnier.Application.Common.Security;
 using Learnier.Application.Features.Organizations.Commands.AssignRole;
 using Learnier.Application.Features.Organizations.Commands.CreateOrganization;
 using Learnier.Application.Features.Organizations.Commands.InviteMember;
+using Learnier.Application.Features.Organizations.Queries;
 using Learnier.WebApi.Common;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -20,6 +21,20 @@ namespace Learnier.WebApi.Controllers;
 [Authorize]
 public sealed class OrganizationsController : ControllerBase
 {
+    [HttpGet("members")]
+    [Authorize(Policy = Permissions.Organization.MemberManage)]
+    public async Task<ActionResult<IReadOnlyList<OrganizationMemberListItem>>> ListMembers(
+        [FromServices] ListOrganizationMembersHandler handler,
+        CancellationToken cancellationToken)
+        => (await handler.Handle(cancellationToken)).ToActionResult(this);
+
+    [HttpGet("roles")]
+    [Authorize(Policy = Permissions.Organization.MemberManage)]
+    public async Task<ActionResult<IReadOnlyList<OrganizationRoleListItem>>> ListRoles(
+        [FromServices] ListOrganizationRolesHandler handler,
+        CancellationToken cancellationToken)
+        => (await handler.Handle(cancellationToken)).ToActionResult(this);
+
     /// <summary>
     /// Yeni organizasyon olusturur. Kurucu otomatik olarak sahip rolunu alir.
     /// </summary>

@@ -50,6 +50,25 @@ public sealed class ClubEndpointTests(AuthApiFixture fixture) : IClassFixture<Au
             TestContext.Current.CancellationToken);
         duplicateResponse.StatusCode.ShouldBe(HttpStatusCode.Conflict);
 
+        var closeResponse = await adminClient.PostAsync(
+            $"/api/v1/clubs/{created.ClubId}/close",
+            null,
+            TestContext.Current.CancellationToken);
+        closeResponse.StatusCode.ShouldBe(HttpStatusCode.NoContent);
+
+        var adminClubs = await adminClient.GetFromJsonAsync<IReadOnlyList<ClubListItem>>(
+            "/api/v1/clubs",
+            TestJson.Options,
+            TestContext.Current.CancellationToken);
+        adminClubs.ShouldNotBeNull().ShouldContain(club =>
+            club.Id == created.ClubId && !club.IsActive);
+
+        var openResponse = await adminClient.PostAsync(
+            $"/api/v1/clubs/{created.ClubId}/open",
+            null,
+            TestContext.Current.CancellationToken);
+        openResponse.StatusCode.ShouldBe(HttpStatusCode.NoContent);
+
         var clubsWithoutPackage = await studentClient.GetFromJsonAsync<IReadOnlyList<ClubListItem>>(
             "/api/v1/clubs",
             TestJson.Options,

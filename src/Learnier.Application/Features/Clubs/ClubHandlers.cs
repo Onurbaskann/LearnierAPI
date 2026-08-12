@@ -80,7 +80,7 @@ public sealed class ListClubsHandler(
         }
 
         var items = new List<ClubListItem>();
-        foreach (var club in await clubs.ListActiveAsync(cancellationToken))
+        foreach (var club in await clubs.ListAsync(canManage, cancellationToken))
         {
             if (!canManage && !await access.CanAccessSubjectAsync(userId, club.SubjectId, cancellationToken))
             {

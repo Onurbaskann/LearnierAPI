@@ -82,6 +82,7 @@ internal sealed partial class DevelopmentDataSeeder(
 
         var plan = await context.SubscriptionPlans
             .Include(p => p.Prices)
+            .Include(p => p.Entitlements)
             .FirstOrDefaultAsync(
                 p => p.OrganizationId == organization.Id && p.Name == EnglishPlanName,
                 cancellationToken);
@@ -89,10 +90,11 @@ internal sealed partial class DevelopmentDataSeeder(
         PlanPrice price;
         if (plan is null)
         {
-            plan = SubscriptionPlan.Create(
+            plan = SubscriptionPlan.CreateLessonPackage(
                 organization.Id,
                 EnglishPlanName,
-                CatalogAccess.Restricted,
+                monthlyLessonCredits: 12,
+                lessonDurationMinutes: 50,
                 "Geliştirme öğrenci hesabı için İngilizce erişimi.");
             plan.Activate();
             price = plan.AddPrice("TRY", 0, BillingInterval.Month, 12, clock.UtcNow);
@@ -100,6 +102,7 @@ internal sealed partial class DevelopmentDataSeeder(
         }
         else
         {
+            plan.ConfigureLessonPackage(12, 50);
             price = plan.Prices.FirstOrDefault(p => p.Status == PlanPriceStatus.Active)
                 ?? plan.AddPrice("TRY", 0, BillingInterval.Month, 12, clock.UtcNow);
         }
@@ -118,7 +121,7 @@ internal sealed partial class DevelopmentDataSeeder(
             .Select(u => u.Id)
             .SingleAsync(cancellationToken);
 
-        var hasSubscription = await context.Subscriptions.AnyAsync(
+        var subscription = await context.Subscriptions.FirstOrDefaultAsync(
             subscription =>
                 subscription.SubscriberUserId == studentId
                 && subscription.PlanPrice.PlanId == plan.Id
@@ -126,9 +129,9 @@ internal sealed partial class DevelopmentDataSeeder(
                 && subscription.CurrentPeriodEnd > clock.UtcNow,
             cancellationToken);
 
-        if (!hasSubscription)
+        if (subscription is null)
         {
-            var subscription = Subscription.CreateForUser(
+            subscription = Subscription.CreateForUser(
                 organization.Id,
                 studentId,
                 price.Id,
@@ -136,6 +139,22 @@ internal sealed partial class DevelopmentDataSeeder(
                 clock.UtcNow.AddYears(10));
             subscription.Activate();
             context.Subscriptions.Add(subscription);
+        }
+
+        var hasInitialGrant = await context.CreditLedger.AnyAsync(
+            entry => entry.SubscriptionId == subscription.Id
+                     && entry.TransactionType == CreditTransactionType.PeriodGrant,
+            cancellationToken);
+
+        if (!hasInitialGrant)
+        {
+            context.CreditLedger.Add(CreditLedgerEntry.Grant(
+                subscription.Id,
+                studentId,
+                Learnier.Domain.Scheduling.SessionType.Private,
+                plan.MonthlyLessonCredits!.Value,
+                clock.UtcNow,
+                subscription.CurrentPeriodEnd));
         }
     }
 

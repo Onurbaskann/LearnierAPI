@@ -50,7 +50,7 @@ internal sealed class EfActivePackageQueries(AppDbContext context, IClock clock)
                 && item.SessionType == Learnier.Domain.Scheduling.SessionType.Private);
             var totalCredits = entitlement?.Quantity ?? Math.Max(remainingCredits, 0);
             var lessonsPerWeek = totalCredits > 0
-                ? Math.Max(1, totalCredits / Math.Max(1, durationMonths * 4))
+                ? Math.Max(1, totalCredits / 4)
                 : 3;
 
             result.AddRange(subjects.Select(subject => new ActivePackageAccess(

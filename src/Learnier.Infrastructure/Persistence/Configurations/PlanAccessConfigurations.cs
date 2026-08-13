@@ -17,6 +17,9 @@ internal sealed class PlanSubjectAccessConfiguration : IEntityTypeConfiguration<
         // Baglanti tablosunun dogal anahtari iki FK'dir; ayri bir Id gereksizdir.
         builder.HasKey(a => new { a.PlanId, a.SubjectId });
 
+        // ADR-001: bir ders paketi yalnizca tek bir Subject'e satilir.
+        builder.HasIndex(a => a.PlanId).IsUnique();
+
         builder.HasOne(a => a.Plan)
             .WithMany()
             .HasForeignKey(a => a.PlanId)

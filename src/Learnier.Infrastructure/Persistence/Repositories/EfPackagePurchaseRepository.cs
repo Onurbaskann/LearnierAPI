@@ -19,6 +19,7 @@ internal sealed class EfPackagePurchaseRepository(AppDbContext context)
         CancellationToken cancellationToken)
         => context.SubscriptionPlans
             .Include(plan => plan.Prices)
+            .Include(plan => plan.Entitlements)
             .FirstOrDefaultAsync(
                 plan => plan.OrganizationId == organizationId && plan.Name == planName,
                 cancellationToken);

@@ -589,4 +589,25 @@
   <data name="subscriptions.duration_invalid" xml:space="preserve">
     <value>Paket süresi geçersiz.</value>
   </data>
+  <data name="booking.lesson_package_required" xml:space="preserve">
+    <value>Bu ders için uygun bir ders paketi gerekli.</value>
+  </data>
+  <data name="booking.course_not_found" xml:space="preserve">
+    <value>Dersin bağlı olduğu eğitim bulunamadı.</value>
+  </data>
+  <data name="booking.compatible_package_not_found" xml:space="preserve">
+    <value>Bu ders alanını ve {duration} dakikalık dersi kapsayan aktif paket bulunamadı.</value>
+  </data>
+  <data name="booking.credit_exhausted" xml:space="preserve">
+    <value>Bu paket için kullanılabilir ders hakkın kalmadı.</value>
+  </data>
+  <data name="booking.subscription_missing" xml:space="preserve">
+    <value>Rezervasyonun abonelik bilgisi eksik.</value>
+  </data>
+  <data name="booking.credit_reservation_missing" xml:space="preserve">
+    <value>Rezervasyona ait kredi hareketi bulunamadı.</value>
+  </data>
+  <data name="booking.session_not_found" xml:space="preserve">
+    <value>Ders oturumu bulunamadı.</value>
+  </data>
 </root>

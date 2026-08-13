@@ -26,7 +26,24 @@ internal sealed class SubscriptionPlanConfiguration : IEntityTypeConfiguration<S
             .HasMaxLength(32)
             .IsRequired();
 
+        builder.Property(p => p.MonthlyLessonCredits);
+        builder.Property(p => p.LessonDurationMinutes);
+
         builder.HasIndex(p => new { p.OrganizationId, p.Status });
+
+        builder.ToTable(t =>
+        {
+            t.HasCheckConstraint(
+                "ck_subscription_plans_lesson_package_complete",
+                "(monthly_lesson_credits IS NULL AND lesson_duration_minutes IS NULL) OR "
+                + "(monthly_lesson_credits IS NOT NULL AND lesson_duration_minutes IS NOT NULL)");
+            t.HasCheckConstraint(
+                "ck_subscription_plans_monthly_credits_positive",
+                "monthly_lesson_credits IS NULL OR monthly_lesson_credits > 0");
+            t.HasCheckConstraint(
+                "ck_subscription_plans_lesson_duration",
+                "lesson_duration_minutes IS NULL OR lesson_duration_minutes IN (30, 50)");
+        });
 
         builder.HasOne<Organization>()
             .WithMany()

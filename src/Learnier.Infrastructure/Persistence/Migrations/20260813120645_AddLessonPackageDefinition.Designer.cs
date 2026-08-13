@@ -3,6 +3,7 @@ using System;
 using Learnier.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Learnier.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260813120645_AddLessonPackageDefinition")]
+    partial class AddLessonPackageDefinition
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -68,9 +71,8 @@ namespace Learnier.Infrastructure.Persistence.Migrations
                     b.HasKey("Id")
                         .HasName("pk_credit_ledger");
 
-                    b.HasIndex("BookingId", "TransactionType")
-                        .IsUnique()
-                        .HasDatabaseName("ix_credit_ledger_booking_id_transaction_type");
+                    b.HasIndex("BookingId")
+                        .HasDatabaseName("ix_credit_ledger_booking_id");
 
                     b.HasIndex("LearnerUserId", "SessionType")
                         .HasDatabaseName("ix_credit_ledger_learner_user_id_session_type");
@@ -80,7 +82,7 @@ namespace Learnier.Infrastructure.Persistence.Migrations
 
                     b.ToTable("credit_ledger", null, t =>
                         {
-                            t.HasCheckConstraint("ck_credit_ledger_quantity_not_zero", "quantity <> 0 OR transaction_type = 'Consume'");
+                            t.HasCheckConstraint("ck_credit_ledger_quantity_not_zero", "quantity <> 0");
                         });
                 });
 

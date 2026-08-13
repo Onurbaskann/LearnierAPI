@@ -89,11 +89,27 @@ public sealed class SchedulingEndpointTests(AuthApiFixture fixture) : IClassFixt
             new Uri($"/api/v1/sessions/{opened.SessionId}/bookings", UriKind.Relative),
             new { learnerUserId = (Guid?)null },
             TestContext.Current.CancellationToken);
-        booked.StatusCode.ShouldBe(HttpStatusCode.OK);
+        booked.StatusCode.ShouldBe(
+            HttpStatusCode.OK,
+            await booked.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
         var reservation = await booked.Content.ReadFromJsonAsync<CreateBookingResult>(
             TestJson.Options,
             TestContext.Current.CancellationToken);
         reservation!.Status.ShouldBe(Domain.Scheduling.BookingStatus.Reserved);
+
+        await using (var database = fixture.CreateContext())
+        {
+            var storedBooking = await database.SessionBookings.SingleAsync(
+                item => item.Id == reservation.BookingId,
+                TestContext.Current.CancellationToken);
+            storedBooking.CreditLedgerEntryId.ShouldNotBeNull();
+
+            var reserve = await database.CreditLedger.SingleAsync(
+                item => item.BookingId == reservation.BookingId
+                        && item.TransactionType == Domain.Billing.CreditTransactionType.Reserve,
+                TestContext.Current.CancellationToken);
+            reserve.Quantity.ShouldBe(-1);
+        }
 
         var instructorSchedule = await instructorClient.GetFromJsonAsync<
             IReadOnlyList<InstructorScheduleListItem>>(
@@ -124,6 +140,16 @@ public sealed class SchedulingEndpointTests(AuthApiFixture fixture) : IClassFixt
             new Uri($"/api/v1/bookings/{reservation.BookingId}", UriKind.Relative),
             TestContext.Current.CancellationToken);
         cancelled.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        await using (var database = fixture.CreateContext())
+        {
+            var movements = await database.CreditLedger
+                .Where(item => item.BookingId == reservation.BookingId)
+                .ToListAsync(TestContext.Current.CancellationToken);
+            movements.Sum(item => item.Quantity).ShouldBe(0);
+            movements.ShouldContain(item =>
+                item.TransactionType == Domain.Billing.CreditTransactionType.Refund);
+        }
 
         var slotsAfterCancellation = await context.Client.GetFromJsonAsync<
             IReadOnlyList<InstructorSlotListItem>>(
@@ -489,6 +515,7 @@ public sealed class SchedulingEndpointTests(AuthApiFixture fixture) : IClassFixt
 
         var subjectId = (await subject.Content.ReadFromJsonAsync<CreateSubjectResult>(
             TestContext.Current.CancellationToken))!.SubjectId;
+        await PurchasePackage(client, subjectId);
 
         var course = await client.PostAsJsonAsync(
             new Uri("/api/v1/courses", UriKind.Relative),
@@ -518,6 +545,7 @@ public sealed class SchedulingEndpointTests(AuthApiFixture fixture) : IClassFixt
             TestContext.Current.CancellationToken);
         var subjectId = (await subject.Content.ReadFromJsonAsync<CreateSubjectResult>(
             TestContext.Current.CancellationToken))!.SubjectId;
+        await PurchasePackage(client, subjectId);
 
         var course = await client.PostAsJsonAsync(
             new Uri("/api/v1/courses", UriKind.Relative),
@@ -526,7 +554,7 @@ public sealed class SchedulingEndpointTests(AuthApiFixture fixture) : IClassFixt
                 subjectId,
                 title = "Birebir Ingilizce",
                 courseType = "Private",
-                defaultDurationMinutes = 60,
+                defaultDurationMinutes = 50,
                 minParticipants = 1,
                 maxParticipants = 1
             },
@@ -541,6 +569,22 @@ public sealed class SchedulingEndpointTests(AuthApiFixture fixture) : IClassFixt
             TestContext.Current.CancellationToken)).StatusCode.ShouldBe(HttpStatusCode.NoContent);
 
         return (created.CourseId, subjectId);
+    }
+
+    private static async Task PurchasePackage(HttpClient client, Guid subjectId)
+    {
+        var response = await client.PostAsJsonAsync(
+            new Uri("/api/v1/subscriptions/demo-purchases", UriKind.Relative),
+            new
+            {
+                subjectId,
+                lessonsPerWeek = 3,
+                durationMonths = 6,
+                lessonDurationMinutes = 50
+            },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 
     private async Task<Guid> CreateInstructor(OrganizationContext context)

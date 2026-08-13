@@ -29,6 +29,15 @@ public sealed class SubscriptionPlan : AggregateRoot, IAuditableEntity, ITenantS
 
     public PlanStatus Status { get; private set; }
 
+    /// <summary>Her faturalama ayinda verilecek birebir ders hakki.</summary>
+    public int? MonthlyLessonCredits { get; private set; }
+
+    /// <summary>Paketin izin verdigi ders suresi: 30 veya 50 dakika.</summary>
+    public int? LessonDurationMinutes { get; private set; }
+
+    public bool IsLessonPackage
+        => MonthlyLessonCredits is not null && LessonDurationMinutes is not null;
+
     public IReadOnlyCollection<PlanPrice> Prices => _prices.AsReadOnly();
 
     public IReadOnlyCollection<PlanEntitlement> Entitlements => _entitlements.AsReadOnly();
@@ -57,6 +66,75 @@ public sealed class SubscriptionPlan : AggregateRoot, IAuditableEntity, ITenantS
             CatalogAccess = catalogAccess,
             Status = PlanStatus.Draft
         };
+    }
+
+    public static SubscriptionPlan CreateLessonPackage(
+        Guid organizationId,
+        string name,
+        int monthlyLessonCredits,
+        int lessonDurationMinutes,
+        string? description = null)
+    {
+        var plan = Create(
+            organizationId,
+            name,
+            CatalogAccess.Restricted,
+            description);
+
+        plan.ConfigureLessonPackage(monthlyLessonCredits, lessonDurationMinutes);
+
+        return plan;
+    }
+
+    /// <summary>
+    /// Eski bir plani ders paketi bilgileriyle bir defaya mahsus zenginlestirir.
+    /// Tanimlanan kosullar degistirilemez; farkli kosullar yeni plan gerektirir.
+    /// </summary>
+    public void ConfigureLessonPackage(int monthlyLessonCredits, int lessonDurationMinutes)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(monthlyLessonCredits);
+
+        if (lessonDurationMinutes is not (30 or 50))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(lessonDurationMinutes),
+                lessonDurationMinutes,
+                "Ders suresi yalnizca 30 veya 50 dakika olabilir.");
+        }
+
+        if (MonthlyLessonCredits is not null || LessonDurationMinutes is not null)
+        {
+            if (MonthlyLessonCredits == monthlyLessonCredits
+                && LessonDurationMinutes == lessonDurationMinutes)
+            {
+                return;
+            }
+
+            throw new InvalidOperationException(
+                "Ders paketi kosullari degistirilemez; yeni plan olusturulmalidir.");
+        }
+
+        MonthlyLessonCredits = monthlyLessonCredits;
+        LessonDurationMinutes = lessonDurationMinutes;
+
+        var monthlyPrivateCredit = _entitlements.Find(entitlement =>
+            entitlement.EntitlementType == EntitlementType.LessonCredit
+            && entitlement.SessionType == Scheduling.SessionType.Private);
+
+        if (monthlyPrivateCredit is null)
+        {
+            AddEntitlement(
+                EntitlementType.LessonCredit,
+                Scheduling.SessionType.Private,
+                monthlyLessonCredits,
+                EntitlementResetPeriod.Month);
+        }
+        else if (monthlyPrivateCredit.Quantity != monthlyLessonCredits
+            || monthlyPrivateCredit.ResetPeriod != EntitlementResetPeriod.Month)
+        {
+            throw new InvalidOperationException(
+                "Mevcut ders hakki aylik paket kosullariyla uyumlu degildir.");
+        }
     }
 
     /// <summary>

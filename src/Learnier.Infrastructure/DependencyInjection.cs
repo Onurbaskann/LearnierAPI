@@ -83,9 +83,7 @@ public static class DependencyInjection
         services.AddScoped<ISchedulingRepository, EfSchedulingRepository>();
         services.AddScoped<ISchedulingQueries, EfSchedulingQueries>();
 
-        // GECICI: abonelik ve kredi defteri Faz 4'te gelecek. Bu yer tutucu her
-        // rezervasyona izin verir - bkz. DirectPurchaseEntitlementPolicy.
-        services.AddScoped<IBookingEntitlementPolicy, DirectPurchaseEntitlementPolicy>();
+        services.AddScoped<IBookingEntitlementPolicy, SubscriptionCreditEntitlementPolicy>();
 
         // Gercek bir saglayici baglanana kadar e-postalar yalnizca loga yazilir;
         // uretime cikmadan once degistirilmeli (bkz. LoggingEmailSender).

@@ -29,6 +29,10 @@ internal sealed class CreditLedgerEntryConfiguration : IEntityTypeConfiguration<
         // Ders turune gore bakiye hesabi.
         builder.HasIndex(e => new { e.LearnerUserId, e.SessionType });
 
+        // Ayni rezervasyon icin Reserve/Consume/Refund hareketi en fazla bir kez
+        // yazilir. BookingId bos olan grant/adjust/expire satirlari etkilenmez.
+        builder.HasIndex(e => new { e.BookingId, e.TransactionType }).IsUnique();
+
         builder.HasOne(e => e.Subscription)
             .WithMany()
             .HasForeignKey(e => e.SubscriptionId)
@@ -46,9 +50,10 @@ internal sealed class CreditLedgerEntryConfiguration : IEntityTypeConfiguration<
             .HasForeignKey(e => e.BookingId)
             .OnDelete(DeleteBehavior.SetNull);
 
-        // Sifir miktarli hareket defterde anlamsizdir ve bakiyeyi degistirmez.
+        // Consume, Reserve ile dusmus hakkin tamamlandigini belirten sifir miktarli
+        // denetim olayidir. Diger hareketlerin bakiyeye etkisi olmak zorundadir.
         builder.ToTable(t => t.HasCheckConstraint(
             "ck_credit_ledger_quantity_not_zero",
-            @"quantity <> 0"));
+            @"quantity <> 0 OR transaction_type = 'Consume'"));
     }
 }

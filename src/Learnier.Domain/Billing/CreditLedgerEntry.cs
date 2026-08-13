@@ -76,9 +76,10 @@ public sealed class CreditLedgerEntry : Entity
     }
 
     /// <summary>
-    /// Rezervasyonda harcanan hakki yazar. Miktar negatife cevrilir.
+    /// Rezervasyonda hak ayirir. Miktar negatife cevrilir ve kullanilabilir
+    /// bakiyeden hemen duser.
     /// </summary>
-    public static CreditLedgerEntry Consume(
+    public static CreditLedgerEntry Reserve(
         Guid subscriptionId,
         Guid learnerUserId,
         SessionType sessionType,
@@ -94,11 +95,32 @@ public sealed class CreditLedgerEntry : Entity
             LearnerUserId = learnerUserId,
             SessionType = sessionType,
             Quantity = -quantity,
-            TransactionType = CreditTransactionType.BookingUsage,
+            TransactionType = CreditTransactionType.Reserve,
             BookingId = bookingId,
             CreatedAt = createdAt
         };
     }
+
+    /// <summary>
+    /// Ders tamamlandiginda ayrilan hakkin tuketildigini kaydeder. Reserve hareketi
+    /// bakiyeyi zaten dusurdugu icin bu denetim hareketinin miktari sifirdir.
+    /// </summary>
+    public static CreditLedgerEntry Consume(
+        Guid subscriptionId,
+        Guid learnerUserId,
+        SessionType sessionType,
+        Guid bookingId,
+        DateTimeOffset createdAt)
+        => new()
+        {
+            SubscriptionId = subscriptionId,
+            LearnerUserId = learnerUserId,
+            SessionType = sessionType,
+            Quantity = 0,
+            TransactionType = CreditTransactionType.Consume,
+            BookingId = bookingId,
+            CreatedAt = createdAt
+        };
 
     /// <summary>
     /// Iptal edilen rezervasyonun hakkini iade eder.
@@ -123,7 +145,7 @@ public sealed class CreditLedgerEntry : Entity
             LearnerUserId = learnerUserId,
             SessionType = sessionType,
             Quantity = quantity,
-            TransactionType = CreditTransactionType.CancellationRefund,
+            TransactionType = CreditTransactionType.Refund,
             BookingId = bookingId,
             CreatedAt = createdAt
         };
@@ -173,7 +195,7 @@ public sealed class CreditLedgerEntry : Entity
             LearnerUserId = learnerUserId,
             SessionType = sessionType,
             Quantity = -quantity,
-            TransactionType = CreditTransactionType.Expiration,
+            TransactionType = CreditTransactionType.Expire,
             CreatedAt = createdAt
         };
     }

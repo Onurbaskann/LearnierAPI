@@ -92,7 +92,11 @@ public sealed class CancelBookingHandler(
 
         booking.Cancel(now, command.Reason);
 
-        await entitlements.ReleaseAsync(booking, refundable, cancellationToken);
+        var release = await entitlements.ReleaseAsync(booking, refundable, cancellationToken);
+        if (release.IsFailure)
+        {
+            return release.Error;
+        }
 
         // Yalnizca dolu bir koltuk bosaldiysa yukseltme yapilir; bekleme
         // listesindeki bir kaydin iptali kontenjani degistirmez.
@@ -119,6 +123,6 @@ public sealed class CancelBookingHandler(
         await unitOfWork.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
 
-        return new CancelBookingResult(refundable, promotedBookingId);
+        return new CancelBookingResult(release.Value, promotedBookingId);
     }
 }

@@ -123,6 +123,12 @@ public sealed class CreateBookingHandler(
 
         scheduling.AddBooking(booking);
 
+        var creditReservation = await entitlements.ReserveAsync(booking, cancellationToken);
+        if (creditReservation.IsFailure)
+        {
+            return creditReservation.Error;
+        }
+
         // Asgari katilimci sarti saglandiysa oturum kesinlesir. Sayim veritabanindan
         // geliyor; bellekteki koleksiyon kilitli okumada yuklu degil.
         if (booking.Status is BookingStatus.Reserved)
@@ -131,6 +137,17 @@ public sealed class CreateBookingHandler(
         }
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        // Booking -> ledger ve ledger -> booking baglantilari ayni anda kurulursa
+        // EF iki yeni satir arasinda ekleme sirasi belirleyemez. Once rezervasyon ve
+        // Reserve hareketi yazilir, sonra rezervasyona hareket kimligi baglanir.
+        // Iki kayit da ayni acik transaction icinde oldugu icin atomiklik korunur.
+        if (creditReservation.Value is { } creditEntryId)
+        {
+            booking.AttachCreditEntry(creditEntryId);
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+        }
+
         await transaction.CommitAsync(cancellationToken);
 
         return new CreateBookingResult(booking.Id, booking.Status, booking.AccessSource);

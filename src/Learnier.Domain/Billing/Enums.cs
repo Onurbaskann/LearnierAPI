@@ -96,17 +96,20 @@ public enum CreditTransactionType
     /// <summary>Donem basinda verilen hak.</summary>
     PeriodGrant,
 
-    /// <summary>Rezervasyonda harcanan hak.</summary>
-    BookingUsage,
+    /// <summary>Rezervasyonda ayrilan hak.</summary>
+    Reserve,
+
+    /// <summary>Ders tamamlandiginda rezervasyonun tuketime donustugu denetim olayi.</summary>
+    Consume,
 
     /// <summary>Suresi icinde iptal edilen rezervasyonun iadesi.</summary>
-    CancellationRefund,
+    Refund,
 
     /// <summary>Yonetici duzeltmesi.</summary>
     ManualAdjustment,
 
     /// <summary>Kullanilmadan suresi dolan hak.</summary>
-    Expiration
+    Expire
 }
 
 public enum PaymentStatus

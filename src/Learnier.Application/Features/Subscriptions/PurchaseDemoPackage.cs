@@ -9,7 +9,8 @@ namespace Learnier.Application.Features.Subscriptions;
 public sealed record PurchaseDemoPackageCommand(
     Guid SubjectId,
     int LessonsPerWeek,
-    int DurationMonths);
+    int DurationMonths,
+    int LessonDurationMinutes = 50);
 
 public sealed record PurchaseDemoPackageResult(
     Guid SubscriptionId,
@@ -32,6 +33,9 @@ internal sealed class PurchaseDemoPackageValidator
             .Must(AllowedFrequencies.Contains).WithErrorCode("subscriptions.frequency_invalid");
         RuleFor(command => command.DurationMonths)
             .Must(AllowedDurations.Contains).WithErrorCode("subscriptions.duration_invalid");
+        RuleFor(command => command.LessonDurationMinutes)
+            .Must(duration => duration is 30 or 50)
+            .WithErrorCode("subscriptions.lesson_duration_invalid");
     }
 }
 
@@ -75,23 +79,21 @@ public sealed class PurchaseDemoPackageHandler(
         }
 
         var now = clock.UtcNow;
-        var totalCredits = command.LessonsPerWeek * WeeksPerMonth * command.DurationMonths;
-        var planName = $"{subject.Name} {command.LessonsPerWeek}x{command.DurationMonths} Demo";
+        var monthlyCredits = command.LessonsPerWeek * WeeksPerMonth;
+        var totalCredits = monthlyCredits * command.DurationMonths;
+        var planName = $"{subject.Name} {command.LessonsPerWeek}x{command.DurationMonths} "
+            + $"{command.LessonDurationMinutes}dk Demo";
         var plan = await repository.FindPlanAsync(organizationId, planName, cancellationToken);
         PlanPrice price;
 
         if (plan is null)
         {
-            plan = SubscriptionPlan.Create(
+            plan = SubscriptionPlan.CreateLessonPackage(
                 organizationId,
                 planName,
-                CatalogAccess.Restricted,
+                monthlyCredits,
+                command.LessonDurationMinutes,
                 "Ödeme sağlayıcısı bağlanana kadar kullanılan kalıcı demo paketi.");
-            plan.AddEntitlement(
-                EntitlementType.LessonCredit,
-                SessionType.Private,
-                totalCredits,
-                EntitlementResetPeriod.Subscription);
             price = plan.AddPrice(
                 "TRY",
                 CalculatePrice(command.LessonsPerWeek, command.DurationMonths, totalCredits),
@@ -104,6 +106,7 @@ public sealed class PurchaseDemoPackageHandler(
         }
         else
         {
+            plan.ConfigureLessonPackage(monthlyCredits, command.LessonDurationMinutes);
             price = plan.Prices.FirstOrDefault(item => item.Status == PlanPriceStatus.Active)
                 ?? plan.AddPrice(
                     "TRY",
@@ -127,9 +130,9 @@ public sealed class PurchaseDemoPackageHandler(
             subscription.Id,
             userId,
             SessionType.Private,
-            totalCredits,
+            monthlyCredits,
             now,
-            periodEnd));
+            now.AddMonths(1)));
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
@@ -137,7 +140,7 @@ public sealed class PurchaseDemoPackageHandler(
             subscription.Id,
             subject.Id,
             subject.Name,
-            totalCredits,
+            monthlyCredits,
             periodEnd);
     }
 

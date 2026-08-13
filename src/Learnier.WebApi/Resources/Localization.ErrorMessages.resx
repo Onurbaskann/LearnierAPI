@@ -593,4 +593,25 @@
   <data name="subscriptions.duration_invalid" xml:space="preserve">
     <value>The package duration is invalid.</value>
   </data>
+  <data name="booking.lesson_package_required" xml:space="preserve">
+    <value>A compatible lesson package is required for this session.</value>
+  </data>
+  <data name="booking.course_not_found" xml:space="preserve">
+    <value>The course associated with this session was not found.</value>
+  </data>
+  <data name="booking.compatible_package_not_found" xml:space="preserve">
+    <value>No active package covers this subject and a {duration}-minute lesson.</value>
+  </data>
+  <data name="booking.credit_exhausted" xml:space="preserve">
+    <value>There are no lesson credits remaining in this package.</value>
+  </data>
+  <data name="booking.subscription_missing" xml:space="preserve">
+    <value>The booking is missing its subscription reference.</value>
+  </data>
+  <data name="booking.credit_reservation_missing" xml:space="preserve">
+    <value>The booking credit reservation could not be found.</value>
+  </data>
+  <data name="booking.session_not_found" xml:space="preserve">
+    <value>The lesson session was not found.</value>
+  </data>
 </root>

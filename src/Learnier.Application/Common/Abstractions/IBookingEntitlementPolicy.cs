@@ -28,6 +28,16 @@ public interface IBookingEntitlementPolicy
         LessonSession session,
         CancellationToken cancellationToken);
 
+    /// <summary>Rezervasyon icin krediyi atomik olarak ayirir.</summary>
+    Task<Result<Guid?>> ReserveAsync(
+        SessionBooking booking,
+        CancellationToken cancellationToken);
+
+    /// <summary>Tamamlanan dersin ayrilmis kredisini tuketilmis olarak isaretler.</summary>
+    Task<Result> ConsumeAsync(
+        SessionBooking booking,
+        CancellationToken cancellationToken);
+
     /// <summary>
     /// Iptal edilen rezervasyonun hakkini iade eder.
     /// </summary>
@@ -35,7 +45,10 @@ public interface IBookingEntitlementPolicy
     /// Iptal, ucretsiz iptal sinirindan once yapildiysa dogru. Yanlissa hak yanar;
     /// karar rezervasyon akisinda verilir, iadenin nasil islenecegi burada.
     /// </param>
-    Task ReleaseAsync(SessionBooking booking, bool refundable, CancellationToken cancellationToken);
+    Task<Result<bool>> ReleaseAsync(
+        SessionBooking booking,
+        bool refundable,
+        CancellationToken cancellationToken);
 }
 
 /// <param name="AccessSource">Rezervasyonun dayandigi hak turu.</param>

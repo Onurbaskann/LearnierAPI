@@ -96,7 +96,14 @@ public sealed class CancelSessionHandler(
         foreach (var booking in bookings)
         {
             booking.Cancel(now, command.Reason);
-            await entitlements.ReleaseAsync(booking, refundable: true, cancellationToken);
+            var release = await entitlements.ReleaseAsync(
+                booking,
+                refundable: true,
+                cancellationToken);
+            if (release.IsFailure)
+            {
+                return release.Error;
+            }
         }
 
         session.Cancel(command.Reason);

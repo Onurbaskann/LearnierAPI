@@ -99,6 +99,8 @@ public sealed class AppDbContext(
 
     public DbSet<LearnerCourseProgress> LearnerCourseProgress => Set<LearnerCourseProgress>();
 
+    public DbSet<LearnerOnboardingProfile> LearnerOnboardingProfiles => Set<LearnerOnboardingProfile>();
+
     public DbSet<LessonCompletion> LessonCompletions => Set<LessonCompletion>();
 
     public DbSet<SessionFeedback> SessionFeedback => Set<SessionFeedback>();

@@ -68,6 +68,7 @@ public static class DependencyInjection
         services.AddScoped<IFriendshipRepository, EfFriendshipRepository>();
         services.AddScoped<IClubRepository, EfClubRepository>();
         services.AddScoped<IClubAccessPolicy, EfClubAccessPolicy>();
+        services.AddScoped<ILearnerOnboardingRepository, EfLearnerOnboardingRepository>();
         services.AddScoped<IRefreshTokenRepository, EfRefreshTokenRepository>();
         services.AddScoped<IRegistrationMembershipProvisioner, RegistrationMembershipProvisioner>();
         services.AddScoped<IOrganizationRepository, EfOrganizationRepository>();
@@ -75,6 +76,7 @@ public static class DependencyInjection
         services.AddScoped<IMembershipRepository, EfMembershipRepository>();
         services.AddScoped<ICatalogRepository, EfCatalogRepository>();
         services.AddScoped<ICatalogQueries, EfCatalogQueries>();
+        services.AddScoped<IActivePackageQueries, EfActivePackageQueries>();
         services.AddScoped<IInstructorRepository, EfInstructorRepository>();
         services.AddScoped<IInstructorQueries, EfInstructorQueries>();
         services.AddScoped<ISchedulingRepository, EfSchedulingRepository>();

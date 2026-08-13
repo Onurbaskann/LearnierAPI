@@ -16,6 +16,7 @@ internal sealed class EfActivePackageQueries(AppDbContext context, IClock clock)
             .AsNoTracking()
             .Include(subscription => subscription.PlanPrice)
                 .ThenInclude(price => price.Plan)
+                    .ThenInclude(plan => plan.Entitlements)
             .Where(subscription =>
                 subscription.SubscriberUserId == userId
                 && subscription.Status == SubscriptionStatus.Active
@@ -41,9 +42,21 @@ internal sealed class EfActivePackageQueries(AppDbContext context, IClock clock)
                 .Where(entry => entry.SubscriptionId == subscription.Id && entry.LearnerUserId == userId)
                 .SumAsync(entry => (int?)entry.Quantity, cancellationToken) ?? 0;
 
+            var durationMonths = subscription.PlanPrice.BillingInterval == BillingInterval.Year
+                ? subscription.PlanPrice.BillingIntervalCount * 12
+                : subscription.PlanPrice.BillingIntervalCount;
+            var entitlement = plan.Entitlements.FirstOrDefault(item =>
+                item.EntitlementType == EntitlementType.LessonCredit
+                && item.SessionType == Learnier.Domain.Scheduling.SessionType.Private);
+            var totalCredits = entitlement?.Quantity ?? Math.Max(remainingCredits, 0);
+            var lessonsPerWeek = totalCredits > 0
+                ? Math.Max(1, totalCredits / Math.Max(1, durationMonths * 4))
+                : 3;
+
             result.AddRange(subjects.Select(subject => new ActivePackageAccess(
                 subscription.Id, plan.Name, subject.Id, subject.Name,
-                subscription.StartsAt, subscription.CurrentPeriodEnd, remainingCredits)));
+                subscription.StartsAt, subscription.CurrentPeriodEnd, remainingCredits,
+                totalCredits, lessonsPerWeek, durationMonths)));
         }
 
         return result;

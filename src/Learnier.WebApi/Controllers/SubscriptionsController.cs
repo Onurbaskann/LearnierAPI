@@ -11,6 +11,13 @@ namespace Learnier.WebApi.Controllers;
 [Authorize]
 public sealed class SubscriptionsController : ControllerBase
 {
+    [HttpPost("demo-purchases")]
+    public async Task<ActionResult<PurchaseDemoPackageResult>> PurchaseDemoPackage(
+        PurchaseDemoPackageCommand command,
+        [FromServices] PurchaseDemoPackageHandler handler,
+        CancellationToken cancellationToken)
+        => (await handler.Handle(command, cancellationToken)).ToActionResult(this);
+
     [HttpGet("me/active-packages")]
     public async Task<ActionResult<IReadOnlyList<ActivePackageAccess>>> GetMyActivePackages(
         [FromServices] GetMyActivePackagesHandler handler,

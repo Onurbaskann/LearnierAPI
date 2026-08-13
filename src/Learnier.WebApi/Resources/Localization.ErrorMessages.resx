@@ -581,4 +581,16 @@
   <data name="clubs.message_too_long" xml:space="preserve">
     <value>Message cannot exceed 2000 characters.</value>
   </data>
+  <data name="subscriptions.subject_required" xml:space="preserve">
+    <value>Subject selection is required.</value>
+  </data>
+  <data name="subscriptions.subject_not_found" xml:space="preserve">
+    <value>The selected subject was not found.</value>
+  </data>
+  <data name="subscriptions.frequency_invalid" xml:space="preserve">
+    <value>The weekly lesson frequency is invalid.</value>
+  </data>
+  <data name="subscriptions.duration_invalid" xml:space="preserve">
+    <value>The package duration is invalid.</value>
+  </data>
 </root>

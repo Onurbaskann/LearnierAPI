@@ -7,7 +7,10 @@ public sealed record ActivePackageAccess(
     string SubjectName,
     DateTimeOffset StartsAt,
     DateTimeOffset CurrentPeriodEnd,
-    int RemainingCredits);
+    int RemainingCredits,
+    int TotalCredits,
+    int LessonsPerWeek,
+    int DurationMonths);
 
 public interface IActivePackageQueries
 {

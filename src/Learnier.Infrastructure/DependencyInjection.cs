@@ -77,6 +77,7 @@ public static class DependencyInjection
         services.AddScoped<ICatalogRepository, EfCatalogRepository>();
         services.AddScoped<ICatalogQueries, EfCatalogQueries>();
         services.AddScoped<IActivePackageQueries, EfActivePackageQueries>();
+        services.AddScoped<IPackagePurchaseRepository, EfPackagePurchaseRepository>();
         services.AddScoped<IInstructorRepository, EfInstructorRepository>();
         services.AddScoped<IInstructorQueries, EfInstructorQueries>();
         services.AddScoped<ISchedulingRepository, EfSchedulingRepository>();

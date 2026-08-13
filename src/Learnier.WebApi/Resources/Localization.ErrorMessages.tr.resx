@@ -577,4 +577,16 @@
   <data name="clubs.message_too_long" xml:space="preserve">
     <value>Mesaj 2000 karakterden uzun olamaz.</value>
   </data>
+  <data name="subscriptions.subject_required" xml:space="preserve">
+    <value>Ders alanı seçimi gerekli.</value>
+  </data>
+  <data name="subscriptions.subject_not_found" xml:space="preserve">
+    <value>Seçilen ders alanı bulunamadı.</value>
+  </data>
+  <data name="subscriptions.frequency_invalid" xml:space="preserve">
+    <value>Haftalık ders sayısı geçersiz.</value>
+  </data>
+  <data name="subscriptions.duration_invalid" xml:space="preserve">
+    <value>Paket süresi geçersiz.</value>
+  </data>
 </root>

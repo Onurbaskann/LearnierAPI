@@ -28,6 +28,139 @@ public sealed class SchedulingEndpointTests(AuthApiFixture fixture) : IClassFixt
     private const string OrganizationHeader = "X-Organization-Id";
 
     [Fact]
+    public async Task Instructor_CanCompleteOwnedEndedSession_AndCreditIsConsumedOnce()
+    {
+        var context = await NewOrganization();
+        var (courseId, subjectId) = await CreatePublishedPrivateCourse(context.Client);
+
+        var rateResponse = await context.Client.PutAsJsonAsync(
+            new Uri("/api/v1/admin/compensation/rates", UriKind.Relative),
+            new
+            {
+                subjectId,
+                lessonDurationMinutes = 50,
+                amount = 400m,
+                currency = "TRY"
+            },
+            TestContext.Current.CancellationToken);
+        rateResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        var profileId = await CreateInstructor(context);
+
+        (await context.Client.PostAsync(
+            new Uri($"/api/v1/instructors/{profileId}/activate", UriKind.Relative),
+            content: null,
+            TestContext.Current.CancellationToken)).StatusCode.ShouldBe(HttpStatusCode.NoContent);
+
+        (await context.Client.PostAsJsonAsync(
+            new Uri($"/api/v1/instructors/{profileId}/subjects", UriKind.Relative),
+            new { subjectId, levelId = (Guid?)null },
+            TestContext.Current.CancellationToken)).StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        using var instructorClient = fixture.CreateClient();
+        await SignIn(instructorClient, "ogretmen@hotmail.com", "ogretmen123");
+        instructorClient.DefaultRequestHeaders.Add(
+            OrganizationHeader, context.OrganizationId.ToString());
+
+        var openedResponse = await instructorClient.PostAsJsonAsync(
+            new Uri("/api/v1/instructors/me/slots", UriKind.Relative),
+            new { courseId, startsAt = DateTimeOffset.UtcNow.AddDays(2) },
+            TestContext.Current.CancellationToken);
+        openedResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var opened = await openedResponse.Content.ReadFromJsonAsync<OpenInstructorSlotResult>(
+            TestJson.Options,
+            TestContext.Current.CancellationToken);
+
+        var bookingResponse = await context.Client.PostAsJsonAsync(
+            new Uri($"/api/v1/sessions/{opened!.SessionId}/bookings", UriKind.Relative),
+            new { learnerUserId = (Guid?)null },
+            TestContext.Current.CancellationToken);
+        bookingResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var booking = await bookingResponse.Content.ReadFromJsonAsync<CreateBookingResult>(
+            TestJson.Options,
+            TestContext.Current.CancellationToken);
+
+        await using (var database = fixture.CreateContext())
+        {
+            var now = DateTimeOffset.UtcNow;
+            await database.Database.ExecuteSqlInterpolatedAsync(
+                $"UPDATE lesson_sessions SET starts_at = {now.AddMinutes(-60)}, ends_at = {now.AddMinutes(-10)} WHERE id = {opened.SessionId}",
+                TestContext.Current.CancellationToken);
+
+            var penalty = Domain.Billing.InstructorPenaltyState.Create(profileId);
+            penalty.RegisterLateCancellation(opened.SessionId, now.AddHours(-1));
+            database.InstructorPenaltyStates.Add(penalty);
+            await database.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+
+        var completionBody = new
+        {
+            attendances = new[]
+            {
+                new
+                {
+                    bookingId = booking!.BookingId,
+                    status = "Present",
+                    attendedMinutes = 50
+                }
+            }
+        };
+
+        var completed = await instructorClient.PostAsJsonAsync(
+            new Uri($"/api/v1/sessions/{opened.SessionId}/complete", UriKind.Relative),
+            completionBody,
+            TestContext.Current.CancellationToken);
+        completed.StatusCode.ShouldBe(
+            HttpStatusCode.OK,
+            await completed.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+
+        // Ayni istek yeniden gelirse ikinci attendance veya Consume yazilmamali.
+        (await instructorClient.PostAsJsonAsync(
+            new Uri($"/api/v1/sessions/{opened.SessionId}/complete", UriKind.Relative),
+            completionBody,
+            TestContext.Current.CancellationToken)).StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        await using (var database = fixture.CreateContext())
+        {
+            (await database.LessonSessions.SingleAsync(
+                item => item.Id == opened.SessionId,
+                TestContext.Current.CancellationToken)).Status
+                .ShouldBe(Domain.Scheduling.LessonSessionStatus.Completed);
+
+            (await database.SessionBookings.SingleAsync(
+                item => item.Id == booking.BookingId,
+                TestContext.Current.CancellationToken)).Status
+                .ShouldBe(Domain.Scheduling.BookingStatus.Attended);
+
+            var attendance = await database.SessionAttendances.SingleAsync(
+                item => item.BookingId == booking.BookingId,
+                TestContext.Current.CancellationToken);
+            attendance.Status.ShouldBe(Domain.Scheduling.AttendanceStatus.Present);
+            attendance.AttendedMinutes.ShouldBe(50);
+
+            (await database.CreditLedger.CountAsync(
+                item => item.BookingId == booking.BookingId
+                        && item.TransactionType == Domain.Billing.CreditTransactionType.Consume,
+                TestContext.Current.CancellationToken)).ShouldBe(1);
+
+            var earning = await database.InstructorEarnings.SingleAsync(
+                item => item.SessionId == opened.SessionId
+                        && item.InstructorProfileId == profileId,
+                TestContext.Current.CancellationToken);
+            earning.GrossAmount.ShouldBe(400m);
+            earning.PenaltyPercentage.ShouldBe(10m);
+            earning.PenaltyAmount.ShouldBe(40m);
+            earning.NetAmount.ShouldBe(360m);
+
+            (await database.InstructorPenaltyStates.SingleAsync(
+                item => item.InstructorProfileId == profileId,
+                TestContext.Current.CancellationToken)).Level.ShouldBe(0);
+        }
+
+        context.Dispose();
+    }
+
+    [Fact]
     public async Task InstructorSlot_IsEmptyUntilInstructorOpensOne_AndCanBeBookedOrClosed()
     {
         var context = await NewOrganization();

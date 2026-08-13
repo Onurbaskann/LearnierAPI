@@ -614,4 +614,47 @@
   <data name="booking.session_not_found" xml:space="preserve">
     <value>The lesson session was not found.</value>
   </data>
+  <data name="scheduling.session_not_completable" xml:space="preserve">
+    <value>This session cannot be completed.</value>
+  </data>
+  <data name="scheduling.session_not_ended" xml:space="preserve">
+    <value>The session cannot be completed before its end time.</value>
+  </data>
+  <data name="scheduling.session_has_no_reservations" xml:space="preserve">
+    <value>The session has no active reservations to complete.</value>
+  </data>
+  <data name="scheduling.attendance_set_mismatch" xml:space="preserve">
+    <value>An attendance result must be supplied for every active reservation.</value>
+  </data>
+  <data name="scheduling.attendance_required" xml:space="preserve">
+    <value>Attendance information is required.</value>
+  </data>
+  <data name="scheduling.attendance_status_invalid" xml:space="preserve">
+    <value>The attendance status is invalid.</value>
+  </data>
+  <data name="scheduling.attended_minutes_invalid" xml:space="preserve">
+    <value>Attended minutes cannot be negative.</value>
+  </data>
+  <data name="scheduling.absent_minutes_invalid" xml:space="preserve">
+    <value>Attended minutes must be zero for an absent learner.</value>
+  </data>
+  <data name="scheduling.attended_minutes_required" xml:space="preserve">
+    <value>Attended minutes are required for a learner who attended.</value>
+  </data>
+  <data name="scheduling.attendance_time_range_invalid" xml:space="preserve">
+    <value>The leave time cannot be earlier than the join time.</value>
+  </data>
+  <data name="scheduling.attendance_booking_duplicate" xml:space="preserve">
+    <value>Attendance cannot be supplied more than once for the same booking.</value>
+  </data>
+  <data name="compensation.subject_required" xml:space="preserve"><value>Subject is required.</value></data>
+  <data name="compensation.duration_invalid" xml:space="preserve"><value>Lesson duration must be 30 or 50 minutes.</value></data>
+  <data name="compensation.amount_invalid" xml:space="preserve"><value>Lesson compensation cannot be negative.</value></data>
+  <data name="compensation.currency_required" xml:space="preserve"><value>Currency is required.</value></data>
+  <data name="compensation.currency_invalid" xml:space="preserve"><value>Currency must be a three-character ISO code.</value></data>
+  <data name="compensation.penalty_steps_required" xml:space="preserve"><value>At least one penalty step is required.</value></data>
+  <data name="compensation.penalty_steps_too_many" xml:space="preserve"><value>At most 20 penalty steps can be configured.</value></data>
+  <data name="compensation.penalty_percentage_invalid" xml:space="preserve"><value>Penalty percentages must be between 0 and 100.</value></data>
+  <data name="compensation.penalty_steps_not_increasing" xml:space="preserve"><value>Penalty percentages must increase at every step.</value></data>
+  <data name="compensation.rate_not_configured" xml:space="preserve"><value>Instructor compensation is not configured for this subject and {duration}-minute duration.</value></data>
 </root>

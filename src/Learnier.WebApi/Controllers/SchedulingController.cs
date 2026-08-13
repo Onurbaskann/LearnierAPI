@@ -3,6 +3,7 @@ using Learnier.Application.Common.Security;
 using Learnier.Application.Features.Scheduling.Commands.AssignSessionInstructor;
 using Learnier.Application.Features.Scheduling.Commands.CancelBooking;
 using Learnier.Application.Features.Scheduling.Commands.CancelSession;
+using Learnier.Application.Features.Scheduling.Commands.CompleteSession;
 using Learnier.Application.Features.Scheduling.Commands.CreateBooking;
 using Learnier.Application.Features.Scheduling.Commands.CloseInstructorSlot;
 using Learnier.Application.Features.Scheduling.Commands.OpenInstructorSlot;
@@ -193,6 +194,41 @@ public sealed class SchedulingController : ControllerBase
 
         var result = await handler.Handle(
             new CancelSessionCommand(sessionId, request.Reason),
+            cancellationToken);
+
+        return result.ToActionResult(this);
+    }
+
+    /// <summary>Dersi katilim sonuclariyla tamamlar ve ayrilan kredileri tuketir.</summary>
+    [HttpPost("sessions/{sessionId:guid}/complete")]
+    [Authorize(Policy = Permissions.Session.Complete)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<CompleteSessionResult>> CompleteSession(
+        Guid sessionId,
+        CompleteSessionRequest request,
+        [FromServices] CompleteSessionHandler handler,
+        [FromServices] IAuthorizationService authorization,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        ArgumentNullException.ThrowIfNull(handler);
+
+        var command = new CompleteSessionCommand(
+            sessionId,
+            request.Attendances.Select(item => new CompleteSessionAttendance(
+                item.BookingId,
+                item.Status,
+                item.AttendedMinutes,
+                item.JoinedAt,
+                item.LeftAt)).ToList());
+
+        var result = await handler.Handle(
+            command,
+            await CanManageCourses(authorization),
             cancellationToken);
 
         return result.ToActionResult(this);
@@ -403,6 +439,15 @@ public sealed class SchedulingController : ControllerBase
 
         return result.Succeeded;
     }
+
+    private async Task<bool> CanManageCourses(IAuthorizationService authorization)
+    {
+        ArgumentNullException.ThrowIfNull(authorization);
+
+        var result = await authorization.AuthorizeAsync(User, Permissions.Course.Manage);
+
+        return result.Succeeded;
+    }
 }
 
 /// <summary>Sinif kimligi rotadan geldigi icin govdede tasinmaz.</summary>
@@ -411,6 +456,16 @@ public sealed record EnrollLearnerRequest(Guid LearnerUserId);
 public sealed record AssignInstructorRequest(Guid InstructorProfileId, SessionInstructorRole Role);
 
 public sealed record CancelSessionRequest(string? Reason);
+
+public sealed record CompleteSessionAttendanceRequest(
+    Guid BookingId,
+    AttendanceStatus Status,
+    int AttendedMinutes,
+    DateTimeOffset? JoinedAt = null,
+    DateTimeOffset? LeftAt = null);
+
+public sealed record CompleteSessionRequest(
+    IReadOnlyList<CompleteSessionAttendanceRequest> Attendances);
 
 /// <param name="LearnerUserId">
 /// Bos birakilirsa istegi yapan kullanici adina rezervasyon yapilir.

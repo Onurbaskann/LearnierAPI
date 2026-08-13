@@ -76,4 +76,6 @@ public interface ISchedulingRepository
     void AddSession(LessonSession session);
 
     void AddBooking(SessionBooking booking);
+
+    void AddAttendance(SessionAttendance attendance);
 }

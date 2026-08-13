@@ -259,15 +259,19 @@ internal sealed class EfInstructorQueries(AppDbContext context) : IInstructorQue
 
         var completedLessons = await sessions
             .CountAsync(s => s.Status == LessonSessionStatus.Completed, cancellationToken);
-        var monthDurations = await sessions
-            .Where(s => s.Status == LessonSessionStatus.Completed
-                        && s.StartsAt >= monthStartsAt
-                        && s.StartsAt < monthEndsAt)
-            .Select(s => new { s.StartsAt, s.EndsAt })
+        var monthEarnings = await context.InstructorEarnings
+            .AsNoTracking()
+            .Where(earning => earning.InstructorProfileId == profile.Id
+                              && earning.EarnedAt >= monthStartsAt
+                              && earning.EarnedAt < monthEndsAt)
+            .Select(earning => new { earning.NetAmount, earning.Currency })
             .ToListAsync(cancellationToken);
-        var hourlyRate = profile.DefaultHourlyRate ?? 0m;
-        var thisMonthTotal = monthDurations.Sum(
-            session => hourlyRate * (decimal)(session.EndsAt - session.StartsAt).TotalHours);
+        var currency = monthEarnings.Select(item => item.Currency).FirstOrDefault()
+            ?? profile.DefaultHourlyRateCurrency
+            ?? "TRY";
+        var thisMonthTotal = monthEarnings
+            .Where(item => item.Currency == currency)
+            .Sum(item => item.NetAmount);
         var averageRating = await context.SessionFeedback
             .AsNoTracking()
             .Where(f => f.TargetInstructorProfileId == profile.Id)
@@ -278,7 +282,7 @@ internal sealed class EfInstructorQueries(AppDbContext context) : IInstructorQue
             studentCount,
             completedLessons,
             decimal.Round(thisMonthTotal, 2),
-            profile.DefaultHourlyRateCurrency ?? "TRY",
+            currency,
             averageRating);
     }
 
@@ -298,44 +302,40 @@ internal sealed class EfInstructorQueries(AppDbContext context) : IInstructorQue
             return null;
         }
 
-        var query = context.LessonSessions
+        var query = context.InstructorEarnings
             .AsNoTracking()
-            .Where(s => s.Status == LessonSessionStatus.Completed)
-            .Where(s => s.Instructors.Any(i => i.InstructorProfileId == profile.Id));
+            .Where(earning => earning.InstructorProfileId == profile.Id);
         if (from is { } after)
         {
-            query = query.Where(s => s.EndsAt >= after);
+            query = query.Where(earning => earning.EarnedAt >= after);
         }
 
         if (until is { } before)
         {
-            query = query.Where(s => s.StartsAt <= before);
+            query = query.Where(earning => earning.EarnedAt <= before);
         }
 
-        var sessions = await query
-            .OrderByDescending(s => s.StartsAt)
-            .Select(s => new
-            {
-                s.Id,
-                s.Course.Title,
-                s.StartsAt,
-                s.EndsAt,
-                LearnerCount = s.Bookings.Count(b =>
-                    b.Status == BookingStatus.Reserved
-                    || b.Status == BookingStatus.Attended
-                    || b.Status == BookingStatus.NoShow)
-            })
+        return await query
+            .OrderByDescending(earning => earning.EarnedAt)
+            .Select(earning => new InstructorEarningListItem(
+                earning.SessionId,
+                context.LessonSessions
+                    .Where(session => session.Id == earning.SessionId)
+                    .Select(session => session.Course.Title)
+                    .Single(),
+                context.LessonSessions
+                    .Where(session => session.Id == earning.SessionId)
+                    .Select(session => session.StartsAt)
+                    .Single(),
+                context.SessionBookings.Count(booking =>
+                    booking.SessionId == earning.SessionId
+                    && (booking.Status == BookingStatus.Attended
+                        || booking.Status == BookingStatus.NoShow)),
+                earning.NetAmount,
+                earning.Currency,
+                earning.GrossAmount,
+                earning.PenaltyPercentage,
+                earning.PenaltyAmount))
             .ToListAsync(cancellationToken);
-        var hourlyRate = profile.DefaultHourlyRate ?? 0m;
-        var currency = profile.DefaultHourlyRateCurrency ?? "TRY";
-
-        return sessions.Select(session => new InstructorEarningListItem(
-            session.Id,
-            session.Title,
-            session.StartsAt,
-            session.LearnerCount,
-            decimal.Round(
-                hourlyRate * (decimal)(session.EndsAt - session.StartsAt).TotalHours, 2),
-            currency)).ToList();
     }
 }

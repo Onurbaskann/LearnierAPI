@@ -8,6 +8,7 @@ using Learnier.Infrastructure.Persistence.Interceptors;
 using Learnier.Infrastructure.Persistence.Queries;
 using Learnier.Infrastructure.Persistence.Repositories;
 using Learnier.Infrastructure.Scheduling;
+using Learnier.Infrastructure.Billing;
 using Learnier.Infrastructure.Registration;
 using Learnier.Infrastructure.Persistence.Seeding;
 using Learnier.Infrastructure.Time;
@@ -84,6 +85,7 @@ public static class DependencyInjection
         services.AddScoped<ISchedulingQueries, EfSchedulingQueries>();
 
         services.AddScoped<IBookingEntitlementPolicy, SubscriptionCreditEntitlementPolicy>();
+        services.AddScoped<IInstructorCompensationService, InstructorCompensationService>();
 
         // Gercek bir saglayici baglanana kadar e-postalar yalnizca loga yazilir;
         // uretime cikmadan once degistirilmeli (bkz. LoggingEmailSender).

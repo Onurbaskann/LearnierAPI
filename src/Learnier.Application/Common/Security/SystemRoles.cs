@@ -47,7 +47,9 @@ public static class SystemRoles
             Permissions.Course.Manage,
             Permissions.Session.Create,
             Permissions.Session.Cancel,
+            Permissions.Session.Complete,
             Permissions.Booking.ManageAll,
+            Permissions.Compensation.Manage,
             Permissions.Student.ProgressRead,
             Permissions.Club.Read,
             Permissions.Club.Manage,
@@ -59,6 +61,7 @@ public static class SystemRoles
             Permissions.Course.Read,
             Permissions.Session.Create,
             Permissions.Session.Cancel,
+            Permissions.Session.Complete,
             Permissions.Student.ProgressRead,
             Permissions.Club.Read,
             Permissions.Club.MessageSend
@@ -90,7 +93,8 @@ public static class SystemRoles
 
         new(FinanceManager, "Finans Yoneticisi",
         [
-            Permissions.Subscription.Manage
+            Permissions.Subscription.Manage,
+            Permissions.Compensation.Manage
         ])
     ];
 }

@@ -26,6 +26,7 @@ public sealed class CancelSessionHandler(
     ISchedulingRepository scheduling,
     IInstructorRepository instructors,
     IBookingEntitlementPolicy entitlements,
+    IInstructorCompensationService compensation,
     ICurrentTenant currentTenant,
     IUnitOfWork unitOfWork,
     IClock clock)
@@ -50,6 +51,7 @@ public sealed class CancelSessionHandler(
             return SchedulingErrors.SessionNotFound;
         }
 
+        Guid? cancellingInstructorProfileId = null;
         if (command.IsInstructorInitiated)
         {
             if (currentTenant.MembershipId is not { } membershipId)
@@ -74,10 +76,17 @@ public sealed class CancelSessionHandler(
                 return SchedulingErrors.SessionNotOwned;
             }
 
-            if (clock.UtcNow >= session.StartsAt.AddHours(-1))
+            if (!await scheduling.LockInstructorAsync(profile.Id, cancellationToken))
+            {
+                return SchedulingErrors.InstructorNotFound;
+            }
+
+            if (clock.UtcNow >= session.StartsAt)
             {
                 return SchedulingErrors.InstructorCancellationDeadlinePassed;
             }
+
+            cancellingInstructorProfileId = profile.Id;
         }
 
         if (session.Status is LessonSessionStatus.Completed)
@@ -91,6 +100,22 @@ public sealed class CancelSessionHandler(
         }
 
         var now = clock.UtcNow;
+
+        // Dört saatten önce iptal serbesttir. Son dört saatte iptal yine yapılır,
+        // fakat eğitmenin tamamlayacağı sonraki dersine penalty basamağı eklenir.
+        if (cancellingInstructorProfileId is { } instructorProfileId
+            && now > session.StartsAt.AddHours(-4))
+        {
+            var penalty = await compensation.RegisterLateCancellationAsync(
+                instructorProfileId,
+                session.Id,
+                cancellationToken);
+            if (penalty.IsFailure)
+            {
+                return penalty.Error;
+            }
+        }
+
         var bookings = await scheduling.ListActiveBookingsAsync(session.Id, cancellationToken);
 
         foreach (var booking in bookings)

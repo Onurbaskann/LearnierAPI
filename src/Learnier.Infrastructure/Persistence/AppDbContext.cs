@@ -91,6 +91,15 @@ public sealed class AppDbContext(
 
     public DbSet<CreditLedgerEntry> CreditLedger => Set<CreditLedgerEntry>();
 
+    public DbSet<InstructorCompensationRate> InstructorCompensationRates
+        => Set<InstructorCompensationRate>();
+
+    public DbSet<InstructorPenaltyStep> InstructorPenaltySteps => Set<InstructorPenaltyStep>();
+
+    public DbSet<InstructorPenaltyState> InstructorPenaltyStates => Set<InstructorPenaltyState>();
+
+    public DbSet<InstructorEarning> InstructorEarnings => Set<InstructorEarning>();
+
     public DbSet<PaymentCustomer> PaymentCustomers => Set<PaymentCustomer>();
 
     public DbSet<Payment> Payments => Set<Payment>();

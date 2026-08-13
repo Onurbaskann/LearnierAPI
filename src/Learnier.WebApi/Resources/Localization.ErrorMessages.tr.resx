@@ -610,4 +610,47 @@
   <data name="booking.session_not_found" xml:space="preserve">
     <value>Ders oturumu bulunamadı.</value>
   </data>
+  <data name="scheduling.session_not_completable" xml:space="preserve">
+    <value>Bu ders tamamlanamaz.</value>
+  </data>
+  <data name="scheduling.session_not_ended" xml:space="preserve">
+    <value>Ders, bitiş saatinden önce tamamlanamaz.</value>
+  </data>
+  <data name="scheduling.session_has_no_reservations" xml:space="preserve">
+    <value>Tamamlanacak derste aktif rezervasyon bulunmuyor.</value>
+  </data>
+  <data name="scheduling.attendance_set_mismatch" xml:space="preserve">
+    <value>Her aktif rezervasyon için bir katılım sonucu gönderilmelidir.</value>
+  </data>
+  <data name="scheduling.attendance_required" xml:space="preserve">
+    <value>Katılım bilgileri gerekli.</value>
+  </data>
+  <data name="scheduling.attendance_status_invalid" xml:space="preserve">
+    <value>Katılım durumu geçersiz.</value>
+  </data>
+  <data name="scheduling.attended_minutes_invalid" xml:space="preserve">
+    <value>Katılım süresi negatif olamaz.</value>
+  </data>
+  <data name="scheduling.absent_minutes_invalid" xml:space="preserve">
+    <value>Katılmayan öğrenci için katılım süresi sıfır olmalıdır.</value>
+  </data>
+  <data name="scheduling.attended_minutes_required" xml:space="preserve">
+    <value>Katılan öğrenci için katılım süresi girilmelidir.</value>
+  </data>
+  <data name="scheduling.attendance_time_range_invalid" xml:space="preserve">
+    <value>Dersten ayrılma zamanı katılma zamanından önce olamaz.</value>
+  </data>
+  <data name="scheduling.attendance_booking_duplicate" xml:space="preserve">
+    <value>Aynı rezervasyon için birden fazla katılım sonucu gönderilemez.</value>
+  </data>
+  <data name="compensation.subject_required" xml:space="preserve"><value>Ders alanı gerekli.</value></data>
+  <data name="compensation.duration_invalid" xml:space="preserve"><value>Ders süresi 30 veya 50 dakika olmalıdır.</value></data>
+  <data name="compensation.amount_invalid" xml:space="preserve"><value>Ders ücreti negatif olamaz.</value></data>
+  <data name="compensation.currency_required" xml:space="preserve"><value>Para birimi gerekli.</value></data>
+  <data name="compensation.currency_invalid" xml:space="preserve"><value>Para birimi üç karakterli ISO kodu olmalıdır.</value></data>
+  <data name="compensation.penalty_steps_required" xml:space="preserve"><value>En az bir penalty basamağı gerekli.</value></data>
+  <data name="compensation.penalty_steps_too_many" xml:space="preserve"><value>En fazla 20 penalty basamağı tanımlanabilir.</value></data>
+  <data name="compensation.penalty_percentage_invalid" xml:space="preserve"><value>Penalty oranları 0 ile 100 arasında olmalıdır.</value></data>
+  <data name="compensation.penalty_steps_not_increasing" xml:space="preserve"><value>Penalty oranları her basamakta artmalıdır.</value></data>
+  <data name="compensation.rate_not_configured" xml:space="preserve"><value>Bu ders alanı ve {duration} dakikalık süre için eğitmen ücreti tanımlanmamış.</value></data>
 </root>

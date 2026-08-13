@@ -23,6 +23,18 @@ internal static class SchedulingErrors
     public static Error SessionNotCancellable
         => Error.Conflict("scheduling.session_not_cancellable");
 
+    public static Error SessionNotCompletable
+        => Error.Conflict("scheduling.session_not_completable");
+
+    public static Error SessionNotEnded
+        => Error.Conflict("scheduling.session_not_ended");
+
+    public static Error SessionHasNoReservations
+        => Error.Conflict("scheduling.session_has_no_reservations");
+
+    public static Error AttendanceSetMismatch
+        => Error.Validation("scheduling.attendance_set_mismatch");
+
     public static Error InstructorCancellationDeadlinePassed
         => Error.Conflict("scheduling.instructor_cancellation_deadline_passed");
 

@@ -115,6 +115,7 @@ internal sealed class EfSchedulingRepository(AppDbContext context) : IScheduling
         Guid sessionId,
         CancellationToken cancellationToken)
         => await context.SessionBookings
+            .Include(booking => booking.Attendance)
             .Where(b => b.SessionId == sessionId && b.Status != BookingStatus.Cancelled)
             .ToListAsync(cancellationToken);
 
@@ -183,4 +184,6 @@ internal sealed class EfSchedulingRepository(AppDbContext context) : IScheduling
     public void AddSession(LessonSession session) => context.LessonSessions.Add(session);
 
     public void AddBooking(SessionBooking booking) => context.SessionBookings.Add(booking);
+
+    public void AddAttendance(SessionAttendance attendance) => context.SessionAttendances.Add(attendance);
 }

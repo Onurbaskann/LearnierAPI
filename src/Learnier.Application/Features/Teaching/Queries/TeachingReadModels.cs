@@ -88,4 +88,7 @@ public sealed record InstructorEarningListItem(
     DateTimeOffset StartsAt,
     int LearnerCount,
     decimal Amount,
-    string Currency);
+    string Currency,
+    decimal GrossAmount,
+    decimal PenaltyPercentage,
+    decimal PenaltyAmount);

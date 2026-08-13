@@ -10,7 +10,7 @@ namespace Learnier.UnitTests.Features;
 public sealed class CancelSessionHandlerTests
 {
     [Fact]
-    public async Task Instructor_CannotCancelLessonAtOneHourBoundary()
+    public async Task Instructor_CanCancelWithinFourHours_AndReceivesPenalty()
     {
         var now = new DateTimeOffset(2026, 8, 11, 10, 0, 0, TimeSpan.Zero);
         var setup = CreateHandler(now, now.AddHours(1));
@@ -19,16 +19,17 @@ public sealed class CancelSessionHandlerTests
             new CancelSessionCommand(setup.Session.Id, "Program değişikliği", true),
             TestContext.Current.CancellationToken);
 
-        result.IsFailure.ShouldBeTrue();
-        result.Error.Code.ShouldBe("scheduling.instructor_cancellation_deadline_passed");
-        setup.Session.Status.ShouldBe(LessonSessionStatus.Scheduled);
+        result.IsSuccess.ShouldBeTrue();
+        setup.Session.Status.ShouldBe(LessonSessionStatus.Cancelled);
+        await setup.Compensation.Received(1).RegisterLateCancellationAsync(
+            Arg.Any<Guid>(), setup.Session.Id, Arg.Any<CancellationToken>());
     }
 
     [Fact]
-    public async Task Instructor_CanCancelOwnLessonMoreThanOneHourBeforeStart()
+    public async Task Instructor_CanCancelMoreThanFourHoursBeforeStart_WithoutPenalty()
     {
         var now = new DateTimeOffset(2026, 8, 11, 10, 0, 0, TimeSpan.Zero);
-        var setup = CreateHandler(now, now.AddHours(1).AddMinutes(1));
+        var setup = CreateHandler(now, now.AddHours(4).AddMinutes(1));
 
         var result = await setup.Handler.Handle(
             new CancelSessionCommand(setup.Session.Id, "Program değişikliği", true),
@@ -36,6 +37,8 @@ public sealed class CancelSessionHandlerTests
 
         result.IsSuccess.ShouldBeTrue();
         setup.Session.Status.ShouldBe(LessonSessionStatus.Cancelled);
+        await setup.Compensation.DidNotReceive().RegisterLateCancellationAsync(
+            Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>());
         setup.Session.CancellationReason.ShouldBe("Program değişikliği");
     }
 
@@ -79,6 +82,8 @@ public sealed class CancelSessionHandlerTests
             .Returns(session);
         scheduling.ListActiveBookingsAsync(session.Id, Arg.Any<CancellationToken>())
             .Returns([]);
+        scheduling.LockInstructorAsync(profile.Id, Arg.Any<CancellationToken>())
+            .Returns(true);
 
         var instructors = Substitute.For<IInstructorRepository>();
         instructors.FindByMembershipAsync(membershipId, Arg.Any<CancellationToken>())
@@ -95,16 +100,25 @@ public sealed class CancelSessionHandlerTests
         var clock = Substitute.For<IClock>();
         clock.UtcNow.Returns(now);
 
+        var compensation = Substitute.For<IInstructorCompensationService>();
+        compensation.RegisterLateCancellationAsync(
+                Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>())
+            .Returns(Learnier.Application.Common.Results.Result.Success());
+
         var handler = new CancelSessionHandler(
             scheduling,
             instructors,
             Substitute.For<IBookingEntitlementPolicy>(),
+            compensation,
             tenant,
             unitOfWork,
             clock);
 
-        return new HandlerSetup(handler, session);
+        return new HandlerSetup(handler, session, compensation);
     }
 
-    private sealed record HandlerSetup(CancelSessionHandler Handler, LessonSession Session);
+    private sealed record HandlerSetup(
+        CancelSessionHandler Handler,
+        LessonSession Session,
+        IInstructorCompensationService Compensation);
 }

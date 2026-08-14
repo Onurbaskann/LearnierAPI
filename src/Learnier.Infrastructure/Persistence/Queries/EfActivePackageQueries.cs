@@ -38,9 +38,25 @@ internal sealed class EfActivePackageQueries(AppDbContext context, IClock clock)
                     .Select(access => new { access.Subject.Id, access.Subject.Name })
                     .ToListAsync(cancellationToken);
 
-            var remainingCredits = await context.CreditLedger
-                .Where(entry => entry.SubscriptionId == subscription.Id && entry.LearnerUserId == userId)
-                .SumAsync(entry => (int?)entry.Quantity, cancellationToken) ?? 0;
+            var currentGrant = await context.CreditLedger
+                .Where(entry => entry.SubscriptionId == subscription.Id
+                                && entry.LearnerUserId == userId
+                                && entry.TransactionType == CreditTransactionType.PeriodGrant
+                                && entry.PeriodStart <= clock.UtcNow
+                                && (entry.ExpiresAt == null || entry.ExpiresAt > clock.UtcNow))
+                .OrderByDescending(entry => entry.PeriodStart ?? entry.CreatedAt)
+                .Select(entry => new { entry.PeriodStart, entry.CreatedAt })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            var remainingCredits = currentGrant is null
+                ? 0
+                : await context.CreditLedger
+                    .Where(entry => entry.SubscriptionId == subscription.Id
+                                    && entry.LearnerUserId == userId
+                                    && (entry.PeriodStart == (currentGrant.PeriodStart ?? currentGrant.CreatedAt)
+                                        || (currentGrant.PeriodStart == null
+                                            && entry.PeriodStart == null)))
+                    .SumAsync(entry => (int?)entry.Quantity, cancellationToken) ?? 0;
 
             var durationMonths = subscription.PlanPrice.BillingInterval == BillingInterval.Year
                 ? subscription.PlanPrice.BillingIntervalCount * 12

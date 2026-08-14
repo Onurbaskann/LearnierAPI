@@ -86,6 +86,13 @@ public static class DependencyInjection
 
         services.AddScoped<IBookingEntitlementPolicy, SubscriptionCreditEntitlementPolicy>();
         services.AddScoped<IInstructorCompensationService, InstructorCompensationService>();
+        services.AddScoped<ICreditPeriodRenewalProcessor, CreditPeriodRenewalProcessor>();
+        services.AddHostedService<CreditPeriodRenewalWorker>();
+
+        services.AddOptions<CreditRenewalOptions>()
+            .Bind(configuration.GetSection(CreditRenewalOptions.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
 
         // Gercek bir saglayici baglanana kadar e-postalar yalnizca loga yazilir;
         // uretime cikmadan once degistirilmeli (bkz. LoggingEmailSender).

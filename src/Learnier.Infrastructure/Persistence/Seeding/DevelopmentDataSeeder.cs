@@ -154,7 +154,8 @@ internal sealed partial class DevelopmentDataSeeder(
                 Learnier.Domain.Scheduling.SessionType.Private,
                 plan.MonthlyLessonCredits!.Value,
                 clock.UtcNow,
-                subscription.CurrentPeriodEnd));
+                clock.UtcNow.AddMonths(1),
+                subscription.CurrentPeriodStart));
         }
     }
 

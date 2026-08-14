@@ -21,6 +21,7 @@ public sealed class CreditLedgerEntryTests
 
         grant.Quantity.ShouldBe(12);
         grant.TransactionType.ShouldBe(CreditTransactionType.PeriodGrant);
+        grant.PeriodStart.ShouldBe(_now);
         reserve.Quantity.ShouldBe(-1);
         reserve.TransactionType.ShouldBe(CreditTransactionType.Reserve);
         (grant.Quantity + reserve.Quantity).ShouldBe(11);
@@ -40,13 +41,17 @@ public sealed class CreditLedgerEntryTests
     [Fact]
     public void Refund_ShouldReverseReservation()
     {
+        var periodStart = _now.AddDays(-10);
         var reserve = CreditLedgerEntry.Reserve(
-            _subscriptionId, _learnerId, SessionType.Private, _bookingId, _now);
+            _subscriptionId, _learnerId, SessionType.Private, _bookingId, _now,
+            periodStart: periodStart);
         var refund = CreditLedgerEntry.Refund(
-            _subscriptionId, _learnerId, SessionType.Private, _bookingId, _now);
+            _subscriptionId, _learnerId, SessionType.Private, _bookingId, _now,
+            periodStart: reserve.PeriodStart);
 
         refund.Quantity.ShouldBe(1);
         refund.TransactionType.ShouldBe(CreditTransactionType.Refund);
+        refund.PeriodStart.ShouldBe(periodStart);
         (reserve.Quantity + refund.Quantity).ShouldBe(0);
     }
 

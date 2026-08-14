@@ -31,6 +31,7 @@ public sealed class LearnierApiFactory : WebApplicationFactory<Program>
                 ["Jwt:Audience"] = "learnier-test-api",
                 ["Jwt:SigningKey"] = "integration-test-signing-key-at-least-32-chars",
                 ["Jwt:AccessTokenLifetimeMinutes"] = "15",
+                ["CreditRenewal:Enabled"] = "false",
                 ["Cors:AllowedOrigins:0"] = "http://localhost:8082"
             });
         });

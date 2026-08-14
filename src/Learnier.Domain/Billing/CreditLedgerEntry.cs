@@ -38,6 +38,13 @@ public sealed class CreditLedgerEntry : Entity
 
     public CreditTransactionType TransactionType { get; private set; }
 
+    /// <summary>
+    /// Hareketin ait oldugu aylik kredi doneminin baslangici. Rezervasyon ve
+    /// iadeler grant ile ayni degeri tasir; boylece eski donem iadesi yeni aya
+    /// kredi olarak sizmaz.
+    /// </summary>
+    public DateTimeOffset? PeriodStart { get; private set; }
+
     /// <summary>Harcama ve iade hareketlerinde ilgili rezervasyon.</summary>
     public Guid? BookingId { get; private set; }
 
@@ -59,7 +66,8 @@ public sealed class CreditLedgerEntry : Entity
         SessionType sessionType,
         int quantity,
         DateTimeOffset createdAt,
-        DateTimeOffset? expiresAt = null)
+        DateTimeOffset? expiresAt = null,
+        DateTimeOffset? periodStart = null)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(quantity);
 
@@ -70,6 +78,7 @@ public sealed class CreditLedgerEntry : Entity
             SessionType = sessionType,
             Quantity = quantity,
             TransactionType = CreditTransactionType.PeriodGrant,
+            PeriodStart = periodStart ?? createdAt,
             ExpiresAt = expiresAt,
             CreatedAt = createdAt
         };
@@ -85,7 +94,8 @@ public sealed class CreditLedgerEntry : Entity
         SessionType sessionType,
         Guid bookingId,
         DateTimeOffset createdAt,
-        int quantity = 1)
+        int quantity = 1,
+        DateTimeOffset? periodStart = null)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(quantity);
 
@@ -97,6 +107,7 @@ public sealed class CreditLedgerEntry : Entity
             Quantity = -quantity,
             TransactionType = CreditTransactionType.Reserve,
             BookingId = bookingId,
+            PeriodStart = periodStart ?? createdAt,
             CreatedAt = createdAt
         };
     }
@@ -110,7 +121,8 @@ public sealed class CreditLedgerEntry : Entity
         Guid learnerUserId,
         SessionType sessionType,
         Guid bookingId,
-        DateTimeOffset createdAt)
+        DateTimeOffset createdAt,
+        DateTimeOffset? periodStart = null)
         => new()
         {
             SubscriptionId = subscriptionId,
@@ -119,6 +131,7 @@ public sealed class CreditLedgerEntry : Entity
             Quantity = 0,
             TransactionType = CreditTransactionType.Consume,
             BookingId = bookingId,
+            PeriodStart = periodStart ?? createdAt,
             CreatedAt = createdAt
         };
 
@@ -135,7 +148,8 @@ public sealed class CreditLedgerEntry : Entity
         SessionType sessionType,
         Guid bookingId,
         DateTimeOffset createdAt,
-        int quantity = 1)
+        int quantity = 1,
+        DateTimeOffset? periodStart = null)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(quantity);
 
@@ -147,6 +161,7 @@ public sealed class CreditLedgerEntry : Entity
             Quantity = quantity,
             TransactionType = CreditTransactionType.Refund,
             BookingId = bookingId,
+            PeriodStart = periodStart ?? createdAt,
             CreatedAt = createdAt
         };
     }
@@ -173,6 +188,7 @@ public sealed class CreditLedgerEntry : Entity
             SessionType = sessionType,
             Quantity = quantity,
             TransactionType = CreditTransactionType.ManualAdjustment,
+            PeriodStart = createdAt,
             CreatedAt = createdAt
         };
     }
@@ -185,7 +201,8 @@ public sealed class CreditLedgerEntry : Entity
         Guid learnerUserId,
         SessionType sessionType,
         int quantity,
-        DateTimeOffset createdAt)
+        DateTimeOffset createdAt,
+        DateTimeOffset? periodStart = null)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(quantity);
 
@@ -196,6 +213,7 @@ public sealed class CreditLedgerEntry : Entity
             SessionType = sessionType,
             Quantity = -quantity,
             TransactionType = CreditTransactionType.Expire,
+            PeriodStart = periodStart ?? createdAt,
             CreatedAt = createdAt
         };
     }

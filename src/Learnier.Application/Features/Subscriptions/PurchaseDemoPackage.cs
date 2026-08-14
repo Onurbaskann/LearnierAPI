@@ -132,7 +132,8 @@ public sealed class PurchaseDemoPackageHandler(
             SessionType.Private,
             monthlyCredits,
             now,
-            now.AddMonths(1)));
+            now.AddMonths(1),
+            now));
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
 

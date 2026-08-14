@@ -88,7 +88,17 @@ internal sealed class SubscriptionCreditEntitlementPolicy(
                 .IgnoreQueryFilters()
                 .SingleAsync(cancellationToken);
 
-            if (await AvailableCreditsAsync(subscriptionId, learnerUserId, cancellationToken) > 0)
+            var period = await CurrentCreditPeriodAsync(
+                subscriptionId,
+                learnerUserId,
+                cancellationToken);
+
+            if (period is not null
+                && await AvailableCreditsAsync(
+                    subscriptionId,
+                    learnerUserId,
+                    period,
+                    cancellationToken) > 0)
             {
                 return new BookingGrant(BookingAccessSource.Credit, subscriptionId);
             }
@@ -122,7 +132,17 @@ internal sealed class SubscriptionCreditEntitlementPolicy(
             return existingId;
         }
 
-        if (await AvailableCreditsAsync(subscriptionId, booking.LearnerUserId, cancellationToken) <= 0)
+        var period = await CurrentCreditPeriodAsync(
+            subscriptionId,
+            booking.LearnerUserId,
+            cancellationToken);
+
+        if (period is null
+            || await AvailableCreditsAsync(
+                subscriptionId,
+                booking.LearnerUserId,
+                period,
+                cancellationToken) <= 0)
         {
             return Error.Conflict("booking.credit_exhausted");
         }
@@ -138,7 +158,8 @@ internal sealed class SubscriptionCreditEntitlementPolicy(
             booking.LearnerUserId,
             sessionType.Value,
             booking.Id,
-            clock.UtcNow);
+            clock.UtcNow,
+            periodStart: period.Start);
 
         context.CreditLedger.Add(entry);
         return entry.Id;
@@ -155,6 +176,17 @@ internal sealed class SubscriptionCreditEntitlementPolicy(
 
         if (booking.SubscriptionId is not { } subscriptionId
             || booking.CreditLedgerEntryId is null)
+        {
+            return Error.Conflict("booking.credit_reservation_missing");
+        }
+
+        var reserve = await context.CreditLedger
+            .Where(entry => entry.BookingId == booking.Id
+                            && entry.TransactionType == CreditTransactionType.Reserve)
+            .Select(entry => new { entry.PeriodStart })
+            .SingleOrDefaultAsync(cancellationToken);
+
+        if (reserve is null)
         {
             return Error.Conflict("booking.credit_reservation_missing");
         }
@@ -180,7 +212,8 @@ internal sealed class SubscriptionCreditEntitlementPolicy(
             booking.LearnerUserId,
             sessionType.Value,
             booking.Id,
-            clock.UtcNow));
+            clock.UtcNow,
+            reserve.PeriodStart));
 
         return Result.Success();
     }
@@ -197,6 +230,17 @@ internal sealed class SubscriptionCreditEntitlementPolicy(
 
         if (booking.SubscriptionId is not { } subscriptionId
             || booking.CreditLedgerEntryId is null)
+        {
+            return Error.Conflict("booking.credit_reservation_missing");
+        }
+
+        var reserve = await context.CreditLedger
+            .Where(entry => entry.BookingId == booking.Id
+                            && entry.TransactionType == CreditTransactionType.Reserve)
+            .Select(entry => new { entry.PeriodStart })
+            .SingleOrDefaultAsync(cancellationToken);
+
+        if (reserve is null)
         {
             return Error.Conflict("booking.credit_reservation_missing");
         }
@@ -222,7 +266,8 @@ internal sealed class SubscriptionCreditEntitlementPolicy(
             booking.LearnerUserId,
             sessionType.Value,
             booking.Id,
-            clock.UtcNow));
+            clock.UtcNow,
+            periodStart: reserve.PeriodStart));
 
         return true;
     }
@@ -230,13 +275,36 @@ internal sealed class SubscriptionCreditEntitlementPolicy(
     private async Task<int> AvailableCreditsAsync(
         Guid subscriptionId,
         Guid learnerUserId,
+        CreditPeriod period,
         CancellationToken cancellationToken)
         => await context.CreditLedger
             .Where(entry => entry.SubscriptionId == subscriptionId
                             && entry.LearnerUserId == learnerUserId
                             && entry.SessionType == SessionType.Private
-                            && (entry.ExpiresAt == null || entry.ExpiresAt > clock.UtcNow))
+                            && (entry.PeriodStart == period.Start
+                                || (period.IsLegacy && entry.PeriodStart == null)))
             .SumAsync(entry => (int?)entry.Quantity, cancellationToken) ?? 0;
+
+    private async Task<CreditPeriod?> CurrentCreditPeriodAsync(
+        Guid subscriptionId,
+        Guid learnerUserId,
+        CancellationToken cancellationToken)
+    {
+        var grant = await context.CreditLedger
+            .Where(entry => entry.SubscriptionId == subscriptionId
+                            && entry.LearnerUserId == learnerUserId
+                            && entry.SessionType == SessionType.Private
+                            && entry.TransactionType == CreditTransactionType.PeriodGrant
+                            && entry.PeriodStart <= clock.UtcNow
+                            && (entry.ExpiresAt == null || entry.ExpiresAt > clock.UtcNow))
+            .OrderByDescending(entry => entry.PeriodStart ?? entry.CreatedAt)
+            .Select(entry => new { entry.PeriodStart, entry.CreatedAt })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return grant is null
+            ? null
+            : new CreditPeriod(grant.PeriodStart ?? grant.CreatedAt, grant.PeriodStart is null);
+    }
 
     private async Task<SessionType?> GetSessionTypeAsync(
         Guid sessionId,
@@ -245,4 +313,6 @@ internal sealed class SubscriptionCreditEntitlementPolicy(
             .Where(session => session.Id == sessionId)
             .Select(session => (SessionType?)session.SessionType)
             .SingleOrDefaultAsync(cancellationToken);
+
+    private sealed record CreditPeriod(DateTimeOffset Start, bool IsLegacy);
 }

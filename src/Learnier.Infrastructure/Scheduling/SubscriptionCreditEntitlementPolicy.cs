@@ -15,6 +15,7 @@ internal sealed class SubscriptionCreditEntitlementPolicy(
     public async Task<Result<BookingGrant>> AuthorizeAsync(
         Guid learnerUserId,
         LessonSession session,
+        int? lessonDurationMinutes,
         CancellationToken cancellationToken)
     {
         var subjectId = await context.Courses
@@ -51,7 +52,8 @@ internal sealed class SubscriptionCreditEntitlementPolicy(
                 : Error.Forbidden("booking.lesson_package_required");
         }
 
-        var durationMinutes = (int)(session.EndsAt - session.StartsAt).TotalMinutes;
+        var durationMinutes = lessonDurationMinutes
+            ?? (int)(session.EndsAt - session.StartsAt).TotalMinutes;
 
         var candidateIds = await (
                 from subscription in context.Subscriptions

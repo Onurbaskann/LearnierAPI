@@ -77,6 +77,13 @@ public sealed record SessionInstructorDetail(
     string LastName,
     SessionInstructorRole Role);
 
+/// <param name="CancellationDeadlineAt">
+/// Bu ana kadar iptal edilirse ders hakki iade edilir. Bos ise iade kosulsuzdur.
+/// </param>
+/// <param name="CanCancel">Ogrenci bu rezervasyonu su anda iptal edebilir mi.</param>
+/// <param name="WillRefundIfCancelled">
+/// Su anda iptal edilirse hak iade edilir mi. Arayuz onay metnini buna gore kurar.
+/// </param>
 public sealed record LearnerBookingListItem(
     Guid Id,
     BookingStatus Status,
@@ -91,4 +98,7 @@ public sealed record LearnerBookingListItem(
     LessonSessionStatus SessionStatus,
     string? MeetingProvider,
     string? MeetingReference,
+    DateTimeOffset? CancellationDeadlineAt,
+    bool CanCancel,
+    bool WillRefundIfCancelled,
     IReadOnlyList<SessionInstructorDetail> Instructors);

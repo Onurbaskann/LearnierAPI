@@ -12,7 +12,11 @@ internal sealed class InstructorCompensationService(
     ICurrentUser currentUser,
     IClock clock) : IInstructorCompensationService
 {
-    public async Task<Result> RegisterLateCancellationAsync(
+    /// <summary>Kurum basamak tanimlamadiginda gecerli olan en yuksek seviye.</summary>
+    private const int DefaultMaximumPenaltyLevel = 4;
+
+
+    public async Task<Result<LateCancellationOutcome>> RegisterLateCancellationAsync(
         Guid instructorProfileId,
         Guid sessionId,
         CancellationToken cancellationToken)
@@ -22,13 +26,17 @@ internal sealed class InstructorCompensationService(
             return Error.Forbidden("tenant.organization_required");
         }
 
-        if (await context.InstructorPenaltyEvents.AnyAsync(
-                item => item.InstructorProfileId == instructorProfileId
-                        && item.SessionId == sessionId
-                        && item.EventType == InstructorPenaltyEventType.LateCancellation,
-                cancellationToken))
+        var existing = await context.InstructorPenaltyEvents
+            .Where(item => item.InstructorProfileId == instructorProfileId
+                           && item.SessionId == sessionId
+                           && item.EventType == InstructorPenaltyEventType.LateCancellation)
+            .Select(item => (decimal?)item.Percentage)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        // Ayni ders ikinci kez iptal edilemez; yine de idempotent kalalim.
+        if (existing is { } alreadyRecorded)
         {
-            return Result.Success();
+            return new LateCancellationOutcome(false, alreadyRecorded);
         }
 
         var state = await context.InstructorPenaltyStates
@@ -42,10 +50,7 @@ internal sealed class InstructorCompensationService(
             context.InstructorPenaltyStates.Add(state);
         }
 
-        var maximumLevel = await context.InstructorPenaltySteps
-            .Select(step => (int?)step.Level)
-            .MaxAsync(cancellationToken)
-            ?? 4;
+        var maximumLevel = await ResolveMaximumLevelAsync(cancellationToken);
         var nextLevel = Math.Min(state.Level + 1, maximumLevel);
         var percentage = await ResolvePenaltyPercentageAsync(nextLevel, cancellationToken);
         var occurredAt = clock.UtcNow;
@@ -57,8 +62,35 @@ internal sealed class InstructorCompensationService(
             state.Level,
             percentage,
             occurredAt));
-        return Result.Success();
+        return new LateCancellationOutcome(true, percentage);
     }
+
+    public async Task<Result<decimal>> PreviewNextPenaltyPercentageAsync(
+        Guid instructorProfileId,
+        CancellationToken cancellationToken)
+    {
+        if (!currentTenant.HasTenant)
+        {
+            return Error.Forbidden("tenant.organization_required");
+        }
+
+        var currentLevel = await context.InstructorPenaltyStates
+            .Where(item => item.InstructorProfileId == instructorProfileId)
+            .Select(item => (int?)item.Level)
+            .SingleOrDefaultAsync(cancellationToken)
+            ?? 0;
+
+        var maximumLevel = await ResolveMaximumLevelAsync(cancellationToken);
+        return await ResolvePenaltyPercentageAsync(
+            Math.Min(currentLevel + 1, maximumLevel),
+            cancellationToken);
+    }
+
+    private async Task<int> ResolveMaximumLevelAsync(CancellationToken cancellationToken)
+        => await context.InstructorPenaltySteps
+            .Select(step => (int?)step.Level)
+            .MaxAsync(cancellationToken)
+            ?? DefaultMaximumPenaltyLevel;
 
     public async Task<Result> CreateEarningsAsync(
         Guid sessionId,

@@ -29,11 +29,17 @@ public interface ISchedulingQueries
         Guid sessionId,
         CancellationToken cancellationToken);
 
+    /// <param name="onlyBookable">
+    /// Dogruysa rezervasyon penceresi kapanmis slotlar listeye alinmaz. Ogrenciye
+    /// donen listede dogru, egitmenin kendi takviminde yanlis kullanilir.
+    /// </param>
     Task<IReadOnlyList<InstructorSlotListItem>> ListInstructorSlotsAsync(
         Guid instructorProfileId,
         Guid? courseId,
         DateTimeOffset from,
         DateTimeOffset until,
+        DateTimeOffset now,
+        bool onlyBookable,
         CancellationToken cancellationToken);
 
     Task<PagedResult<LearnerBookingListItem>> ListLearnerBookingsAsync(
@@ -42,5 +48,6 @@ public interface ISchedulingQueries
         DateTimeOffset? from,
         DateTimeOffset? until,
         BookingStatus? status,
+        DateTimeOffset now,
         CancellationToken cancellationToken);
 }

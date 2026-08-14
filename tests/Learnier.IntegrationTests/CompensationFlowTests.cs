@@ -393,7 +393,7 @@ public sealed class CompensationFlowTests(AuthApiFixture fixture) : IClassFixtur
 
         var bookingResponse = await setup.OwnerClient.PostAsJsonAsync(
             new Uri($"/api/v1/sessions/{opened!.SessionId}/bookings", UriKind.Relative),
-            new { learnerUserId = (Guid?)null },
+            new { learnerUserId = (Guid?)null, lessonDurationMinutes = 50 },
             TestContext.Current.CancellationToken);
         bookingResponse.StatusCode.ShouldBe(
             HttpStatusCode.OK,

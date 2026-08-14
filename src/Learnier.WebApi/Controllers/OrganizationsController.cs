@@ -2,6 +2,7 @@ using Learnier.Application.Common.Security;
 using Learnier.Application.Features.Organizations.Commands.AssignRole;
 using Learnier.Application.Features.Organizations.Commands.CreateOrganization;
 using Learnier.Application.Features.Organizations.Commands.InviteMember;
+using Learnier.Application.Features.Organizations.Commands.RemoveRole;
 using Learnier.Application.Features.Organizations.Queries;
 using Learnier.WebApi.Common;
 using Microsoft.AspNetCore.Authorization;
@@ -100,6 +101,26 @@ public sealed class OrganizationsController : ControllerBase
         var result = await handler.Handle(
             new AssignRoleCommand(membershipId, request.RoleId),
             cancellationToken);
+
+        return result.ToActionResult(this);
+    }
+
+    /// <summary>Bir uyelikten atanmis rolu kaldirir.</summary>
+    [HttpDelete("members/{membershipId:guid}/roles/{roleId:guid}")]
+    [Authorize(Policy = Permissions.Organization.MemberManage)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult> RemoveRole(
+        Guid membershipId,
+        Guid roleId,
+        [FromServices] RemoveRoleHandler handler,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(handler);
+
+        var result = await handler.Handle(new RemoveRoleCommand(membershipId, roleId), cancellationToken);
 
         return result.ToActionResult(this);
     }

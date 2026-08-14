@@ -1,4 +1,5 @@
 using Learnier.Application.Common.Abstractions;
+using Learnier.Application.Common.Results;
 using Learnier.Application.Features.Scheduling.Commands.CancelSession;
 using Learnier.Domain.Scheduling;
 using Learnier.Domain.Teaching;
@@ -88,10 +89,77 @@ public sealed class CancelSessionHandlerTests
         result.Error.Code.ShouldBe("scheduling.session_not_owned");
     }
 
+    [Fact]
+    public async Task Instructor_ClosingSessionWithoutBookings_ReceivesNoPenalty()
+    {
+        var now = new DateTimeOffset(2026, 8, 11, 10, 0, 0, TimeSpan.Zero);
+        var setup = CreateHandler(now, now.AddMinutes(30), withBooking: false);
+
+        var result = await setup.Handler.Handle(
+            new CancelSessionCommand(setup.Session.Id, null, true),
+            TestContext.Current.CancellationToken);
+
+        result.IsSuccess.ShouldBeTrue();
+        result.Value.PenaltyApplied.ShouldBeFalse();
+        result.Value.CancelledBookingCount.ShouldBe(0);
+        await setup.Compensation.DidNotReceive().RegisterLateCancellationAsync(
+            Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Instructor_CannotCancelAfterSessionStarted()
+    {
+        var now = new DateTimeOffset(2026, 8, 11, 10, 0, 0, TimeSpan.Zero);
+        var setup = CreateHandler(now, now.AddTicks(-1));
+
+        var result = await setup.Handler.Handle(
+            new CancelSessionCommand(setup.Session.Id, null, true),
+            TestContext.Current.CancellationToken);
+
+        result.IsFailure.ShouldBeTrue();
+        result.Error.Code.ShouldBe("scheduling.instructor_cancellation_deadline_passed");
+    }
+
+    [Fact]
+    public async Task Instructor_CancellingAlreadyCancelledSession_CreatesNoSecondPenalty()
+    {
+        var now = new DateTimeOffset(2026, 8, 11, 10, 0, 0, TimeSpan.Zero);
+        var setup = CreateHandler(now, now.AddHours(1));
+
+        await setup.Handler.Handle(
+            new CancelSessionCommand(setup.Session.Id, null, true),
+            TestContext.Current.CancellationToken);
+        var second = await setup.Handler.Handle(
+            new CancelSessionCommand(setup.Session.Id, null, true),
+            TestContext.Current.CancellationToken);
+
+        second.IsSuccess.ShouldBeTrue();
+        second.Value.PenaltyApplied.ShouldBeFalse();
+        await setup.Compensation.Received(1).RegisterLateCancellationAsync(
+            Arg.Any<Guid>(), setup.Session.Id, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Instructor_LateCancellation_ReportsPenaltyPercentage()
+    {
+        var now = new DateTimeOffset(2026, 8, 11, 10, 0, 0, TimeSpan.Zero);
+        var setup = CreateHandler(now, now.AddHours(1));
+
+        var result = await setup.Handler.Handle(
+            new CancelSessionCommand(setup.Session.Id, null, true),
+            TestContext.Current.CancellationToken);
+
+        result.IsSuccess.ShouldBeTrue();
+        result.Value.PenaltyApplied.ShouldBeTrue();
+        result.Value.PenaltyPercentage.ShouldBe(15m);
+        result.Value.StudentCreditsRefunded.ShouldBe(1);
+    }
+
     private static HandlerSetup CreateHandler(
         DateTimeOffset now,
         DateTimeOffset startsAt,
-        bool assignOwnedInstructor = true)
+        bool assignOwnedInstructor = true,
+        bool withBooking = true)
     {
         var membershipId = Guid.NewGuid();
         var profile = InstructorProfile.Create(membershipId, "Europe/Istanbul");
@@ -107,13 +175,20 @@ public sealed class CancelSessionHandlerTests
             assignOwnedInstructor ? profile.Id : Guid.NewGuid(),
             SessionInstructorRole.Lead);
 
+        var booking = session.Book(
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            BookingAccessSource.Credit,
+            now.AddDays(-1),
+            reservedSeatCount: 0);
+
         var scheduling = Substitute.For<ISchedulingRepository>();
         scheduling.FindSessionForUpdateAsync(session.Id, Arg.Any<CancellationToken>())
             .Returns(session);
         scheduling.FindSessionAsync(session.Id, true, Arg.Any<CancellationToken>())
             .Returns(session);
         scheduling.ListActiveBookingsAsync(session.Id, Arg.Any<CancellationToken>())
-            .Returns([]);
+            .Returns(withBooking ? [booking] : []);
         scheduling.LockInstructorAsync(profile.Id, Arg.Any<CancellationToken>())
             .Returns(true);
 
@@ -135,12 +210,17 @@ public sealed class CancelSessionHandlerTests
         var compensation = Substitute.For<IInstructorCompensationService>();
         compensation.RegisterLateCancellationAsync(
                 Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>())
-            .Returns(Learnier.Application.Common.Results.Result.Success());
+            .Returns(Result.Success(new LateCancellationOutcome(true, 15m)));
+
+        var entitlements = Substitute.For<IBookingEntitlementPolicy>();
+        entitlements.ReleaseAsync(
+                Arg.Any<SessionBooking>(), true, Arg.Any<CancellationToken>())
+            .Returns(Result.Success(true));
 
         var handler = new CancelSessionHandler(
             scheduling,
             instructors,
-            Substitute.For<IBookingEntitlementPolicy>(),
+            entitlements,
             compensation,
             tenant,
             unitOfWork,

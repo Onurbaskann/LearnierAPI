@@ -12,7 +12,15 @@ public sealed record CancelBookingCommand(Guid BookingId, string? Reason = null)
 /// <param name="PromotedBookingId">
 /// Bosalan yere bekleme listesinden alinan rezervasyon; yoksa bos.
 /// </param>
-public sealed record CancelBookingResult(bool Refunded, Guid? PromotedBookingId);
+/// <param name="CancelledAt">Iptalin sunucu saatindeki ani.</param>
+/// <param name="CancellationDeadlineAt">
+/// Ucretsiz iptal siniri; tanimli degilse iade kosulsuz yapilir.
+/// </param>
+public sealed record CancelBookingResult(
+    bool Refunded,
+    Guid? PromotedBookingId,
+    DateTimeOffset CancelledAt,
+    DateTimeOffset? CancellationDeadlineAt);
 
 /// <summary>
 /// Rezervasyonu iptal eder ve bosalan yeri bekleme listesinden doldurur.
@@ -84,11 +92,14 @@ public sealed class CancelBookingHandler(
             return SchedulingErrors.SessionAlreadyStarted;
         }
 
-        // Ucretsiz iptal siniri tanimli degilse iade hep yapilir; tanimliysa
-        // sinirdan once iptal edenlere.
-        var refundable = session.CancellationDeadlineAt is not { } deadline || now <= deadline;
-
         var wasReserved = booking.Status is BookingStatus.Reserved;
+
+        // Ucretsiz iptal siniri tanimli degilse iade hep yapilir; tanimliysa
+        // sinirdan once iptal edenlere. Bekleme listesindeki kayit hic koltuk
+        // tutmadigi icin gec iptalde bile hak yakmaz.
+        var refundable = !wasReserved
+            || session.CancellationDeadlineAt is not { } deadline
+            || now <= deadline;
 
         booking.Cancel(now, command.Reason);
 
@@ -123,6 +134,10 @@ public sealed class CancelBookingHandler(
         await unitOfWork.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
 
-        return new CancelBookingResult(release.Value, promotedBookingId);
+        return new CancelBookingResult(
+            release.Value,
+            promotedBookingId,
+            now,
+            session.CancellationDeadlineAt);
     }
 }

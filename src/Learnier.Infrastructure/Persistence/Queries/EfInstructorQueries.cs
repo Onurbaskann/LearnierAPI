@@ -15,6 +15,9 @@ namespace Learnier.Infrastructure.Persistence.Queries;
 /// </remarks>
 internal sealed class EfInstructorQueries(AppDbContext context) : IInstructorQueries
 {
+    /// <summary>Politika snapshot'i olmayan eski oturumlar icin cezasiz iptal siniri.</summary>
+    private const int DefaultInstructorCutoffHours = 4;
+
     public async Task<PagedResult<InstructorListItem>> ListAsync(
         PageRequest page,
         Guid? subjectId,
@@ -172,6 +175,7 @@ internal sealed class EfInstructorQueries(AppDbContext context) : IInstructorQue
         Guid membershipId,
         DateTimeOffset? from,
         DateTimeOffset? until,
+        DateTimeOffset now,
         CancellationToken cancellationToken)
     {
         var profileId = await context.InstructorProfiles
@@ -203,7 +207,7 @@ internal sealed class EfInstructorQueries(AppDbContext context) : IInstructorQue
             query = query.Where(session => session.StartsAt <= startsBefore);
         }
 
-        return await query
+        var rows = await query
             .OrderBy(session => session.StartsAt)
             .ThenBy(session => session.Id)
             .Select(session => new InstructorScheduleListItem(
@@ -212,6 +216,11 @@ internal sealed class EfInstructorQueries(AppDbContext context) : IInstructorQue
                 session.StartsAt,
                 session.EndsAt,
                 session.Status,
+                session.InstructorCancellationDeadlineAt,
+                // Zaman kiyaslamalari bellekte yapiliyor; asagidaki donusume bak.
+                false,
+                false,
+                0m,
                 session.Bookings
                     .Where(booking => booking.Status == BookingStatus.Reserved
                                       || booking.Status == BookingStatus.Attended
@@ -224,6 +233,21 @@ internal sealed class EfInstructorQueries(AppDbContext context) : IInstructorQue
                         booking.Learner.LastName))
                     .ToList()))
             .ToListAsync(cancellationToken);
+
+        return rows
+            .Select(item =>
+            {
+                var deadline = item.InstructorCancellationDeadlineAt
+                    ?? item.StartsAt.AddHours(-DefaultInstructorCutoffHours);
+                var canCancel = item.Status is not LessonSessionStatus.Completed
+                                && now < item.StartsAt;
+                return item with
+                {
+                    CanCancel = canCancel,
+                    WillReceivePenaltyIfCancelled = canCancel && now > deadline
+                };
+            })
+            .ToList();
     }
 
     public async Task<InstructorDashboardStats?> FindMyDashboardAsync(

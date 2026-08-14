@@ -280,7 +280,10 @@ public sealed class SchedulingController : ControllerBase
         ArgumentNullException.ThrowIfNull(handler);
 
         var result = await handler.Handle(
-            new CreateBookingCommand(sessionId, request?.LearnerUserId),
+            new CreateBookingCommand(
+                sessionId,
+                request?.LearnerUserId,
+                request?.LessonDurationMinutes),
             await CanManageAllBookings(authorization),
             cancellationToken);
 
@@ -476,4 +479,6 @@ public sealed record CompleteSessionRequest(
 /// <param name="LearnerUserId">
 /// Bos birakilirsa istegi yapan kullanici adina rezervasyon yapilir.
 /// </param>
-public sealed record CreateBookingRequest(Guid? LearnerUserId);
+public sealed record CreateBookingRequest(
+    Guid? LearnerUserId,
+    int? LessonDurationMinutes = null);

@@ -9,8 +9,7 @@ namespace Learnier.Application.Features.Scheduling.Commands.OpenInstructorSlot;
 
 public sealed record OpenInstructorSlotCommand(
     Guid CourseId,
-    DateTimeOffset StartsAt,
-    int LessonDurationMinutes);
+    DateTimeOffset StartsAt);
 
 public sealed record OpenInstructorSlotResult(
     Guid SessionId,
@@ -26,9 +25,6 @@ internal sealed class OpenInstructorSlotValidator : AbstractValidator<OpenInstru
         RuleFor(command => command.CourseId)
             .NotEmpty().WithErrorCode("scheduling.course_required");
 
-        RuleFor(command => command.LessonDurationMinutes)
-            .Must(duration => duration is 30 or 50)
-            .WithErrorCode("scheduling.lesson_duration_invalid");
     }
 }
 
@@ -47,11 +43,6 @@ public sealed class OpenInstructorSlotHandler(
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(command);
-
-        if (command.LessonDurationMinutes is not (30 or 50))
-        {
-            return SchedulingErrors.LessonDurationInvalid;
-        }
 
         if (currentTenant.OrganizationId is not { } organizationId
             || currentTenant.MembershipId is not { } membershipId)
@@ -102,7 +93,8 @@ public sealed class OpenInstructorSlotHandler(
             return SchedulingErrors.InstructorSubjectMismatch;
         }
 
-        var endsAt = startsAt.AddMinutes(command.LessonDurationMinutes);
+        const int slotDurationMinutes = 60;
+        var endsAt = startsAt.AddMinutes(slotDurationMinutes);
         if (await scheduling.HasInstructorConflictAsync(
                 profile.Id,
                 startsAt,
@@ -123,7 +115,11 @@ public sealed class OpenInstructorSlotHandler(
             minimumParticipants: 1);
 
         session.AssignInstructor(profile.Id, SessionInstructorRole.Lead);
-        session.SetBookingWindow(null, startsAt, null);
+        // Rezervasyon ders baslangicina yarim saat kala kapanir.
+        session.SetBookingWindow(
+            null,
+            startsAt.AddMinutes(-LessonSession.BookingCutoffMinutes),
+            null);
 
         var policy = await cancellationPolicies.GetCurrentAsync(cancellationToken);
         if (policy.IsFailure)
@@ -145,6 +141,6 @@ public sealed class OpenInstructorSlotHandler(
             course.Id,
             startsAt,
             endsAt,
-            command.LessonDurationMinutes);
+            slotDurationMinutes);
     }
 }

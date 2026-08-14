@@ -87,6 +87,13 @@ public sealed class CreateBookingHandler(
             return SchedulingErrors.SessionNotBookable;
         }
 
+        var currentDurationMinutes = (int)(session.EndsAt - session.StartsAt).TotalMinutes;
+        var lessonDurationMinutes = command.LessonDurationMinutes ?? currentDurationMinutes;
+        if (session.SessionType is SessionType.Private && lessonDurationMinutes is not (30 or 50))
+        {
+            return SchedulingErrors.LessonDurationInvalid;
+        }
+
         var existing = await scheduling.FindActiveBookingAsync(
             session.Id, learnerUserId, cancellationToken);
 
@@ -95,11 +102,20 @@ public sealed class CreateBookingHandler(
             return SchedulingErrors.AlreadyBooked;
         }
 
-        var grant = await entitlements.AuthorizeAsync(learnerUserId, session, cancellationToken);
+        var grant = await entitlements.AuthorizeAsync(
+            learnerUserId,
+            session,
+            session.SessionType is SessionType.Private ? lessonDurationMinutes : null,
+            cancellationToken);
 
         if (grant.IsFailure)
         {
             return grant.Error;
+        }
+
+        if (session.SessionType is SessionType.Private)
+        {
+            session.ApplyPrivateLessonDuration(lessonDurationMinutes);
         }
 
         // Kontenjan kilit altinda ve veritabanindan sayilir; bellekteki koleksiyon

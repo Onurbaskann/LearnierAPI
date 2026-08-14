@@ -115,7 +115,10 @@ public sealed class ListMyInstructorStudentsHandler(
 
 public sealed class ListMyInstructorScheduleHandler(
     IInstructorQueries queries,
-    ICurrentTenant currentTenant)
+    IInstructorRepository instructors,
+    IInstructorCompensationService compensation,
+    ICurrentTenant currentTenant,
+    IClock clock)
 {
     public async Task<Result<IReadOnlyList<InstructorScheduleListItem>>> Handle(
         DateTimeOffset? from,
@@ -131,8 +134,33 @@ public sealed class ListMyInstructorScheduleHandler(
             membershipId,
             from,
             until,
+            clock.UtcNow,
             cancellationToken);
-        return result is null ? TeachingErrors.ProfileNotFound : Result.Success(result);
+        if (result is null)
+        {
+            return TeachingErrors.ProfileNotFound;
+        }
+
+        var profile = await instructors.FindByMembershipAsync(membershipId, cancellationToken);
+        if (profile is null)
+        {
+            return TeachingErrors.ProfileNotFound;
+        }
+
+        // Yuzde egitmen bazlidir: sonraki gec iptalin hangi basamaga denk geldigini
+        // tek sorguda cozup tum satirlara yaziyoruz.
+        var preview = await compensation.PreviewNextPenaltyPercentageAsync(
+            profile.Id,
+            cancellationToken);
+        if (preview.IsFailure)
+        {
+            return preview.Error;
+        }
+
+        return Result.Success<IReadOnlyList<InstructorScheduleListItem>>(
+            result
+                .Select(item => item with { NextPenaltyPercentage = preview.Value })
+                .ToList());
     }
 }
 

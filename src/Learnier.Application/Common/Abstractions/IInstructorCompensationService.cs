@@ -4,9 +4,17 @@ namespace Learnier.Application.Common.Abstractions;
 
 public interface IInstructorCompensationService
 {
-    Task<Result> RegisterLateCancellationAsync(
+    Task<Result<LateCancellationOutcome>> RegisterLateCancellationAsync(
         Guid instructorProfileId,
         Guid sessionId,
+        CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Egitmen su anda gec iptal yapsa uygulanacak kesinti orani. Arayuz onay
+    /// metnindeki yuzdeyi tahmin etmesin diye sunulur.
+    /// </summary>
+    Task<Result<decimal>> PreviewNextPenaltyPercentageAsync(
+        Guid instructorProfileId,
         CancellationToken cancellationToken);
 
     Task<Result> CreateEarningsAsync(Guid sessionId, CancellationToken cancellationToken);
@@ -34,6 +42,12 @@ public interface IInstructorCompensationService
         string reason,
         CancellationToken cancellationToken);
 }
+
+/// <param name="PenaltyApplied">
+/// Bu cagri yeni bir kesinti kaydi olusturdu mu. Ayni ders ikinci kez iptal
+/// edildiginde yanlis doner.
+/// </param>
+public sealed record LateCancellationOutcome(bool PenaltyApplied, decimal Percentage);
 
 public sealed record InstructorPenaltyEventItem(
     Guid Id,

@@ -84,7 +84,8 @@ public sealed class GetSessionDetailHandler(
 public sealed class ListMyBookingsHandler(
     ISchedulingQueries queries,
     ICurrentTenant currentTenant,
-    ICurrentUser currentUser)
+    ICurrentUser currentUser,
+    IClock clock)
 {
     public async Task<Result<PagedResult<LearnerBookingListItem>>> Handle(
         PageRequest page,
@@ -104,6 +105,6 @@ public sealed class ListMyBookingsHandler(
         }
 
         return await queries.ListLearnerBookingsAsync(
-            page, userId, from, until, status, cancellationToken);
+            page, userId, from, until, status, clock.UtcNow, cancellationToken);
     }
 }

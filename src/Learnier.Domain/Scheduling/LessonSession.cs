@@ -21,6 +21,12 @@ namespace Learnier.Domain.Scheduling;
 /// </remarks>
 public sealed class LessonSession : AggregateRoot, IAuditableEntity, ITenantScoped
 {
+    /// <summary>
+    /// Rezervasyon, ders baslangicindan bu kadar dakika once kapanir. Ogrencinin
+    /// hazirlanmasi ve egitmenin son dakika rezervasyonuyla surprize ugramamasi icin.
+    /// </summary>
+    public const int BookingCutoffMinutes = 30;
+
     private readonly List<SessionInstructor> _instructors = [];
     private readonly List<SessionBooking> _bookings = [];
 
@@ -109,12 +115,12 @@ public sealed class LessonSession : AggregateRoot, IAuditableEntity, ITenantScop
         }
 
         var durationMinutes = (endsAt - startsAt).TotalMinutes;
-        if (sessionType is SessionType.Private && durationMinutes is not (30 or 50))
+        if (sessionType is SessionType.Private && durationMinutes is not (30 or 50 or 60))
         {
             throw new ArgumentOutOfRangeException(
                 nameof(endsAt),
                 durationMinutes,
-                "Birebir ders suresi 30 veya 50 dakika olmalidir.");
+                "Birebir ders suresi 30, 50 veya rezervasyon oncesi 60 dakika olmalidir.");
         }
 
         return new LessonSession
@@ -152,6 +158,19 @@ public sealed class LessonSession : AggregateRoot, IAuditableEntity, ITenantScop
         CancellationDeadlineAt = cancellationDeadlineAt;
     }
 
+    /// <summary>
+    /// Bir saatlik birebir rezervasyon penceresini ogrencinin paket suresine daraltir.
+    /// </summary>
+    public void ApplyPrivateLessonDuration(int durationMinutes)
+    {
+        if (SessionType is not SessionType.Private || durationMinutes is not (30 or 50))
+        {
+            throw new ArgumentOutOfRangeException(nameof(durationMinutes));
+        }
+
+        EndsAt = StartsAt.AddMinutes(durationMinutes);
+    }
+
     public void ApplyCancellationPolicy(
         int studentRefundCutoffMinutes,
         int instructorPenaltyCutoffMinutes,
@@ -175,11 +194,14 @@ public sealed class LessonSession : AggregateRoot, IAuditableEntity, ITenantScop
         MeetingReference = reference.Trim();
     }
 
-    /// <summary>Verilen anda rezervasyona acik mi.</summary>
+    /// <summary>
+    /// Verilen anda rezervasyona acik mi. Kapanis ani <b>dahil degildir</b>:
+    /// tam <see cref="BookingClosesAt"/> aninda pencere kapanmis sayilir.
+    /// </summary>
     public bool IsBookable(DateTimeOffset now)
         => Status is LessonSessionStatus.Scheduled or LessonSessionStatus.Confirmed
            && (BookingOpensAt is null || now >= BookingOpensAt)
-           && (BookingClosesAt is null || now <= BookingClosesAt)
+           && (BookingClosesAt is null || now < BookingClosesAt)
            && now < StartsAt;
 
     /// <summary>

@@ -24,6 +24,7 @@ internal sealed class DirectPurchaseEntitlementPolicy : IBookingEntitlementPolic
     public Task<Result<BookingGrant>> AuthorizeAsync(
         Guid learnerUserId,
         LessonSession session,
+        int? lessonDurationMinutes,
         CancellationToken cancellationToken)
         => Task.FromResult(Result.Success(new BookingGrant(BookingAccessSource.DirectPurchase)));
 

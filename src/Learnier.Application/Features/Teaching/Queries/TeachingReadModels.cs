@@ -67,12 +67,29 @@ public sealed record InstructorScheduleLearner(
     string FirstName,
     string LastName);
 
+/// <param name="InstructorCancellationDeadlineAt">
+/// Bu ana kadar yapilan iptalde egitmene kesinti uygulanmaz.
+/// </param>
+/// <param name="CanCancel">
+/// Ders henuz baslamadiysa dogru. Dort saat siniri iptali kapatmaz, yalnizca
+/// kesinti uygulanip uygulanmayacagini belirler.
+/// </param>
+/// <param name="WillReceivePenaltyIfCancelled">
+/// Su anda iptal edilirse kesinti dogar mi.
+/// </param>
+/// <param name="NextPenaltyPercentage">
+/// Kesinti dogarsa uygulanacak oran. Arayuz yuzdeyi tahmin etmez.
+/// </param>
 public sealed record InstructorScheduleListItem(
     Guid SessionId,
     string CourseTitle,
     DateTimeOffset StartsAt,
     DateTimeOffset EndsAt,
     LessonSessionStatus Status,
+    DateTimeOffset? InstructorCancellationDeadlineAt,
+    bool CanCancel,
+    bool WillReceivePenaltyIfCancelled,
+    decimal NextPenaltyPercentage,
     IReadOnlyList<InstructorScheduleLearner> Learners);
 
 public sealed record InstructorDashboardStats(

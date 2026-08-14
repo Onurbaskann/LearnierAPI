@@ -34,6 +34,7 @@ public interface IInstructorQueries
         Guid membershipId,
         DateTimeOffset? from,
         DateTimeOffset? until,
+        DateTimeOffset now,
         CancellationToken cancellationToken);
 
     Task<InstructorDashboardStats?> FindMyDashboardAsync(

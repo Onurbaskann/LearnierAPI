@@ -180,6 +180,8 @@ internal sealed class EfSchedulingQueries(AppDbContext context) : ISchedulingQue
         Guid? courseId,
         DateTimeOffset from,
         DateTimeOffset until,
+        DateTimeOffset now,
+        bool onlyBookable,
         CancellationToken cancellationToken)
     {
         var query = context.LessonSessions
@@ -196,6 +198,22 @@ internal sealed class EfSchedulingQueries(AppDbContext context) : ISchedulingQue
             query = query.Where(session => session.CourseId == selectedCourseId);
         }
 
+        if (onlyBookable)
+        {
+            // Rezervasyon penceresi kapanan slot ogrenciye hic gosterilmez;
+            // asil karar yine rezervasyon isteginde backend'de verilir.
+            query = query
+                .Where(session => session.StartsAt > now)
+                .Where(session => session.BookingClosesAt == null
+                                  || now < session.BookingClosesAt)
+                .Where(session => session.BookingOpensAt == null
+                                  || now >= session.BookingOpensAt)
+                .Where(session => session.Bookings.Count(booking =>
+                    booking.Status == BookingStatus.Reserved
+                    || booking.Status == BookingStatus.Attended
+                    || booking.Status == BookingStatus.NoShow) < session.Capacity);
+        }
+
         return await query
             .OrderBy(session => session.StartsAt)
             .ThenBy(session => session.Id)
@@ -206,6 +224,9 @@ internal sealed class EfSchedulingQueries(AppDbContext context) : ISchedulingQue
                 session.StartsAt,
                 session.EndsAt,
                 (int)(session.EndsAt - session.StartsAt).TotalMinutes,
+                session.BookingClosesAt,
+                // Koltuk bosta mi - rezervasyon penceresi ayri bir kavram; ogrenciye
+                // donen listede pencere kapanan slotlar zaten filtrelenir.
                 session.Bookings.Count(booking => booking.Status == BookingStatus.Reserved
                                                   || booking.Status == BookingStatus.Attended
                                                   || booking.Status == BookingStatus.NoShow)
@@ -219,6 +240,7 @@ internal sealed class EfSchedulingQueries(AppDbContext context) : ISchedulingQue
         DateTimeOffset? from,
         DateTimeOffset? until,
         BookingStatus? status,
+        DateTimeOffset now,
         CancellationToken cancellationToken)
     {
         var query = context.SessionBookings
@@ -260,6 +282,15 @@ internal sealed class EfSchedulingQueries(AppDbContext context) : ISchedulingQue
                 b.Session.Status,
                 b.Session.MeetingProvider,
                 b.Session.MeetingReference,
+                b.Session.CancellationDeadlineAt,
+                (b.Status == BookingStatus.Reserved || b.Status == BookingStatus.Waitlisted)
+                    && b.Session.Status != LessonSessionStatus.Cancelled
+                    && b.Session.Status != LessonSessionStatus.Completed
+                    && now < b.Session.StartsAt,
+                // Bekleme listesindeki kayit koltuk tutmadigi icin hakki hep geri gelir.
+                b.Status == BookingStatus.Waitlisted
+                    || b.Session.CancellationDeadlineAt == null
+                    || now <= b.Session.CancellationDeadlineAt,
                 b.Session.Instructors
                     .OrderBy(i => i.Role)
                     .ThenBy(i => i.Id)

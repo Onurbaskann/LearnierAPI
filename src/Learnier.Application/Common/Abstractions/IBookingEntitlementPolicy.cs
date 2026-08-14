@@ -26,6 +26,7 @@ public interface IBookingEntitlementPolicy
     Task<Result<BookingGrant>> AuthorizeAsync(
         Guid learnerUserId,
         LessonSession session,
+        int? lessonDurationMinutes,
         CancellationToken cancellationToken);
 
     /// <summary>Rezervasyon icin krediyi atomik olarak ayirir.</summary>

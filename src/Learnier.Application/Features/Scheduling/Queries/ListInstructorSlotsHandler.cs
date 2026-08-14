@@ -6,13 +6,25 @@ using Learnier.Domain.Teaching;
 
 namespace Learnier.Application.Features.Scheduling.Queries;
 
+/// <param name="OnlyBookable">
+/// Ogrenciye donen listede dogru: dolu, baslamis veya rezervasyon penceresi
+/// kapanmis slotlar hic gonderilmez. Egitmen kendi takvimini yanlisla ister.
+/// </param>
 public sealed record ListInstructorSlotsQuery(
     Guid InstructorProfileId,
     Guid? CourseId,
     DateTimeOffset From,
     DateTimeOffset Until,
-    int? LessonDurationMinutes = null);
+    int? LessonDurationMinutes = null,
+    bool OnlyBookable = true);
 
+/// <param name="BookingClosesAt">
+/// Rezervasyonun kapandigi an - kapanis ani dahil degildir.
+/// </param>
+/// <param name="IsAvailable">
+/// Koltuk bosta mi. Rezervasyon penceresinin acik olup olmadigi ayri bir kavramdir;
+/// bunun icin <paramref name="BookingClosesAt"/> degerine bakilir.
+/// </param>
 public sealed record InstructorSlotListItem(
     Guid SessionId,
     Guid CourseId,
@@ -20,6 +32,7 @@ public sealed record InstructorSlotListItem(
     DateTimeOffset StartsAt,
     DateTimeOffset EndsAt,
     int LessonDurationMinutes,
+    DateTimeOffset? BookingClosesAt,
     bool IsAvailable);
 
 internal sealed class ListInstructorSlotsValidator : AbstractValidator<ListInstructorSlotsQuery>
@@ -98,20 +111,25 @@ public sealed class ListInstructorSlotsHandler(
             }
         }
 
+        var now = clock.UtcNow;
         var from = query.From.ToUniversalTime();
         var until = query.Until.ToUniversalTime();
-        var visibleFrom = from > clock.UtcNow ? from : clock.UtcNow;
+        var visibleFrom = from > now ? from : now;
 
         var result = await scheduling.ListInstructorSlotsAsync(
             profile.Id,
             query.CourseId,
             visibleFrom,
             until,
+            now,
+            query.OnlyBookable,
             cancellationToken);
 
         return Result.Success<IReadOnlyList<InstructorSlotListItem>>(
             query.LessonDurationMinutes is { } duration
-                ? result.Where(slot => slot.LessonDurationMinutes == duration).ToList()
+                ? result.Where(slot =>
+                    slot.LessonDurationMinutes == duration
+                    || (slot.IsAvailable && slot.LessonDurationMinutes == 60)).ToList()
                 : result);
     }
 }
@@ -139,8 +157,15 @@ public sealed class ListMyInstructorSlotsHandler(
             return SchedulingErrors.InstructorNotFound;
         }
 
+        // Egitmen dolu ve penceresi kapanmis slotlarini da gormeli.
         return await slots.Handle(
-            new ListInstructorSlotsQuery(profile.Id, courseId, from, until),
+            new ListInstructorSlotsQuery(
+                profile.Id,
+                courseId,
+                from,
+                until,
+                LessonDurationMinutes: null,
+                OnlyBookable: false),
             cancellationToken);
     }
 }

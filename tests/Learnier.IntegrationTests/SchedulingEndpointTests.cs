@@ -78,7 +78,7 @@ public sealed class SchedulingEndpointTests(AuthApiFixture fixture) : IClassFixt
 
         var bookingResponse = await context.Client.PostAsJsonAsync(
             new Uri($"/api/v1/sessions/{opened!.SessionId}/bookings", UriKind.Relative),
-            new { learnerUserId = (Guid?)null },
+            new { learnerUserId = (Guid?)null, lessonDurationMinutes = 50 },
             TestContext.Current.CancellationToken);
         bookingResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
         var booking = await bookingResponse.Content.ReadFromJsonAsync<CreateBookingResult>(
@@ -225,7 +225,7 @@ public sealed class SchedulingEndpointTests(AuthApiFixture fixture) : IClassFixt
 
         var booked = await context.Client.PostAsJsonAsync(
             new Uri($"/api/v1/sessions/{opened.SessionId}/bookings", UriKind.Relative),
-            new { learnerUserId = (Guid?)null },
+            new { learnerUserId = (Guid?)null, lessonDurationMinutes = 50 },
             TestContext.Current.CancellationToken);
         booked.StatusCode.ShouldBe(
             HttpStatusCode.OK,
@@ -264,8 +264,8 @@ public sealed class SchedulingEndpointTests(AuthApiFixture fixture) : IClassFixt
             slotsUri,
             TestJson.Options,
             TestContext.Current.CancellationToken);
-        occupiedSlots!.Single(slot => slot.SessionId == opened.SessionId)
-            .IsAvailable.ShouldBeFalse();
+        // Rezerve edilen slot ogrenciye donen listeden tamamen cikar.
+        occupiedSlots!.ShouldNotContain(slot => slot.SessionId == opened.SessionId);
 
         var bookings = await context.Client.GetFromJsonAsync<PagedResult<LearnerBookingListItem>>(
             new Uri("/api/v1/bookings/me", UriKind.Relative),
@@ -317,6 +317,88 @@ public sealed class SchedulingEndpointTests(AuthApiFixture fixture) : IClassFixt
     }
 
     [Fact]
+    public async Task InstructorSlot_ClosesToBookingThirtyMinutesBeforeStart()
+    {
+        var context = await NewOrganization();
+        var (courseId, subjectId) = await CreatePublishedPrivateCourse(context.Client);
+        var profileId = await CreateInstructor(context);
+
+        (await context.Client.PostAsync(
+            new Uri($"/api/v1/instructors/{profileId}/activate", UriKind.Relative),
+            content: null,
+            TestContext.Current.CancellationToken)).StatusCode.ShouldBe(HttpStatusCode.NoContent);
+
+        (await context.Client.PostAsJsonAsync(
+            new Uri($"/api/v1/instructors/{profileId}/subjects", UriKind.Relative),
+            new { subjectId, levelId = (Guid?)null },
+            TestContext.Current.CancellationToken)).StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        using var instructorClient = fixture.CreateClient();
+        await SignIn(instructorClient, "ogretmen@hotmail.com", "ogretmen123");
+        instructorClient.DefaultRequestHeaders.Add(
+            OrganizationHeader, context.OrganizationId.ToString());
+
+        // Baslangica yirmi dakika kalan slot: pencere on dakika once kapandi.
+        var closedStart = DateTimeOffset.UtcNow.AddMinutes(20);
+        var closedResponse = await instructorClient.PostAsJsonAsync(
+            new Uri("/api/v1/instructors/me/slots", UriKind.Relative),
+            new { courseId, startsAt = closedStart },
+            TestContext.Current.CancellationToken);
+        closedResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var closedSlot = await closedResponse.Content.ReadFromJsonAsync<OpenInstructorSlotResult>(
+            TestJson.Options,
+            TestContext.Current.CancellationToken);
+
+        // Baslangica iki saat kalan slot: pencere hala acik.
+        var openStart = DateTimeOffset.UtcNow.AddHours(2);
+        var openResponse = await instructorClient.PostAsJsonAsync(
+            new Uri("/api/v1/instructors/me/slots", UriKind.Relative),
+            new { courseId, startsAt = openStart },
+            TestContext.Current.CancellationToken);
+        openResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var openSlot = await openResponse.Content.ReadFromJsonAsync<OpenInstructorSlotResult>(
+            TestJson.Options,
+            TestContext.Current.CancellationToken);
+
+        var rangeStart = DateTimeOffset.UtcNow.AddMinutes(-5);
+        var slotsUri = new Uri(
+            $"/api/v1/instructors/{profileId}/slots?courseId={courseId}"
+            + $"&from={Uri.EscapeDataString(rangeStart.ToString("O"))}"
+            + $"&until={Uri.EscapeDataString(rangeStart.AddDays(1).ToString("O"))}",
+            UriKind.Relative);
+
+        var visibleSlots = await context.Client.GetFromJsonAsync<
+            IReadOnlyList<InstructorSlotListItem>>(
+            slotsUri,
+            TestJson.Options,
+            TestContext.Current.CancellationToken);
+
+        visibleSlots!.ShouldNotContain(slot => slot.SessionId == closedSlot!.SessionId);
+        var listedOpenSlot = visibleSlots.ShouldHaveSingleItem();
+        listedOpenSlot.SessionId.ShouldBe(openSlot!.SessionId);
+        listedOpenSlot.BookingClosesAt.ShouldNotBeNull();
+        listedOpenSlot.BookingClosesAt!.Value
+            .ShouldBe(openSlot.StartsAt.AddMinutes(-30), TimeSpan.FromSeconds(1));
+
+        // Eski sayfayi acik birakan kullaniciyi API reddeder.
+        var rejected = await context.Client.PostAsJsonAsync(
+            new Uri($"/api/v1/sessions/{closedSlot!.SessionId}/bookings", UriKind.Relative),
+            new { learnerUserId = (Guid?)null, lessonDurationMinutes = 50 },
+            TestContext.Current.CancellationToken);
+        rejected.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+
+        var accepted = await context.Client.PostAsJsonAsync(
+            new Uri($"/api/v1/sessions/{openSlot.SessionId}/bookings", UriKind.Relative),
+            new { learnerUserId = (Guid?)null, lessonDurationMinutes = 50 },
+            TestContext.Current.CancellationToken);
+        accepted.StatusCode.ShouldBe(
+            HttpStatusCode.OK,
+            await accepted.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+
+        context.Dispose();
+    }
+
+    [Fact]
     public async Task InstructorSlot_ShouldUsePackageDuration_AndRejectIncompatibleBooking()
     {
         var context = await NewOrganization();
@@ -340,55 +422,59 @@ public sealed class SchedulingEndpointTests(AuthApiFixture fixture) : IClassFixt
         instructorClient.DefaultRequestHeaders.Add(
             OrganizationHeader, context.OrganizationId.ToString());
 
+        // Egitmen her zaman bir saatlik slot acar; sure rezervasyonda paketin
+        // ders suresine daralir.
         var startsAt = DateTimeOffset.UtcNow.AddDays(10);
-        var thirtyMinuteResponse = await instructorClient.PostAsJsonAsync(
+        var slotResponse = await instructorClient.PostAsJsonAsync(
             new Uri("/api/v1/instructors/me/slots", UriKind.Relative),
-            new { courseId, startsAt, lessonDurationMinutes = 30 },
+            new { courseId, startsAt },
             TestContext.Current.CancellationToken);
-        thirtyMinuteResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
-        var thirtyMinuteSlot = await thirtyMinuteResponse.Content
+        slotResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var slot = await slotResponse.Content
             .ReadFromJsonAsync<OpenInstructorSlotResult>(
                 TestJson.Options,
                 TestContext.Current.CancellationToken);
 
-        thirtyMinuteSlot!.LessonDurationMinutes.ShouldBe(30);
-        (thirtyMinuteSlot.EndsAt - thirtyMinuteSlot.StartsAt).ShouldBe(TimeSpan.FromMinutes(30));
+        slot!.LessonDurationMinutes.ShouldBe(60);
+        (slot.EndsAt - slot.StartsAt).ShouldBe(TimeSpan.FromMinutes(60));
 
         var bookingResponse = await context.Client.PostAsJsonAsync(
-            new Uri($"/api/v1/sessions/{thirtyMinuteSlot.SessionId}/bookings", UriKind.Relative),
-            new { learnerUserId = (Guid?)null },
+            new Uri($"/api/v1/sessions/{slot.SessionId}/bookings", UriKind.Relative),
+            new { learnerUserId = (Guid?)null, lessonDurationMinutes = 30 },
             TestContext.Current.CancellationToken);
-        bookingResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        bookingResponse.StatusCode.ShouldBe(
+            HttpStatusCode.OK,
+            await bookingResponse.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
 
-        var fiftyMinuteResponse = await instructorClient.PostAsJsonAsync(
+        await using (var database = fixture.CreateContext())
+        {
+            var stored = await database.LessonSessions.SingleAsync(
+                item => item.Id == slot.SessionId,
+                TestContext.Current.CancellationToken);
+            (stored.EndsAt - stored.StartsAt).ShouldBe(TimeSpan.FromMinutes(30));
+        }
+
+        var secondSlotResponse = await instructorClient.PostAsJsonAsync(
             new Uri("/api/v1/instructors/me/slots", UriKind.Relative),
-            new
-            {
-                courseId,
-                startsAt = startsAt.AddHours(2),
-                lessonDurationMinutes = 50
-            },
+            new { courseId, startsAt = startsAt.AddHours(2) },
             TestContext.Current.CancellationToken);
-        fiftyMinuteResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
-        var fiftyMinuteSlot = await fiftyMinuteResponse.Content
+        secondSlotResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var secondSlot = await secondSlotResponse.Content
             .ReadFromJsonAsync<OpenInstructorSlotResult>(
                 TestJson.Options,
                 TestContext.Current.CancellationToken);
 
+        // Otuz dakikalik paket elli dakikalik rezervasyonu karsilamaz.
         var incompatibleBooking = await context.Client.PostAsJsonAsync(
-            new Uri($"/api/v1/sessions/{fiftyMinuteSlot!.SessionId}/bookings", UriKind.Relative),
-            new { learnerUserId = (Guid?)null },
+            new Uri($"/api/v1/sessions/{secondSlot!.SessionId}/bookings", UriKind.Relative),
+            new { learnerUserId = (Guid?)null, lessonDurationMinutes = 50 },
             TestContext.Current.CancellationToken);
         incompatibleBooking.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
 
-        var invalidDuration = await instructorClient.PostAsJsonAsync(
-            new Uri("/api/v1/instructors/me/slots", UriKind.Relative),
-            new
-            {
-                courseId,
-                startsAt = startsAt.AddHours(4),
-                lessonDurationMinutes = 45
-            },
+        // Birebir derste yalnizca 30 ve 50 dakika gecerlidir.
+        var invalidDuration = await context.Client.PostAsJsonAsync(
+            new Uri($"/api/v1/sessions/{secondSlot.SessionId}/bookings", UriKind.Relative),
+            new { learnerUserId = (Guid?)null, lessonDurationMinutes = 45 },
             TestContext.Current.CancellationToken);
         invalidDuration.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
 

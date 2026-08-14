@@ -10,7 +10,14 @@ public sealed record CancelSessionCommand(
     string? Reason = null,
     bool IsInstructorInitiated = false);
 
-public sealed record CancelSessionResult(int CancelledBookingCount);
+/// <param name="StudentCreditsRefunded">Gercekten iade edilen ders hakki sayisi.</param>
+/// <param name="PenaltyApplied">Egitmene bu iptal icin kesinti kaydedildi mi.</param>
+/// <param name="PenaltyPercentage">Kesinti uygulandiysa orani, aksi halde sifir.</param>
+public sealed record CancelSessionResult(
+    int CancelledBookingCount,
+    int StudentCreditsRefunded,
+    bool PenaltyApplied,
+    decimal PenaltyPercentage);
 
 internal sealed class CancelSessionValidator : AbstractValidator<CancelSessionCommand>
 {
@@ -31,6 +38,9 @@ public sealed class CancelSessionHandler(
     IUnitOfWork unitOfWork,
     IClock clock)
 {
+    /// <summary>Politika snapshot'i olmayan eski oturumlar icin cezasiz iptal siniri.</summary>
+    private const int DefaultInstructorCutoffHours = 4;
+
     public async Task<Result<CancelSessionResult>> Handle(
         CancelSessionCommand command,
         CancellationToken cancellationToken)
@@ -96,16 +106,23 @@ public sealed class CancelSessionHandler(
 
         if (session.Status is LessonSessionStatus.Cancelled)
         {
-            return new CancelSessionResult(0);
+            return new CancelSessionResult(0, 0, false, 0m);
         }
 
         var now = clock.UtcNow;
+        var bookings = await scheduling.ListActiveBookingsAsync(session.Id, cancellationToken);
 
         // Yeni oturumlarda son tarih kurum politikasından snapshot olarak gelir.
         // Eski kayıtlarda geriye uyumluluk için dört saatlik varsayılan uygulanır.
         var instructorDeadline = session.InstructorCancellationDeadlineAt
-            ?? session.StartsAt.AddHours(-4);
+            ?? session.StartsAt.AddHours(-DefaultInstructorCutoffHours);
+
+        // Boş slotun kapatılması iptal sayılmaz: ceza yalnızca gerçekten bir
+        // öğrenciyi etkileyen geç iptalde doğar ve ders başına tek olaydır.
+        var penaltyApplied = false;
+        var penaltyPercentage = 0m;
         if (cancellingInstructorProfileId is { } instructorProfileId
+            && bookings.Count > 0
             && now > instructorDeadline)
         {
             var penalty = await compensation.RegisterLateCancellationAsync(
@@ -116,9 +133,12 @@ public sealed class CancelSessionHandler(
             {
                 return penalty.Error;
             }
+
+            penaltyApplied = penalty.Value.PenaltyApplied;
+            penaltyPercentage = penalty.Value.Percentage;
         }
 
-        var bookings = await scheduling.ListActiveBookingsAsync(session.Id, cancellationToken);
+        var refundedCount = 0;
 
         foreach (var booking in bookings)
         {
@@ -131,12 +151,21 @@ public sealed class CancelSessionHandler(
             {
                 return release.Error;
             }
+
+            if (release.Value)
+            {
+                refundedCount++;
+            }
         }
 
         session.Cancel(command.Reason);
         await unitOfWork.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
 
-        return new CancelSessionResult(bookings.Count);
+        return new CancelSessionResult(
+            bookings.Count,
+            refundedCount,
+            penaltyApplied,
+            penaltyPercentage);
     }
 }

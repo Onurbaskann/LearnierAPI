@@ -43,6 +43,38 @@ public sealed class CancelSessionHandlerTests
     }
 
     [Fact]
+    public async Task Instructor_CancelsExactlyAtPolicyDeadline_WithoutPenalty()
+    {
+        var now = new DateTimeOffset(2026, 8, 11, 10, 0, 0, TimeSpan.Zero);
+        var setup = CreateHandler(now, now.AddHours(6));
+        setup.Session.ApplyCancellationPolicy(60, 360, 2);
+
+        var result = await setup.Handler.Handle(
+            new CancelSessionCommand(setup.Session.Id, null, true),
+            TestContext.Current.CancellationToken);
+
+        result.IsSuccess.ShouldBeTrue();
+        await setup.Compensation.DidNotReceive().RegisterLateCancellationAsync(
+            Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Instructor_CancelsAfterPolicyDeadline_AndReceivesPenalty()
+    {
+        var now = new DateTimeOffset(2026, 8, 11, 10, 0, 0, TimeSpan.Zero);
+        var setup = CreateHandler(now, now.AddHours(6).AddTicks(-1));
+        setup.Session.ApplyCancellationPolicy(60, 360, 2);
+
+        var result = await setup.Handler.Handle(
+            new CancelSessionCommand(setup.Session.Id, null, true),
+            TestContext.Current.CancellationToken);
+
+        result.IsSuccess.ShouldBeTrue();
+        await setup.Compensation.Received(1).RegisterLateCancellationAsync(
+            Arg.Any<Guid>(), setup.Session.Id, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task Instructor_CannotCancelAnotherInstructorsLesson()
     {
         var now = new DateTimeOffset(2026, 8, 11, 10, 0, 0, TimeSpan.Zero);

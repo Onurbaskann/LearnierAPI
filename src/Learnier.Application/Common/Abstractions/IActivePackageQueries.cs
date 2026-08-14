@@ -10,7 +10,8 @@ public sealed record ActivePackageAccess(
     int RemainingCredits,
     int TotalCredits,
     int LessonsPerWeek,
-    int DurationMonths);
+    int DurationMonths,
+    int LessonDurationMinutes);
 
 public interface IActivePackageQueries
 {

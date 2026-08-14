@@ -205,6 +205,7 @@ internal sealed class EfSchedulingQueries(AppDbContext context) : ISchedulingQue
                 session.Course.Title,
                 session.StartsAt,
                 session.EndsAt,
+                (int)(session.EndsAt - session.StartsAt).TotalMinutes,
                 session.Bookings.Count(booking => booking.Status == BookingStatus.Reserved
                                                   || booking.Status == BookingStatus.Attended
                                                   || booking.Status == BookingStatus.NoShow)

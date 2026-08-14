@@ -57,6 +57,7 @@ internal sealed class InstructorPenaltyStateConfiguration
     {
         builder.ToTable("instructor_penalty_states");
         builder.HasKey(state => state.Id);
+        builder.Property(state => state.PendingPercentage).HasPrecision(5, 2);
         builder.HasIndex(state => state.InstructorProfileId).IsUnique();
         builder.HasOne<InstructorProfile>().WithMany()
             .HasForeignKey(state => state.InstructorProfileId)
@@ -66,6 +67,44 @@ internal sealed class InstructorPenaltyStateConfiguration
             .OnDelete(DeleteBehavior.SetNull);
         builder.ToTable(table => table.HasCheckConstraint(
             "ck_instructor_penalty_state_level", "level >= 0"));
+        builder.ToTable(table => table.HasCheckConstraint(
+            "ck_instructor_penalty_state_percentage", "pending_percentage IS NULL OR pending_percentage BETWEEN 0 AND 100"));
+    }
+}
+
+internal sealed class InstructorPenaltyEventConfiguration
+    : IEntityTypeConfiguration<InstructorPenaltyEvent>
+{
+    public void Configure(EntityTypeBuilder<InstructorPenaltyEvent> builder)
+    {
+        builder.ToTable("instructor_penalty_events");
+        builder.HasKey(item => item.Id);
+        builder.Property(item => item.EventType)
+            .HasConversion<string>()
+            .HasMaxLength(32)
+            .IsRequired();
+        builder.Property(item => item.Percentage).HasPrecision(5, 2).IsRequired();
+        builder.Property(item => item.Reason).HasMaxLength(500).IsRequired();
+        builder.HasIndex(item => new { item.InstructorProfileId, item.OccurredAt });
+        builder.HasIndex(item => new { item.InstructorProfileId, item.SessionId, item.EventType })
+            .IsUnique()
+            .HasFilter("session_id IS NOT NULL");
+        builder.HasOne<InstructorProfile>().WithMany()
+            .HasForeignKey(item => item.InstructorProfileId)
+            .OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<LessonSession>().WithMany()
+            .HasForeignKey(item => item.SessionId)
+            .OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<InstructorEarning>().WithMany()
+            .HasForeignKey(item => item.EarningId)
+            .OnDelete(DeleteBehavior.Restrict);
+        builder.ToTable(table =>
+        {
+            table.HasCheckConstraint("ck_instructor_penalty_event_level", "level >= 0");
+            table.HasCheckConstraint(
+                "ck_instructor_penalty_event_percentage",
+                "percentage >= 0 AND percentage <= 100");
+        });
     }
 }
 

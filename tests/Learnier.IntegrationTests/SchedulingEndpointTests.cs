@@ -64,7 +64,12 @@ public sealed class SchedulingEndpointTests(AuthApiFixture fixture) : IClassFixt
 
         var openedResponse = await instructorClient.PostAsJsonAsync(
             new Uri("/api/v1/instructors/me/slots", UriKind.Relative),
-            new { courseId, startsAt = DateTimeOffset.UtcNow.AddDays(2) },
+            new
+            {
+                courseId,
+                startsAt = DateTimeOffset.UtcNow.AddDays(2),
+                lessonDurationMinutes = 50
+            },
             TestContext.Current.CancellationToken);
         openedResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
         var opened = await openedResponse.Content.ReadFromJsonAsync<OpenInstructorSlotResult>(
@@ -88,7 +93,7 @@ public sealed class SchedulingEndpointTests(AuthApiFixture fixture) : IClassFixt
                 TestContext.Current.CancellationToken);
 
             var penalty = Domain.Billing.InstructorPenaltyState.Create(profileId);
-            penalty.RegisterLateCancellation(opened.SessionId, now.AddHours(-1));
+            penalty.RegisterLateCancellation(opened.SessionId, 10m, now.AddHours(-1));
             database.InstructorPenaltyStates.Add(penalty);
             await database.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
@@ -203,7 +208,7 @@ public sealed class SchedulingEndpointTests(AuthApiFixture fixture) : IClassFixt
 
         var openedResponse = await instructorClient.PostAsJsonAsync(
             new Uri("/api/v1/instructors/me/slots", UriKind.Relative),
-            new { courseId, startsAt = localStart },
+            new { courseId, startsAt = localStart, lessonDurationMinutes = 50 },
             TestContext.Current.CancellationToken);
         openedResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
         var opened = await openedResponse.Content.ReadFromJsonAsync<OpenInstructorSlotResult>(
@@ -293,7 +298,12 @@ public sealed class SchedulingEndpointTests(AuthApiFixture fixture) : IClassFixt
 
         var secondResponse = await instructorClient.PostAsJsonAsync(
             new Uri("/api/v1/instructors/me/slots", UriKind.Relative),
-            new { courseId, startsAt = localStart.AddHours(2) },
+            new
+            {
+                courseId,
+                startsAt = localStart.AddHours(2),
+                lessonDurationMinutes = 50
+            },
             TestContext.Current.CancellationToken);
         var second = await secondResponse.Content.ReadFromJsonAsync<OpenInstructorSlotResult>(
             TestJson.Options,
@@ -302,6 +312,85 @@ public sealed class SchedulingEndpointTests(AuthApiFixture fixture) : IClassFixt
         (await instructorClient.DeleteAsync(
             new Uri($"/api/v1/instructors/me/slots/{second!.SessionId}", UriKind.Relative),
             TestContext.Current.CancellationToken)).StatusCode.ShouldBe(HttpStatusCode.NoContent);
+
+        context.Dispose();
+    }
+
+    [Fact]
+    public async Task InstructorSlot_ShouldUsePackageDuration_AndRejectIncompatibleBooking()
+    {
+        var context = await NewOrganization();
+        var (courseId, subjectId) = await CreatePublishedPrivateCourse(
+            context.Client,
+            lessonDurationMinutes: 30);
+        var profileId = await CreateInstructor(context);
+
+        (await context.Client.PostAsync(
+            new Uri($"/api/v1/instructors/{profileId}/activate", UriKind.Relative),
+            content: null,
+            TestContext.Current.CancellationToken)).StatusCode.ShouldBe(HttpStatusCode.NoContent);
+
+        (await context.Client.PostAsJsonAsync(
+            new Uri($"/api/v1/instructors/{profileId}/subjects", UriKind.Relative),
+            new { subjectId, levelId = (Guid?)null },
+            TestContext.Current.CancellationToken)).StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        using var instructorClient = fixture.CreateClient();
+        await SignIn(instructorClient, "ogretmen@hotmail.com", "ogretmen123");
+        instructorClient.DefaultRequestHeaders.Add(
+            OrganizationHeader, context.OrganizationId.ToString());
+
+        var startsAt = DateTimeOffset.UtcNow.AddDays(10);
+        var thirtyMinuteResponse = await instructorClient.PostAsJsonAsync(
+            new Uri("/api/v1/instructors/me/slots", UriKind.Relative),
+            new { courseId, startsAt, lessonDurationMinutes = 30 },
+            TestContext.Current.CancellationToken);
+        thirtyMinuteResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var thirtyMinuteSlot = await thirtyMinuteResponse.Content
+            .ReadFromJsonAsync<OpenInstructorSlotResult>(
+                TestJson.Options,
+                TestContext.Current.CancellationToken);
+
+        thirtyMinuteSlot!.LessonDurationMinutes.ShouldBe(30);
+        (thirtyMinuteSlot.EndsAt - thirtyMinuteSlot.StartsAt).ShouldBe(TimeSpan.FromMinutes(30));
+
+        var bookingResponse = await context.Client.PostAsJsonAsync(
+            new Uri($"/api/v1/sessions/{thirtyMinuteSlot.SessionId}/bookings", UriKind.Relative),
+            new { learnerUserId = (Guid?)null },
+            TestContext.Current.CancellationToken);
+        bookingResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        var fiftyMinuteResponse = await instructorClient.PostAsJsonAsync(
+            new Uri("/api/v1/instructors/me/slots", UriKind.Relative),
+            new
+            {
+                courseId,
+                startsAt = startsAt.AddHours(2),
+                lessonDurationMinutes = 50
+            },
+            TestContext.Current.CancellationToken);
+        fiftyMinuteResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var fiftyMinuteSlot = await fiftyMinuteResponse.Content
+            .ReadFromJsonAsync<OpenInstructorSlotResult>(
+                TestJson.Options,
+                TestContext.Current.CancellationToken);
+
+        var incompatibleBooking = await context.Client.PostAsJsonAsync(
+            new Uri($"/api/v1/sessions/{fiftyMinuteSlot!.SessionId}/bookings", UriKind.Relative),
+            new { learnerUserId = (Guid?)null },
+            TestContext.Current.CancellationToken);
+        incompatibleBooking.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+
+        var invalidDuration = await instructorClient.PostAsJsonAsync(
+            new Uri("/api/v1/instructors/me/slots", UriKind.Relative),
+            new
+            {
+                courseId,
+                startsAt = startsAt.AddHours(4),
+                lessonDurationMinutes = 45
+            },
+            TestContext.Current.CancellationToken);
+        invalidDuration.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
 
         context.Dispose();
     }
@@ -670,7 +759,8 @@ public sealed class SchedulingEndpointTests(AuthApiFixture fixture) : IClassFixt
     }
 
     private static async Task<(Guid CourseId, Guid SubjectId)> CreatePublishedPrivateCourse(
-        HttpClient client)
+        HttpClient client,
+        int lessonDurationMinutes = 50)
     {
         var subject = await client.PostAsJsonAsync(
             new Uri("/api/v1/subjects", UriKind.Relative),
@@ -678,7 +768,7 @@ public sealed class SchedulingEndpointTests(AuthApiFixture fixture) : IClassFixt
             TestContext.Current.CancellationToken);
         var subjectId = (await subject.Content.ReadFromJsonAsync<CreateSubjectResult>(
             TestContext.Current.CancellationToken))!.SubjectId;
-        await PurchasePackage(client, subjectId);
+        await PurchasePackage(client, subjectId, lessonDurationMinutes);
 
         var course = await client.PostAsJsonAsync(
             new Uri("/api/v1/courses", UriKind.Relative),
@@ -704,7 +794,10 @@ public sealed class SchedulingEndpointTests(AuthApiFixture fixture) : IClassFixt
         return (created.CourseId, subjectId);
     }
 
-    private static async Task PurchasePackage(HttpClient client, Guid subjectId)
+    private static async Task PurchasePackage(
+        HttpClient client,
+        Guid subjectId,
+        int lessonDurationMinutes = 50)
     {
         var response = await client.PostAsJsonAsync(
             new Uri("/api/v1/subscriptions/demo-purchases", UriKind.Relative),
@@ -713,7 +806,7 @@ public sealed class SchedulingEndpointTests(AuthApiFixture fixture) : IClassFixt
                 subjectId,
                 lessonsPerWeek = 3,
                 durationMonths = 6,
-                lessonDurationMinutes = 50
+                lessonDurationMinutes
             },
             TestContext.Current.CancellationToken);
 

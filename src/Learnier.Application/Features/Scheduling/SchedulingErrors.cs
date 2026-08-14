@@ -58,6 +58,9 @@ internal static class SchedulingErrors
     public static Error CourseNotBookable
         => Error.Conflict("scheduling.course_not_bookable");
 
+    public static Error LessonDurationInvalid
+        => Error.Validation("scheduling.lesson_duration_invalid");
+
     /// <summary>Oturum su anda rezervasyona kapali: pencere disinda veya iptal edilmis.</summary>
     public static Error SessionNotBookable => Error.Conflict("scheduling.session_not_bookable");
 

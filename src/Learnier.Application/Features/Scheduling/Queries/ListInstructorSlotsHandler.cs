@@ -10,7 +10,8 @@ public sealed record ListInstructorSlotsQuery(
     Guid InstructorProfileId,
     Guid? CourseId,
     DateTimeOffset From,
-    DateTimeOffset Until);
+    DateTimeOffset Until,
+    int? LessonDurationMinutes = null);
 
 public sealed record InstructorSlotListItem(
     Guid SessionId,
@@ -18,6 +19,7 @@ public sealed record InstructorSlotListItem(
     string CourseTitle,
     DateTimeOffset StartsAt,
     DateTimeOffset EndsAt,
+    int LessonDurationMinutes,
     bool IsAvailable);
 
 internal sealed class ListInstructorSlotsValidator : AbstractValidator<ListInstructorSlotsQuery>
@@ -34,6 +36,10 @@ internal sealed class ListInstructorSlotsValidator : AbstractValidator<ListInstr
         RuleFor(query => query.Until - query.From)
             .LessThanOrEqualTo(TimeSpan.FromDays(90))
             .WithErrorCode("scheduling.slot_range_too_large");
+
+        RuleFor(query => query.LessonDurationMinutes)
+            .Must(duration => duration is null or 30 or 50)
+            .WithErrorCode("scheduling.lesson_duration_invalid");
     }
 }
 
@@ -56,6 +62,11 @@ public sealed class ListInstructorSlotsHandler(
         if (query.Until <= query.From || query.Until - query.From > TimeSpan.FromDays(90))
         {
             return Error.Validation("scheduling.slot_range_invalid");
+        }
+
+        if (query.LessonDurationMinutes is not null and not (30 or 50))
+        {
+            return SchedulingErrors.LessonDurationInvalid;
         }
 
         var profile = await instructors.FindWithDetailsAsync(
@@ -91,12 +102,17 @@ public sealed class ListInstructorSlotsHandler(
         var until = query.Until.ToUniversalTime();
         var visibleFrom = from > clock.UtcNow ? from : clock.UtcNow;
 
-        return Result.Success(await scheduling.ListInstructorSlotsAsync(
+        var result = await scheduling.ListInstructorSlotsAsync(
             profile.Id,
             query.CourseId,
             visibleFrom,
             until,
-            cancellationToken));
+            cancellationToken);
+
+        return Result.Success<IReadOnlyList<InstructorSlotListItem>>(
+            query.LessonDurationMinutes is { } duration
+                ? result.Where(slot => slot.LessonDurationMinutes == duration).ToList()
+                : result);
     }
 }
 

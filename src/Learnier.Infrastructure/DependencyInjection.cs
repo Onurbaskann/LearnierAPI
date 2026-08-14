@@ -86,6 +86,7 @@ public static class DependencyInjection
 
         services.AddScoped<IBookingEntitlementPolicy, SubscriptionCreditEntitlementPolicy>();
         services.AddScoped<IInstructorCompensationService, InstructorCompensationService>();
+        services.AddScoped<ICancellationPolicyService, CancellationPolicyService>();
         services.AddScoped<ICreditPeriodRenewalProcessor, CreditPeriodRenewalProcessor>();
         services.AddHostedService<CreditPeriodRenewalWorker>();
 

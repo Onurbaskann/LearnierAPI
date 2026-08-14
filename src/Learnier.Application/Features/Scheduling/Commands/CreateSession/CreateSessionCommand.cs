@@ -36,6 +36,11 @@ internal sealed class CreateSessionValidator : AbstractValidator<CreateSessionCo
             .GreaterThan(c => c.StartsAt)
             .WithErrorCode("scheduling.session_time_range_invalid");
 
+        RuleFor(c => c)
+            .Must(c => c.SessionType is not SessionType.Private
+                       || (c.EndsAt - c.StartsAt).TotalMinutes is 30 or 50)
+            .WithErrorCode("scheduling.lesson_duration_invalid");
+
         RuleFor(c => c.Capacity)
             .InclusiveBetween(1, 1000).WithErrorCode("scheduling.capacity_invalid");
 
@@ -57,6 +62,7 @@ internal sealed class CreateSessionValidator : AbstractValidator<CreateSessionCo
 public sealed class CreateSessionHandler(
     ISchedulingRepository scheduling,
     ICatalogRepository catalog,
+    ICancellationPolicyService cancellationPolicies,
     ICurrentTenant currentTenant,
     IUnitOfWork unitOfWork)
 {
@@ -65,6 +71,12 @@ public sealed class CreateSessionHandler(
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(command);
+
+        if (command.SessionType is SessionType.Private
+            && (command.EndsAt - command.StartsAt).TotalMinutes is not (30 or 50))
+        {
+            return SchedulingErrors.LessonDurationInvalid;
+        }
 
         if (currentTenant.OrganizationId is not { } organizationId)
         {
@@ -103,7 +115,18 @@ public sealed class CreateSessionHandler(
         session.SetBookingWindow(
             command.BookingOpensAt?.ToUniversalTime(),
             command.BookingClosesAt?.ToUniversalTime(),
-            command.CancellationDeadlineAt?.ToUniversalTime());
+            null);
+
+        var policy = await cancellationPolicies.GetCurrentAsync(cancellationToken);
+        if (policy.IsFailure)
+        {
+            return policy.Error;
+        }
+
+        session.ApplyCancellationPolicy(
+            policy.Value.StudentRefundCutoffMinutes,
+            policy.Value.InstructorPenaltyCutoffMinutes,
+            policy.Value.Version);
 
         scheduling.AddSession(session);
         await unitOfWork.SaveChangesAsync(cancellationToken);

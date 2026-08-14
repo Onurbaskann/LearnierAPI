@@ -48,8 +48,6 @@ public sealed class PurchaseDemoPackageHandler(
     IUnitOfWork unitOfWork)
 {
     private const int WeeksPerMonth = 4;
-    private const decimal BasePricePerLesson = 250m;
-
     public async Task<Result<PurchaseDemoPackageResult>> Handle(
         PurchaseDemoPackageCommand command,
         CancellationToken cancellationToken)
@@ -96,7 +94,10 @@ public sealed class PurchaseDemoPackageHandler(
                 "Ödeme sağlayıcısı bağlanana kadar kullanılan kalıcı demo paketi.");
             price = plan.AddPrice(
                 "TRY",
-                CalculatePrice(command.LessonsPerWeek, command.DurationMonths, totalCredits),
+                LessonPackagePricing.CalculateTotal(
+                    command.LessonsPerWeek,
+                    command.DurationMonths,
+                    command.LessonDurationMinutes),
                 BillingInterval.Month,
                 command.DurationMonths,
                 now);
@@ -110,7 +111,10 @@ public sealed class PurchaseDemoPackageHandler(
             price = plan.Prices.FirstOrDefault(item => item.Status == PlanPriceStatus.Active)
                 ?? plan.AddPrice(
                     "TRY",
-                    CalculatePrice(command.LessonsPerWeek, command.DurationMonths, totalCredits),
+                    LessonPackagePricing.CalculateTotal(
+                        command.LessonsPerWeek,
+                        command.DurationMonths,
+                        command.LessonDurationMinutes),
                     BillingInterval.Month,
                     command.DurationMonths,
                     now);
@@ -145,18 +149,4 @@ public sealed class PurchaseDemoPackageHandler(
             periodEnd);
     }
 
-    private static decimal CalculatePrice(int lessonsPerWeek, int durationMonths, int totalCredits)
-    {
-        var frequencyDiscount = lessonsPerWeek switch
-        {
-            3 => 0.05m,
-            5 => 0.12m,
-            _ => 0m
-        };
-        var durationDiscount = durationMonths == 12 ? 0.10m : 0m;
-        return decimal.Round(
-            totalCredits * BasePricePerLesson * (1m - frequencyDiscount - durationDiscount),
-            0,
-            MidpointRounding.AwayFromZero);
-    }
 }

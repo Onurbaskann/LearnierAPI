@@ -101,10 +101,12 @@ public sealed class CancelSessionHandler(
 
         var now = clock.UtcNow;
 
-        // Dört saatten önce iptal serbesttir. Son dört saatte iptal yine yapılır,
-        // fakat eğitmenin tamamlayacağı sonraki dersine penalty basamağı eklenir.
+        // Yeni oturumlarda son tarih kurum politikasından snapshot olarak gelir.
+        // Eski kayıtlarda geriye uyumluluk için dört saatlik varsayılan uygulanır.
+        var instructorDeadline = session.InstructorCancellationDeadlineAt
+            ?? session.StartsAt.AddHours(-4);
         if (cancellingInstructorProfileId is { } instructorProfileId
-            && now > session.StartsAt.AddHours(-4))
+            && now > instructorDeadline)
         {
             var penalty = await compensation.RegisterLateCancellationAsync(
                 instructorProfileId,

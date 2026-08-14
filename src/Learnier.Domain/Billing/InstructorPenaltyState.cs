@@ -9,6 +9,7 @@ public sealed class InstructorPenaltyState : Entity, IAuditableEntity
 
     public Guid InstructorProfileId { get; private set; }
     public int Level { get; private set; }
+    public decimal? PendingPercentage { get; private set; }
     public Guid? LastCancelledSessionId { get; private set; }
     public DateTimeOffset? LastPenaltyAt { get; private set; }
     public DateTimeOffset CreatedAt { get; set; }
@@ -19,14 +20,23 @@ public sealed class InstructorPenaltyState : Entity, IAuditableEntity
     public static InstructorPenaltyState Create(Guid instructorProfileId)
         => new() { InstructorProfileId = instructorProfileId };
 
-    public void RegisterLateCancellation(Guid sessionId, DateTimeOffset occurredAt)
+    public void RegisterLateCancellation(
+        Guid sessionId,
+        decimal pendingPercentage,
+        DateTimeOffset occurredAt)
     {
         if (LastCancelledSessionId == sessionId)
         {
             return;
         }
 
+        if (pendingPercentage is < 0 or > 100)
+        {
+            throw new ArgumentOutOfRangeException(nameof(pendingPercentage));
+        }
+
         Level++;
+        PendingPercentage = pendingPercentage;
         LastCancelledSessionId = sessionId;
         LastPenaltyAt = occurredAt;
     }
@@ -34,6 +44,7 @@ public sealed class InstructorPenaltyState : Entity, IAuditableEntity
     public void Clear()
     {
         Level = 0;
+        PendingPercentage = null;
         LastCancelledSessionId = null;
         LastPenaltyAt = null;
     }

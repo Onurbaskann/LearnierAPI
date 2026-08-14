@@ -7,13 +7,17 @@ using Learnier.Domain.Teaching;
 
 namespace Learnier.Application.Features.Scheduling.Commands.OpenInstructorSlot;
 
-public sealed record OpenInstructorSlotCommand(Guid CourseId, DateTimeOffset StartsAt);
+public sealed record OpenInstructorSlotCommand(
+    Guid CourseId,
+    DateTimeOffset StartsAt,
+    int LessonDurationMinutes);
 
 public sealed record OpenInstructorSlotResult(
     Guid SessionId,
     Guid CourseId,
     DateTimeOffset StartsAt,
-    DateTimeOffset EndsAt);
+    DateTimeOffset EndsAt,
+    int LessonDurationMinutes);
 
 internal sealed class OpenInstructorSlotValidator : AbstractValidator<OpenInstructorSlotCommand>
 {
@@ -21,6 +25,10 @@ internal sealed class OpenInstructorSlotValidator : AbstractValidator<OpenInstru
     {
         RuleFor(command => command.CourseId)
             .NotEmpty().WithErrorCode("scheduling.course_required");
+
+        RuleFor(command => command.LessonDurationMinutes)
+            .Must(duration => duration is 30 or 50)
+            .WithErrorCode("scheduling.lesson_duration_invalid");
     }
 }
 
@@ -29,6 +37,7 @@ public sealed class OpenInstructorSlotHandler(
     ISchedulingRepository scheduling,
     IInstructorRepository instructors,
     ICatalogRepository catalog,
+    ICancellationPolicyService cancellationPolicies,
     ICurrentTenant currentTenant,
     IUnitOfWork unitOfWork,
     IClock clock)
@@ -38,6 +47,11 @@ public sealed class OpenInstructorSlotHandler(
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(command);
+
+        if (command.LessonDurationMinutes is not (30 or 50))
+        {
+            return SchedulingErrors.LessonDurationInvalid;
+        }
 
         if (currentTenant.OrganizationId is not { } organizationId
             || currentTenant.MembershipId is not { } membershipId)
@@ -88,7 +102,7 @@ public sealed class OpenInstructorSlotHandler(
             return SchedulingErrors.InstructorSubjectMismatch;
         }
 
-        var endsAt = startsAt.AddMinutes(course.DefaultDurationMinutes);
+        var endsAt = startsAt.AddMinutes(command.LessonDurationMinutes);
         if (await scheduling.HasInstructorConflictAsync(
                 profile.Id,
                 startsAt,
@@ -109,12 +123,28 @@ public sealed class OpenInstructorSlotHandler(
             minimumParticipants: 1);
 
         session.AssignInstructor(profile.Id, SessionInstructorRole.Lead);
-        session.SetBookingWindow(null, startsAt, startsAt.AddHours(-6));
+        session.SetBookingWindow(null, startsAt, null);
+
+        var policy = await cancellationPolicies.GetCurrentAsync(cancellationToken);
+        if (policy.IsFailure)
+        {
+            return policy.Error;
+        }
+
+        session.ApplyCancellationPolicy(
+            policy.Value.StudentRefundCutoffMinutes,
+            policy.Value.InstructorPenaltyCutoffMinutes,
+            policy.Value.Version);
 
         scheduling.AddSession(session);
         await unitOfWork.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
 
-        return new OpenInstructorSlotResult(session.Id, course.Id, startsAt, endsAt);
+        return new OpenInstructorSlotResult(
+            session.Id,
+            course.Id,
+            startsAt,
+            endsAt,
+            command.LessonDurationMinutes);
     }
 }

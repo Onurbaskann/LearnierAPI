@@ -341,12 +341,18 @@ public sealed class SchedulingController : ControllerBase
         DateTimeOffset from,
         DateTimeOffset until,
         [FromServices] ListInstructorSlotsHandler handler,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        [FromQuery] int? lessonDurationMinutes = null)
     {
         ArgumentNullException.ThrowIfNull(handler);
 
         var result = await handler.Handle(
-            new ListInstructorSlotsQuery(instructorProfileId, courseId, from, until),
+            new ListInstructorSlotsQuery(
+                instructorProfileId,
+                courseId,
+                from,
+                until,
+                lessonDurationMinutes),
             cancellationToken);
 
         return result.ToActionResult(this);

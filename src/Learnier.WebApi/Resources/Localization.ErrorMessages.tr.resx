@@ -653,4 +653,8 @@
   <data name="compensation.penalty_percentage_invalid" xml:space="preserve"><value>Penalty oranları 0 ile 100 arasında olmalıdır.</value></data>
   <data name="compensation.penalty_steps_not_increasing" xml:space="preserve"><value>Penalty oranları her basamakta artmalıdır.</value></data>
   <data name="compensation.rate_not_configured" xml:space="preserve"><value>Bu ders alanı ve {duration} dakikalık süre için eğitmen ücreti tanımlanmamış.</value></data>
+  <data name="compensation.instructor_required" xml:space="preserve"><value>Eğitmen seçimi gerekli.</value></data>
+  <data name="compensation.waiver_reason_required" xml:space="preserve"><value>Ceza affetme gerekçesi gerekli.</value></data>
+  <data name="compensation.waiver_reason_too_long" xml:space="preserve"><value>Ceza affetme gerekçesi en fazla 500 karakter olabilir.</value></data>
+  <data name="compensation.no_pending_penalty" xml:space="preserve"><value>Eğitmenin affedilebilecek bekleyen bir cezası yok.</value></data>
 </root>

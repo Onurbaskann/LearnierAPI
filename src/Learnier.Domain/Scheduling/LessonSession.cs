@@ -66,6 +66,12 @@ public sealed class LessonSession : AggregateRoot, IAuditableEntity, ITenantScop
     /// <summary>Bu ana kadar yapilan iptallerde ders hakki iade edilir.</summary>
     public DateTimeOffset? CancellationDeadlineAt { get; private set; }
 
+    /// <summary>Bu ana kadar eğitmen iptalinde ceza uygulanmaz.</summary>
+    public DateTimeOffset? InstructorCancellationDeadlineAt { get; private set; }
+
+    /// <summary>Son tarihler oluşturulurken kullanılan kurum politikası sürümü.</summary>
+    public int? CancellationPolicyVersion { get; private set; }
+
     public string? CancellationReason { get; private set; }
 
     public Course Course { get; private set; } = null!;
@@ -102,6 +108,15 @@ public sealed class LessonSession : AggregateRoot, IAuditableEntity, ITenantScop
             throw new ArgumentException("Oturum bitisi baslangictan sonra olmalidir.", nameof(endsAt));
         }
 
+        var durationMinutes = (endsAt - startsAt).TotalMinutes;
+        if (sessionType is SessionType.Private && durationMinutes is not (30 or 50))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(endsAt),
+                durationMinutes,
+                "Birebir ders suresi 30 veya 50 dakika olmalidir.");
+        }
+
         return new LessonSession
         {
             OrganizationId = organizationId,
@@ -135,6 +150,20 @@ public sealed class LessonSession : AggregateRoot, IAuditableEntity, ITenantScop
         BookingOpensAt = opensAt;
         BookingClosesAt = closesAt;
         CancellationDeadlineAt = cancellationDeadlineAt;
+    }
+
+    public void ApplyCancellationPolicy(
+        int studentRefundCutoffMinutes,
+        int instructorPenaltyCutoffMinutes,
+        int policyVersion)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(studentRefundCutoffMinutes);
+        ArgumentOutOfRangeException.ThrowIfNegative(instructorPenaltyCutoffMinutes);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(policyVersion);
+
+        CancellationDeadlineAt = StartsAt.AddMinutes(-studentRefundCutoffMinutes);
+        InstructorCancellationDeadlineAt = StartsAt.AddMinutes(-instructorPenaltyCutoffMinutes);
+        CancellationPolicyVersion = policyVersion;
     }
 
     public void SetMeeting(string provider, string reference)

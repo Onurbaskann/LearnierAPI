@@ -98,7 +98,11 @@ public sealed class AppDbContext(
 
     public DbSet<InstructorPenaltyState> InstructorPenaltyStates => Set<InstructorPenaltyState>();
 
+    public DbSet<InstructorPenaltyEvent> InstructorPenaltyEvents => Set<InstructorPenaltyEvent>();
+
     public DbSet<InstructorEarning> InstructorEarnings => Set<InstructorEarning>();
+
+    public DbSet<CancellationPolicy> CancellationPolicies => Set<CancellationPolicy>();
 
     public DbSet<PaymentCustomer> PaymentCustomers => Set<PaymentCustomer>();
 

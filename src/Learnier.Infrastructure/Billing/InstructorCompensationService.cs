@@ -9,6 +9,7 @@ namespace Learnier.Infrastructure.Billing;
 internal sealed class InstructorCompensationService(
     AppDbContext context,
     ICurrentTenant currentTenant,
+    ICurrentUser currentUser,
     IClock clock) : IInstructorCompensationService
 {
     public async Task<Result> RegisterLateCancellationAsync(
@@ -16,6 +17,20 @@ internal sealed class InstructorCompensationService(
         Guid sessionId,
         CancellationToken cancellationToken)
     {
+        if (currentTenant.OrganizationId is not { } organizationId)
+        {
+            return Error.Forbidden("tenant.organization_required");
+        }
+
+        if (await context.InstructorPenaltyEvents.AnyAsync(
+                item => item.InstructorProfileId == instructorProfileId
+                        && item.SessionId == sessionId
+                        && item.EventType == InstructorPenaltyEventType.LateCancellation,
+                cancellationToken))
+        {
+            return Result.Success();
+        }
+
         var state = await context.InstructorPenaltyStates
             .SingleOrDefaultAsync(
                 item => item.InstructorProfileId == instructorProfileId,
@@ -27,7 +42,17 @@ internal sealed class InstructorCompensationService(
             context.InstructorPenaltyStates.Add(state);
         }
 
-        state.RegisterLateCancellation(sessionId, clock.UtcNow);
+        var nextLevel = state.Level + 1;
+        var percentage = await ResolvePenaltyPercentageAsync(nextLevel, cancellationToken);
+        var occurredAt = clock.UtcNow;
+        state.RegisterLateCancellation(sessionId, percentage, occurredAt);
+        context.InstructorPenaltyEvents.Add(InstructorPenaltyEvent.LateCancellation(
+            organizationId,
+            instructorProfileId,
+            sessionId,
+            state.Level,
+            percentage,
+            occurredAt));
         return Result.Success();
     }
 
@@ -91,10 +116,11 @@ internal sealed class InstructorCompensationService(
                 state => state.InstructorProfileId == instructorId,
                 cancellationToken);
             var penaltyPercentage = penaltyState is { Level: > 0 }
-                ? await ResolvePenaltyPercentageAsync(penaltyState.Level, cancellationToken)
+                ? penaltyState.PendingPercentage
+                    ?? await ResolvePenaltyPercentageAsync(penaltyState.Level, cancellationToken)
                 : 0m;
 
-            context.InstructorEarnings.Add(InstructorEarning.Create(
+            var earning = InstructorEarning.Create(
                 sessionId,
                 instructorId,
                 session.SubjectId,
@@ -102,10 +128,22 @@ internal sealed class InstructorCompensationService(
                 configuredRate.Amount,
                 penaltyPercentage,
                 configuredRate.Currency,
-                clock.UtcNow));
+                clock.UtcNow);
+            context.InstructorEarnings.Add(earning);
 
             // Penalty, bir sonraki ders gerçekten tamamlandığında tek seferde kapanır.
-            penaltyState?.Clear();
+            if (penaltyState is { Level: > 0 })
+            {
+                context.InstructorPenaltyEvents.Add(InstructorPenaltyEvent.Applied(
+                    session.OrganizationId,
+                    instructorId,
+                    sessionId,
+                    earning.Id,
+                    penaltyState.Level,
+                    penaltyPercentage,
+                    clock.UtcNow));
+                penaltyState.Clear();
+            }
         }
 
         return Result.Success();
@@ -181,6 +219,144 @@ internal sealed class InstructorCompensationService(
                 existing.Where(step => step.Level > percentages.Count));
         }
 
+        return Result.Success();
+    }
+
+    public async Task<Result<CompensationSettings>> GetSettingsAsync(
+        CancellationToken cancellationToken)
+    {
+        if (!currentTenant.HasTenant)
+        {
+            return Error.Forbidden("tenant.organization_required");
+        }
+
+        var rates = await (
+            from rate in context.InstructorCompensationRates
+            join subject in context.Subjects on rate.SubjectId equals subject.Id
+            orderby subject.Name, rate.LessonDurationMinutes
+            select new CompensationRateItem(
+                rate.Id,
+                rate.SubjectId,
+                subject.Name,
+                rate.LessonDurationMinutes,
+                rate.Amount,
+                rate.Currency,
+                rate.IsActive))
+            .ToListAsync(cancellationToken);
+
+        var configuredSteps = await context.InstructorPenaltySteps
+            .OrderBy(step => step.Level)
+            .Select(step => new CompensationPenaltyStepItem(step.Level, step.Percentage))
+            .ToListAsync(cancellationToken);
+        var usesDefaults = configuredSteps.Count == 0;
+        IReadOnlyList<CompensationPenaltyStepItem> steps = usesDefaults
+            ?
+            [
+                new(1, 10m),
+                new(2, 15m),
+                new(3, 20m),
+                new(4, 25m)
+            ]
+            : configuredSteps;
+
+        return new CompensationSettings(rates, steps, usesDefaults);
+    }
+
+    public async Task<Result<InstructorPenaltyHistory>> GetPenaltyHistoryAsync(
+        Guid instructorProfileId,
+        CancellationToken cancellationToken)
+    {
+        if (!currentTenant.HasTenant)
+        {
+            return Error.Forbidden("tenant.organization_required");
+        }
+
+        if (!await context.InstructorProfiles.AnyAsync(
+                item => item.Id == instructorProfileId,
+                cancellationToken))
+        {
+            return Error.NotFound("teaching.instructor_not_found");
+        }
+
+        var state = await context.InstructorPenaltyStates
+            .Where(item => item.InstructorProfileId == instructorProfileId)
+            .Select(item => new { item.Level, item.PendingPercentage })
+            .SingleOrDefaultAsync(cancellationToken);
+
+        var eventRows = await context.InstructorPenaltyEvents
+            .Where(item => item.InstructorProfileId == instructorProfileId)
+            .OrderByDescending(item => item.OccurredAt)
+            .Take(100)
+            .Select(item => new
+            {
+                item.Id,
+                item.EventType,
+                item.SessionId,
+                item.EarningId,
+                item.Level,
+                item.Percentage,
+                item.Reason,
+                item.OccurredAt,
+                item.ActorUserId
+            })
+            .ToListAsync(cancellationToken);
+        var events = eventRows.Select(item => new InstructorPenaltyEventItem(
+            item.Id,
+            item.EventType.ToString(),
+            item.SessionId,
+            item.EarningId,
+            item.Level,
+            item.Percentage,
+            item.Reason,
+            item.OccurredAt,
+            item.ActorUserId)).ToList();
+
+        return new InstructorPenaltyHistory(
+            instructorProfileId,
+            state?.Level ?? 0,
+            state?.PendingPercentage ?? 0m,
+            events);
+    }
+
+    public async Task<Result> WaivePenaltyAsync(
+        Guid instructorProfileId,
+        string reason,
+        CancellationToken cancellationToken)
+    {
+        if (currentTenant.OrganizationId is not { } organizationId
+            || currentUser.UserId is not { } actorUserId)
+        {
+            return Error.Forbidden("tenant.organization_required");
+        }
+
+        var instructorExists = await context.InstructorProfiles
+            .FromSqlInterpolated(
+                $"SELECT * FROM instructor_profiles WHERE id = {instructorProfileId} FOR UPDATE")
+            .AnyAsync(cancellationToken);
+        if (!instructorExists)
+        {
+            return Error.NotFound("teaching.instructor_not_found");
+        }
+
+        var state = await context.InstructorPenaltyStates.SingleOrDefaultAsync(
+            item => item.InstructorProfileId == instructorProfileId,
+            cancellationToken);
+        if (state is null || state.Level == 0)
+        {
+            return Error.Conflict("compensation.no_pending_penalty");
+        }
+
+        context.InstructorPenaltyEvents.Add(InstructorPenaltyEvent.Waived(
+            organizationId,
+            instructorProfileId,
+            state.Level,
+            state.PendingPercentage ?? await ResolvePenaltyPercentageAsync(
+                state.Level,
+                cancellationToken),
+            reason,
+            clock.UtcNow,
+            actorUserId));
+        state.Clear();
         return Result.Success();
     }
 

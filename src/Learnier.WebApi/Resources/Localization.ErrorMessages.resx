@@ -657,4 +657,8 @@
   <data name="compensation.penalty_percentage_invalid" xml:space="preserve"><value>Penalty percentages must be between 0 and 100.</value></data>
   <data name="compensation.penalty_steps_not_increasing" xml:space="preserve"><value>Penalty percentages must increase at every step.</value></data>
   <data name="compensation.rate_not_configured" xml:space="preserve"><value>Instructor compensation is not configured for this subject and {duration}-minute duration.</value></data>
+  <data name="compensation.instructor_required" xml:space="preserve"><value>Instructor is required.</value></data>
+  <data name="compensation.waiver_reason_required" xml:space="preserve"><value>A reason is required to waive a penalty.</value></data>
+  <data name="compensation.waiver_reason_too_long" xml:space="preserve"><value>The waiver reason can contain at most 500 characters.</value></data>
+  <data name="compensation.no_pending_penalty" xml:space="preserve"><value>The instructor has no pending penalty to waive.</value></data>
 </root>

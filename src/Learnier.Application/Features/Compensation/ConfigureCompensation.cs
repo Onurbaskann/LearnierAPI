@@ -95,3 +95,10 @@ public sealed class ConfigurePenaltyStepsHandler(
         return Result.Success();
     }
 }
+
+public sealed class GetCompensationSettingsHandler(
+    IInstructorCompensationService compensation)
+{
+    public Task<Result<CompensationSettings>> Handle(CancellationToken cancellationToken)
+        => compensation.GetSettingsAsync(cancellationToken);
+}

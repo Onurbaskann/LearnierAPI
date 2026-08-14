@@ -26,13 +26,37 @@ public sealed class InstructorCompensationTests
     {
         var state = InstructorPenaltyState.Create(Guid.NewGuid());
 
-        state.RegisterLateCancellation(Guid.NewGuid(), DateTimeOffset.UtcNow);
-        state.RegisterLateCancellation(Guid.NewGuid(), DateTimeOffset.UtcNow);
+        state.RegisterLateCancellation(Guid.NewGuid(), 10m, DateTimeOffset.UtcNow);
+        state.RegisterLateCancellation(Guid.NewGuid(), 15m, DateTimeOffset.UtcNow);
         state.Level.ShouldBe(2);
+        state.PendingPercentage.ShouldBe(15m);
 
         state.Clear();
         state.Level.ShouldBe(0);
+        state.PendingPercentage.ShouldBeNull();
         state.LastCancelledSessionId.ShouldBeNull();
+    }
+
+    [Fact]
+    public void PenaltyEvents_ShouldKeepSnapshotAndWaiverReason()
+    {
+        var organizationId = Guid.NewGuid();
+        var instructorId = Guid.NewGuid();
+        var actorId = Guid.NewGuid();
+        var occurredAt = DateTimeOffset.UtcNow;
+
+        var late = InstructorPenaltyEvent.LateCancellation(
+            organizationId, instructorId, Guid.NewGuid(), 2, 15m, occurredAt);
+        var waived = InstructorPenaltyEvent.Waived(
+            organizationId, instructorId, 2, 15m,
+            "Sağlık belgesi doğrulandı", occurredAt.AddMinutes(5), actorId);
+
+        late.EventType.ShouldBe(InstructorPenaltyEventType.LateCancellation);
+        late.Level.ShouldBe(2);
+        late.Percentage.ShouldBe(15m);
+        waived.EventType.ShouldBe(InstructorPenaltyEventType.Waived);
+        waived.Reason.ShouldBe("Sağlık belgesi doğrulandı");
+        waived.ActorUserId.ShouldBe(actorId);
     }
 
     [Fact]
@@ -41,8 +65,8 @@ public sealed class InstructorCompensationTests
         var state = InstructorPenaltyState.Create(Guid.NewGuid());
         var sessionId = Guid.NewGuid();
 
-        state.RegisterLateCancellation(sessionId, DateTimeOffset.UtcNow);
-        state.RegisterLateCancellation(sessionId, DateTimeOffset.UtcNow.AddMinutes(1));
+        state.RegisterLateCancellation(sessionId, 10m, DateTimeOffset.UtcNow);
+        state.RegisterLateCancellation(sessionId, 10m, DateTimeOffset.UtcNow.AddMinutes(1));
 
         state.Level.ShouldBe(1);
     }

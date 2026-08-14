@@ -71,6 +71,22 @@ public sealed class InstructorCompensationTests
         state.Level.ShouldBe(1);
     }
 
+    [Fact]
+    public void PenaltyState_ShouldStayAtConfiguredMaximumLevel()
+    {
+        var state = InstructorPenaltyState.Create(Guid.NewGuid());
+
+        state.RegisterLateCancellation(
+            Guid.NewGuid(), 10m, DateTimeOffset.UtcNow, maximumLevel: 2);
+        state.RegisterLateCancellation(
+            Guid.NewGuid(), 15m, DateTimeOffset.UtcNow, maximumLevel: 2);
+        state.RegisterLateCancellation(
+            Guid.NewGuid(), 15m, DateTimeOffset.UtcNow, maximumLevel: 2);
+
+        state.Level.ShouldBe(2);
+        state.PendingPercentage.ShouldBe(15m);
+    }
+
     [Theory]
     [InlineData(30)]
     [InlineData(50)]

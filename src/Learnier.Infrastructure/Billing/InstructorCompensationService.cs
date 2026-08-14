@@ -42,10 +42,14 @@ internal sealed class InstructorCompensationService(
             context.InstructorPenaltyStates.Add(state);
         }
 
-        var nextLevel = state.Level + 1;
+        var maximumLevel = await context.InstructorPenaltySteps
+            .Select(step => (int?)step.Level)
+            .MaxAsync(cancellationToken)
+            ?? 4;
+        var nextLevel = Math.Min(state.Level + 1, maximumLevel);
         var percentage = await ResolvePenaltyPercentageAsync(nextLevel, cancellationToken);
         var occurredAt = clock.UtcNow;
-        state.RegisterLateCancellation(sessionId, percentage, occurredAt);
+        state.RegisterLateCancellation(sessionId, percentage, occurredAt, maximumLevel);
         context.InstructorPenaltyEvents.Add(InstructorPenaltyEvent.LateCancellation(
             organizationId,
             instructorProfileId,

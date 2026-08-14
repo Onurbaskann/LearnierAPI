@@ -23,7 +23,8 @@ public sealed class InstructorPenaltyState : Entity, IAuditableEntity
     public void RegisterLateCancellation(
         Guid sessionId,
         decimal pendingPercentage,
-        DateTimeOffset occurredAt)
+        DateTimeOffset occurredAt,
+        int? maximumLevel = null)
     {
         if (LastCancelledSessionId == sessionId)
         {
@@ -35,7 +36,14 @@ public sealed class InstructorPenaltyState : Entity, IAuditableEntity
             throw new ArgumentOutOfRangeException(nameof(pendingPercentage));
         }
 
-        Level++;
+        if (maximumLevel is <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(maximumLevel));
+        }
+
+        Level = maximumLevel is { } cap
+            ? Math.Min(Level + 1, cap)
+            : Level + 1;
         PendingPercentage = pendingPercentage;
         LastCancelledSessionId = sessionId;
         LastPenaltyAt = occurredAt;

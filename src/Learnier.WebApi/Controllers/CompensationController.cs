@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using Learnier.Application.Common.Abstractions;
 using Learnier.Application.Common.Security;
 using Learnier.Application.Features.Compensation;
@@ -63,4 +64,5 @@ public sealed class CompensationController : ControllerBase
         => (await handler.Handle(command, cancellationToken)).ToActionResult(this);
 }
 
-public sealed record WaivePenaltyRequest(string Reason);
+public sealed record WaivePenaltyRequest(
+    [Required(AllowEmptyStrings = false), MaxLength(500)] string Reason);

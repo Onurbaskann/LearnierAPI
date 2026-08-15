@@ -116,6 +116,11 @@ public sealed class CreateBookingHandler(
 
         scheduling.AddBooking(booking);
 
+        // Hak ancak rezervasyon kaydi olustuktan sonra dusulur: defter hareketi
+        // rezervasyon kimligini tasimak zorunda. Ayni islem icinde oldugu icin
+        // ikisi birlikte yazilir veya birlikte geri alinir.
+        await entitlements.ConsumeAsync(booking, session, grant.Value, cancellationToken);
+
         // Asgari katilimci sarti saglandiysa oturum kesinlesir. Sayim veritabanindan
         // geliyor; bellekteki koleksiyon kilitli okumada yuklu degil.
         if (booking.Status is BookingStatus.Reserved)

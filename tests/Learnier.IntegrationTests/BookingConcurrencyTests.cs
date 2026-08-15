@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text.Json;
 using Learnier.Application.Features.Authentication.Commands.LoginUser;
 using Learnier.Application.Features.Catalog.Commands.CreateCourse;
 using Learnier.Application.Features.Catalog.Commands.CreateSubject;
@@ -189,6 +190,74 @@ public sealed class BookingConcurrencyTests(AuthApiFixture fixture) : IClassFixt
         setup.Dispose();
     }
 
+
+    /// <summary>
+    /// Kuruma sinirsiz grup erisimi veren bir plan kurar ve fiyat kimligini dondurur.
+    /// </summary>
+    private static async Task<Guid> CreateUnlimitedPlan(HttpClient ownerClient)
+    {
+        var plan = await ownerClient.PostAsJsonAsync(
+            new Uri("/api/v1/plans", UriKind.Relative),
+            new { name = "Sinirsiz Grup", catalogAccess = "All", description = (string?)null },
+            TestContext.Current.CancellationToken);
+
+        plan.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        var planId = (await plan.Content.ReadFromJsonAsync<JsonElement>(
+            TestContext.Current.CancellationToken)).GetProperty("planId").GetGuid();
+
+        var price = await ownerClient.PostAsJsonAsync(
+            new Uri($"/api/v1/plans/{planId}/prices", UriKind.Relative),
+            new { currency = "TRY", amount = 500m, billingInterval = "Month", billingIntervalCount = 1 },
+            TestContext.Current.CancellationToken);
+
+        price.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        var entitlement = await ownerClient.PostAsJsonAsync(
+            new Uri($"/api/v1/plans/{planId}/entitlements", UriKind.Relative),
+            new
+            {
+                entitlementType = "BookingAccess",
+                sessionType = "Group",
+                resetPeriod = "Subscription",
+                quantity = (int?)null
+            },
+            TestContext.Current.CancellationToken);
+
+        entitlement.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        var activated = await ownerClient.PostAsync(
+            new Uri($"/api/v1/plans/{planId}/activate", UriKind.Relative),
+            content: null,
+            TestContext.Current.CancellationToken);
+
+        activated.StatusCode.ShouldBe(HttpStatusCode.NoContent);
+
+        return (await price.Content.ReadFromJsonAsync<JsonElement>(
+            TestContext.Current.CancellationToken)).GetProperty("planPriceId").GetGuid();
+    }
+
+    /// <summary>Ogrenciye abonelik acar.</summary>
+    private async Task Subscribe(SessionSetup setup, string email)
+    {
+        Guid learnerId;
+
+        await using (var context = fixture.CreateContext())
+        {
+            var user = await context.Users.FirstAsync(
+                u => u.Email == email, TestContext.Current.CancellationToken);
+
+            learnerId = user.Id;
+        }
+
+        var response = await setup.OwnerClient.PostAsJsonAsync(
+            new Uri("/api/v1/subscriptions", UriKind.Relative),
+            new { planPriceId = setup.PlanPriceId, subscriberUserId = learnerId },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+    }
+
     private static Task<HttpResponseMessage> Book(HttpClient client, Guid sessionId)
         => client.PostAsJsonAsync(
             new Uri($"/api/v1/sessions/{sessionId}/bookings", UriKind.Relative),
@@ -257,6 +326,10 @@ public sealed class BookingConcurrencyTests(AuthApiFixture fixture) : IClassFixt
         var courseId = (await course.Content.ReadFromJsonAsync<CreateCourseResult>(
             TestJson.Options, TestContext.Current.CancellationToken))!.CourseId;
 
+        // Sinirsiz grup erisimi veren plan: rezervasyon artik abonelik istiyor.
+        // Kredi bazli senaryolar ayri test sinifinda (SubscriptionBookingTests).
+        var planPriceId = await CreateUnlimitedPlan(ownerClient);
+
         var startsAt = DateTimeOffset.UtcNow.AddDays(7);
 
         var session = await ownerClient.PostAsJsonAsync(
@@ -277,7 +350,7 @@ public sealed class BookingConcurrencyTests(AuthApiFixture fixture) : IClassFixt
         var sessionId = (await session.Content.ReadFromJsonAsync<CreateSessionResult>(
             TestJson.Options, TestContext.Current.CancellationToken))!.SessionId;
 
-        return new SessionSetup(ownerClient, created.OrganizationId, sessionId);
+        return new SessionSetup(ownerClient, created.OrganizationId, sessionId, planPriceId);
     }
 
     /// <summary>
@@ -302,6 +375,7 @@ public sealed class BookingConcurrencyTests(AuthApiFixture fixture) : IClassFixt
             invited.StatusCode.ShouldBe(HttpStatusCode.OK);
 
             await ActivateMembership(setup.OrganizationId, email);
+            await Subscribe(setup, email);
 
             var client = fixture.CreateClient();
             await SignIn(client, email, "CokGuvenli123");
@@ -379,7 +453,11 @@ public sealed class BookingConcurrencyTests(AuthApiFixture fixture) : IClassFixt
 
     private sealed record Learner(string Email, HttpClient Client);
 
-    private sealed record SessionSetup(HttpClient OwnerClient, Guid OrganizationId, Guid SessionId)
+    private sealed record SessionSetup(
+        HttpClient OwnerClient,
+        Guid OrganizationId,
+        Guid SessionId,
+        Guid PlanPriceId)
     {
         public void Dispose() => OwnerClient.Dispose();
     }

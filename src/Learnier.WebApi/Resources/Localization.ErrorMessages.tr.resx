@@ -445,4 +445,108 @@
   <data name="scheduling.session_required" xml:space="preserve">
     <value>Oturum gerekli.</value>
   </data>
+
+  <data name="billing.plan_not_found" xml:space="preserve">
+    <value>Plan bulunamadı.</value>
+  </data>
+  <data name="billing.plan_price_not_found" xml:space="preserve">
+    <value>Seçilen fiyat mevcut değil.</value>
+  </data>
+  <data name="billing.plan_price_not_active" xml:space="preserve">
+    <value>Bu fiyat arşivlenmiş, yeni abonelikte kullanılamaz.</value>
+  </data>
+  <data name="billing.plan_not_active" xml:space="preserve">
+    <value>Bu plan yeni aboneliğe kapalı.</value>
+  </data>
+  <data name="billing.subject_not_found" xml:space="preserve">
+    <value>Seçilen eğitim alanı mevcut değil.</value>
+  </data>
+  <data name="billing.course_not_found" xml:space="preserve">
+    <value>Seçilen eğitim mevcut değil.</value>
+  </data>
+  <data name="billing.subscription_not_found" xml:space="preserve">
+    <value>Abonelik bulunamadı.</value>
+  </data>
+  <data name="billing.learner_not_found" xml:space="preserve">
+    <value>Seçilen öğrenci mevcut değil.</value>
+  </data>
+  <data name="billing.membership_not_found" xml:space="preserve">
+    <value>Üyelik bulunamadı.</value>
+  </data>
+  <data name="billing.no_active_subscription" xml:space="preserve">
+    <value>Bu oturum için aktif bir aboneliğiniz yok.</value>
+  </data>
+  <data name="billing.course_not_covered" xml:space="preserve">
+    <value>Aboneliğiniz bu eğitimi kapsamıyor.</value>
+  </data>
+  <data name="billing.session_type_not_covered" xml:space="preserve">
+    <value>Planınız bu ders türünü içermiyor.</value>
+  </data>
+  <data name="billing.insufficient_credit" xml:space="preserve">
+    <value>Ders hakkınız kalmadı.</value>
+  </data>
+  <data name="billing.balance_not_owned" xml:space="preserve">
+    <value>Yalnızca kendi bakiyenizi görebilirsiniz.</value>
+  </data>
+  <data name="billing.plan_name_required" xml:space="preserve">
+    <value>Plan adı gerekli.</value>
+  </data>
+  <data name="billing.plan_name_too_long" xml:space="preserve">
+    <value>Plan adı çok uzun.</value>
+  </data>
+  <data name="billing.plan_description_too_long" xml:space="preserve">
+    <value>Plan açıklaması çok uzun.</value>
+  </data>
+  <data name="billing.catalog_access_invalid" xml:space="preserve">
+    <value>Katalog kapsamı değeri geçersiz.</value>
+  </data>
+  <data name="billing.currency_required" xml:space="preserve">
+    <value>Para birimi gerekli.</value>
+  </data>
+  <data name="billing.currency_invalid" xml:space="preserve">
+    <value>Para birimi üç harfli kod olmalı.</value>
+  </data>
+  <data name="billing.amount_invalid" xml:space="preserve">
+    <value>Tutar negatif olamaz.</value>
+  </data>
+  <data name="billing.billing_interval_invalid" xml:space="preserve">
+    <value>Fatura aralığı geçersiz.</value>
+  </data>
+  <data name="billing.billing_interval_count_invalid" xml:space="preserve">
+    <value>Fatura aralık sayısı 1 ile 36 arasında olmalı.</value>
+  </data>
+  <data name="billing.entitlement_type_invalid" xml:space="preserve">
+    <value>Hak türü geçersiz.</value>
+  </data>
+  <data name="billing.session_type_invalid" xml:space="preserve">
+    <value>Ders türü geçersiz.</value>
+  </data>
+  <data name="billing.reset_period_invalid" xml:space="preserve">
+    <value>Yenilenme periyodu geçersiz.</value>
+  </data>
+  <data name="billing.quantity_required" xml:space="preserve">
+    <value>Sayılı ders hakkı için miktar gerekli.</value>
+  </data>
+  <data name="billing.quantity_invalid" xml:space="preserve">
+    <value>Miktar sıfırdan büyük olmalı.</value>
+  </data>
+  <data name="billing.quantity_not_allowed" xml:space="preserve">
+    <value>Sınırsız erişimde miktar belirtilemez.</value>
+  </data>
+  <data name="billing.access_target_invalid" xml:space="preserve">
+    <value>Alan veya eğitimden yalnızca birini verin.</value>
+  </data>
+  <data name="billing.plan_price_required" xml:space="preserve">
+    <value>Fiyat gerekli.</value>
+  </data>
+  <data name="billing.subscriber_invalid" xml:space="preserve">
+    <value>Abonelik ya bir kullanıcıya ya bir kuruma ait olmalı.</value>
+  </data>
+
+  <data name="billing.plan_has_no_active_price" xml:space="preserve">
+    <value>Aktif fiyatı olmayan plan satışa açılamaz.</value>
+  </data>
+  <data name="billing.plan_has_no_entitlement" xml:space="preserve">
+    <value>En az bir hak tanımı olmayan plan satışa açılamaz.</value>
+  </data>
 </root>

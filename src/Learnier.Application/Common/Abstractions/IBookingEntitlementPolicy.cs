@@ -23,9 +23,27 @@ public interface IBookingEntitlementPolicy
     /// <summary>
     /// Rezervasyona izin veriyorsa hangi hakla odenecegini dondurur.
     /// </summary>
+    /// <remarks>
+    /// Yalnizca <b>karar</b> verir; hakki dusmez. Harcama, rezervasyon kaydi
+    /// olustuktan sonra <see cref="ConsumeAsync"/> ile islenir - defter hareketi
+    /// rezervasyon kimligini tasimak zorunda.
+    /// </remarks>
     Task<Result<BookingGrant>> AuthorizeAsync(
         Guid learnerUserId,
         LessonSession session,
+        CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Rezervasyon olustuktan sonra hakki duser.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="AuthorizeAsync"/> ile ayni islem icinde cagrilmalidir: ikisi
+    /// arasinda islem kesilirse hak dusulmeden rezervasyon yazilmis olurdu.
+    /// </remarks>
+    Task ConsumeAsync(
+        SessionBooking booking,
+        LessonSession session,
+        BookingGrant grant,
         CancellationToken cancellationToken);
 
     /// <summary>

@@ -449,4 +449,108 @@
   <data name="scheduling.session_required" xml:space="preserve">
     <value>Session is required.</value>
   </data>
+
+  <data name="billing.plan_not_found" xml:space="preserve">
+    <value>Plan not found.</value>
+  </data>
+  <data name="billing.plan_price_not_found" xml:space="preserve">
+    <value>The selected price does not exist.</value>
+  </data>
+  <data name="billing.plan_price_not_active" xml:space="preserve">
+    <value>This price has been archived and cannot be used for new subscriptions.</value>
+  </data>
+  <data name="billing.plan_not_active" xml:space="preserve">
+    <value>This plan is not open for new subscriptions.</value>
+  </data>
+  <data name="billing.subject_not_found" xml:space="preserve">
+    <value>The selected subject does not exist.</value>
+  </data>
+  <data name="billing.course_not_found" xml:space="preserve">
+    <value>The selected course does not exist.</value>
+  </data>
+  <data name="billing.subscription_not_found" xml:space="preserve">
+    <value>Subscription not found.</value>
+  </data>
+  <data name="billing.learner_not_found" xml:space="preserve">
+    <value>The selected learner does not exist.</value>
+  </data>
+  <data name="billing.membership_not_found" xml:space="preserve">
+    <value>Membership not found.</value>
+  </data>
+  <data name="billing.no_active_subscription" xml:space="preserve">
+    <value>You do not have an active subscription for this session.</value>
+  </data>
+  <data name="billing.course_not_covered" xml:space="preserve">
+    <value>Your subscription does not cover this course.</value>
+  </data>
+  <data name="billing.session_type_not_covered" xml:space="preserve">
+    <value>Your plan does not include this type of lesson.</value>
+  </data>
+  <data name="billing.insufficient_credit" xml:space="preserve">
+    <value>You have no lesson credits left.</value>
+  </data>
+  <data name="billing.balance_not_owned" xml:space="preserve">
+    <value>You can only view your own balance.</value>
+  </data>
+  <data name="billing.plan_name_required" xml:space="preserve">
+    <value>Plan name is required.</value>
+  </data>
+  <data name="billing.plan_name_too_long" xml:space="preserve">
+    <value>Plan name is too long.</value>
+  </data>
+  <data name="billing.plan_description_too_long" xml:space="preserve">
+    <value>Plan description is too long.</value>
+  </data>
+  <data name="billing.catalog_access_invalid" xml:space="preserve">
+    <value>Catalog access value is invalid.</value>
+  </data>
+  <data name="billing.currency_required" xml:space="preserve">
+    <value>Currency is required.</value>
+  </data>
+  <data name="billing.currency_invalid" xml:space="preserve">
+    <value>Currency must be a three-letter code.</value>
+  </data>
+  <data name="billing.amount_invalid" xml:space="preserve">
+    <value>Amount cannot be negative.</value>
+  </data>
+  <data name="billing.billing_interval_invalid" xml:space="preserve">
+    <value>Billing interval is invalid.</value>
+  </data>
+  <data name="billing.billing_interval_count_invalid" xml:space="preserve">
+    <value>Billing interval count must be between 1 and 36.</value>
+  </data>
+  <data name="billing.entitlement_type_invalid" xml:space="preserve">
+    <value>Entitlement type is invalid.</value>
+  </data>
+  <data name="billing.session_type_invalid" xml:space="preserve">
+    <value>Session type is invalid.</value>
+  </data>
+  <data name="billing.reset_period_invalid" xml:space="preserve">
+    <value>Reset period is invalid.</value>
+  </data>
+  <data name="billing.quantity_required" xml:space="preserve">
+    <value>Quantity is required for lesson credits.</value>
+  </data>
+  <data name="billing.quantity_invalid" xml:space="preserve">
+    <value>Quantity must be greater than zero.</value>
+  </data>
+  <data name="billing.quantity_not_allowed" xml:space="preserve">
+    <value>Quantity cannot be set for unlimited access.</value>
+  </data>
+  <data name="billing.access_target_invalid" xml:space="preserve">
+    <value>Provide either a subject or a course, not both.</value>
+  </data>
+  <data name="billing.plan_price_required" xml:space="preserve">
+    <value>Price is required.</value>
+  </data>
+  <data name="billing.subscriber_invalid" xml:space="preserve">
+    <value>A subscription must belong to either a user or an organization.</value>
+  </data>
+
+  <data name="billing.plan_has_no_active_price" xml:space="preserve">
+    <value>A plan cannot be activated without an active price.</value>
+  </data>
+  <data name="billing.plan_has_no_entitlement" xml:space="preserve">
+    <value>A plan cannot be activated without at least one entitlement.</value>
+  </data>
 </root>

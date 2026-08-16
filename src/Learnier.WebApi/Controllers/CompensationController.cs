@@ -1,4 +1,3 @@
-using System.ComponentModel.DataAnnotations;
 using Learnier.Application.Common.Abstractions;
 using Learnier.Application.Common.Security;
 using Learnier.Application.Features.Compensation;
@@ -29,11 +28,12 @@ public sealed class CompensationController : ControllerBase
     [HttpPost("instructors/{instructorProfileId:guid}/penalties/waive")]
     public async Task<ActionResult> WaiveInstructorPenalty(
         Guid instructorProfileId,
-        WaivePenaltyRequest request,
+        WaiveInstructorPenaltyCommand command,
         [FromServices] WaiveInstructorPenaltyHandler handler,
         CancellationToken cancellationToken)
         => (await handler.Handle(
-            new WaiveInstructorPenaltyCommand(instructorProfileId, request.Reason),
+            instructorProfileId,
+            command,
             cancellationToken)).ToActionResult(this);
 
     [HttpGet("cancellation-policy")]
@@ -63,6 +63,3 @@ public sealed class CompensationController : ControllerBase
         CancellationToken cancellationToken)
         => (await handler.Handle(command, cancellationToken)).ToActionResult(this);
 }
-
-public sealed record WaivePenaltyRequest(
-    [Required(AllowEmptyStrings = false), MaxLength(500)] string Reason);

@@ -5,7 +5,6 @@ using Learnier.Application.Common.Results;
 namespace Learnier.Application.Features.Teaching.Commands.SetInstructorHourlyRate;
 
 public sealed record SetInstructorHourlyRateCommand(
-    Guid ProfileId,
     decimal? HourlyRate,
     string? Currency);
 
@@ -36,6 +35,7 @@ public sealed class SetInstructorHourlyRateHandler(
     IUnitOfWork unitOfWork)
 {
     public async Task<Result> Handle(
+        Guid profileId,
         SetInstructorHourlyRateCommand command,
         bool canManageInstructors,
         CancellationToken cancellationToken)
@@ -47,7 +47,7 @@ public sealed class SetInstructorHourlyRateHandler(
             return Result.Failure(TeachingErrors.OrganizationContextRequired);
         }
 
-        var profile = await instructors.FindWithDetailsAsync(command.ProfileId, cancellationToken);
+        var profile = await instructors.FindWithDetailsAsync(profileId, cancellationToken);
 
         if (profile is null)
         {

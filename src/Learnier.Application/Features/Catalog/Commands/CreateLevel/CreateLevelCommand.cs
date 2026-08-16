@@ -6,7 +6,12 @@ using Learnier.Domain.Catalog;
 namespace Learnier.Application.Features.Catalog.Commands.CreateLevel;
 
 /// <param name="SortOrder">Seviyelerin dogal sirasi; karsilastirma bu alanla yapilir.</param>
-public sealed record CreateLevelCommand(Guid SubjectId, string Code, string Name, int SortOrder);
+/// <remarks>
+/// Alan kimligi komutta degil handler parametresinde tasinir: rotadan geliyor.
+/// Komut yalnizca govdeden geleni tutarsa action parametresi olarak baglanabilir
+/// ve <c>ValidationFilter</c> kurallari calistirabilir.
+/// </remarks>
+public sealed record CreateLevelCommand(string Code, string Name, int SortOrder);
 
 public sealed record CreateLevelResult(Guid LevelId, string Code);
 
@@ -14,9 +19,6 @@ internal sealed class CreateLevelValidator : AbstractValidator<CreateLevelComman
 {
     public CreateLevelValidator()
     {
-        RuleFor(c => c.SubjectId)
-            .NotEmpty().WithErrorCode("catalog.subject_required");
-
         RuleFor(c => c.Code)
             .NotEmpty().WithErrorCode("catalog.level_code_required")
             .MaximumLength(32).WithErrorCode("catalog.level_code_too_long");
@@ -40,6 +42,7 @@ public sealed class CreateLevelHandler(
     IUnitOfWork unitOfWork)
 {
     public async Task<Result<CreateLevelResult>> Handle(
+        Guid subjectId,
         CreateLevelCommand command,
         CancellationToken cancellationToken)
     {
@@ -51,7 +54,7 @@ public sealed class CreateLevelHandler(
         }
 
         // Kiraci filtresi geregi baska kurumun alanina seviye eklenemez.
-        var subject = await catalog.FindSubjectAsync(command.SubjectId, cancellationToken);
+        var subject = await catalog.FindSubjectAsync(subjectId, cancellationToken);
 
         if (subject is null)
         {

@@ -5,7 +5,6 @@ using Learnier.Application.Common.Results;
 namespace Learnier.Application.Features.Teaching.Commands.UpdateInstructorPublicProfile;
 
 public sealed record UpdateInstructorPublicProfileCommand(
-    Guid ProfileId,
     string? Headline,
     string? Bio,
     string? Hobbies);
@@ -15,9 +14,6 @@ internal sealed class UpdateInstructorPublicProfileValidator
 {
     public UpdateInstructorPublicProfileValidator()
     {
-        RuleFor(c => c.ProfileId)
-            .NotEmpty().WithErrorCode("teaching.profile_required");
-
         RuleFor(c => c.Headline)
             .MaximumLength(160).WithErrorCode("teaching.headline_too_long");
 
@@ -35,6 +31,7 @@ public sealed class UpdateInstructorPublicProfileHandler(
     IUnitOfWork unitOfWork)
 {
     public async Task<Result> Handle(
+        Guid profileId,
         UpdateInstructorPublicProfileCommand command,
         bool canManageInstructors,
         CancellationToken cancellationToken)
@@ -46,7 +43,7 @@ public sealed class UpdateInstructorPublicProfileHandler(
             return Result.Failure(TeachingErrors.OrganizationContextRequired);
         }
 
-        var profile = await instructors.FindWithDetailsAsync(command.ProfileId, cancellationToken);
+        var profile = await instructors.FindWithDetailsAsync(profileId, cancellationToken);
         if (profile is null)
         {
             return Result.Failure(TeachingErrors.ProfileNotFound);

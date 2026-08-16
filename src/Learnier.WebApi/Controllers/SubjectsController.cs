@@ -69,16 +69,13 @@ public sealed class SubjectsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult> Rename(
         Guid subjectId,
-        RenameSubjectRequest request,
+        RenameSubjectCommand command,
         [FromServices] RenameSubjectHandler handler,
         CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(request);
         ArgumentNullException.ThrowIfNull(handler);
 
-        var result = await handler.Handle(
-            new RenameSubjectCommand(subjectId, request.Name),
-            cancellationToken);
+        var result = await handler.Handle(subjectId, command, cancellationToken);
 
         return result.ToActionResult(this);
     }
@@ -110,16 +107,13 @@ public sealed class SubjectsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<CreateLevelResult>> CreateLevel(
         Guid subjectId,
-        CreateLevelRequest request,
+        CreateLevelCommand command,
         [FromServices] CreateLevelHandler handler,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(handler);
-        ArgumentNullException.ThrowIfNull(request);
 
-        var result = await handler.Handle(
-            new CreateLevelCommand(subjectId, request.Code, request.Name, request.SortOrder),
-            cancellationToken);
+        var result = await handler.Handle(subjectId, command, cancellationToken);
 
         return result.ToActionResult(this);
     }
@@ -141,9 +135,3 @@ public sealed class SubjectsController : ControllerBase
         return result.ToActionResult(this);
     }
 }
-
-/// <summary>Alan kimligi rotadan geldigi icin govdede tasinmaz.</summary>
-public sealed record CreateLevelRequest(string Code, string Name, int SortOrder);
-
-/// <summary>Alan kimligi rotadan geldigi icin govdede tasinmaz.</summary>
-public sealed record RenameSubjectRequest(string Name);

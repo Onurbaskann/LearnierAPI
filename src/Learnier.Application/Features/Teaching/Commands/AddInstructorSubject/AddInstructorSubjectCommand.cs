@@ -7,7 +7,7 @@ namespace Learnier.Application.Features.Teaching.Commands.AddInstructorSubject;
 /// <param name="LevelId">
 /// Bos birakilirsa egitmen o alanin tum seviyelerinde yetkin sayilir.
 /// </param>
-public sealed record AddInstructorSubjectCommand(Guid ProfileId, Guid SubjectId, Guid? LevelId);
+public sealed record AddInstructorSubjectCommand(Guid SubjectId, Guid? LevelId);
 
 public sealed record AddInstructorSubjectResult(Guid InstructorSubjectId);
 
@@ -30,6 +30,7 @@ public sealed class AddInstructorSubjectHandler(
     IUnitOfWork unitOfWork)
 {
     public async Task<Result<AddInstructorSubjectResult>> Handle(
+        Guid profileId,
         AddInstructorSubjectCommand command,
         bool canManageInstructors,
         CancellationToken cancellationToken)
@@ -41,7 +42,7 @@ public sealed class AddInstructorSubjectHandler(
             return TeachingErrors.OrganizationContextRequired;
         }
 
-        var profile = await instructors.FindWithDetailsAsync(command.ProfileId, cancellationToken);
+        var profile = await instructors.FindWithDetailsAsync(profileId, cancellationToken);
 
         if (profile is null)
         {

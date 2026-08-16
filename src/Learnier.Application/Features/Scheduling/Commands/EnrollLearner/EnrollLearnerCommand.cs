@@ -4,7 +4,12 @@ using Learnier.Application.Common.Results;
 
 namespace Learnier.Application.Features.Scheduling.Commands.EnrollLearner;
 
-public sealed record EnrollLearnerCommand(Guid ClassGroupId, Guid LearnerUserId);
+/// <remarks>
+/// Sinif kimligi komutta degil handler parametresinde tasinir: rotadan geliyor.
+/// Komut yalnizca govdeden geleni tutarsa action parametresi olarak baglanabilir
+/// ve <c>ValidationFilter</c> kurallari calistirabilir.
+/// </remarks>
+public sealed record EnrollLearnerCommand(Guid LearnerUserId);
 
 public sealed record EnrollLearnerResult(Guid MemberId);
 
@@ -34,6 +39,7 @@ public sealed class EnrollLearnerHandler(
     IClock clock)
 {
     public async Task<Result<EnrollLearnerResult>> Handle(
+        Guid classGroupId,
         EnrollLearnerCommand command,
         CancellationToken cancellationToken)
     {
@@ -45,7 +51,7 @@ public sealed class EnrollLearnerHandler(
         }
 
         var classGroup = await scheduling.FindClassGroupAsync(
-            command.ClassGroupId, includeMembers: true, cancellationToken);
+            classGroupId, includeMembers: true, cancellationToken);
 
         if (classGroup is null)
         {

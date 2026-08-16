@@ -12,8 +12,12 @@ public sealed record CompleteSessionAttendance(
     DateTimeOffset? JoinedAt = null,
     DateTimeOffset? LeftAt = null);
 
+/// <remarks>
+/// Oturum kimligi komutta degil handler parametresinde tasinir: rotadan geliyor.
+/// Komut yalnizca govdeden geleni tutarsa action parametresi olarak baglanabilir
+/// ve <c>ValidationFilter</c> kurallari calistirabilir.
+/// </remarks>
 public sealed record CompleteSessionCommand(
-    Guid SessionId,
     IReadOnlyList<CompleteSessionAttendance> Attendances);
 
 public sealed record CompleteSessionResult(int CompletedBookingCount);
@@ -22,9 +26,6 @@ internal sealed class CompleteSessionValidator : AbstractValidator<CompleteSessi
 {
     public CompleteSessionValidator()
     {
-        RuleFor(command => command.SessionId)
-            .NotEmpty().WithErrorCode("scheduling.session_required");
-
         RuleFor(command => command.Attendances)
             .NotNull().WithErrorCode("scheduling.attendance_required");
 
@@ -67,6 +68,7 @@ public sealed class CompleteSessionHandler(
     IClock clock)
 {
     public async Task<Result<CompleteSessionResult>> Handle(
+        Guid sessionId,
         CompleteSessionCommand command,
         bool canCompleteAnySession,
         CancellationToken cancellationToken)
@@ -79,7 +81,7 @@ public sealed class CompleteSessionHandler(
         }
 
         await using var transaction = await unitOfWork.BeginTransactionAsync(cancellationToken);
-        var session = await scheduling.FindSessionForUpdateAsync(command.SessionId, cancellationToken);
+        var session = await scheduling.FindSessionForUpdateAsync(sessionId, cancellationToken);
 
         if (session is null)
         {

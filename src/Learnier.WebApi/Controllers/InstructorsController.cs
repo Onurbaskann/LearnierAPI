@@ -99,16 +99,16 @@ public sealed class InstructorsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult> SetHourlyRate(
         Guid profileId,
-        SetInstructorHourlyRateRequest request,
+        SetInstructorHourlyRateCommand command,
         [FromServices] SetInstructorHourlyRateHandler handler,
         [FromServices] IAuthorizationService authorization,
         CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(request);
         ArgumentNullException.ThrowIfNull(handler);
 
         var result = await handler.Handle(
-            new SetInstructorHourlyRateCommand(profileId, request.HourlyRate, request.Currency),
+            profileId,
+            command,
             await CanManageInstructors(authorization),
             cancellationToken);
 
@@ -123,17 +123,16 @@ public sealed class InstructorsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult> UpdatePublicProfile(
         Guid profileId,
-        UpdateInstructorPublicProfileRequest request,
+        UpdateInstructorPublicProfileCommand command,
         [FromServices] UpdateInstructorPublicProfileHandler handler,
         [FromServices] IAuthorizationService authorization,
         CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(request);
         ArgumentNullException.ThrowIfNull(handler);
 
         var result = await handler.Handle(
-            new UpdateInstructorPublicProfileCommand(
-                profileId, request.Headline, request.Bio, request.Hobbies),
+            profileId,
+            command,
             await CanManageInstructors(authorization),
             cancellationToken);
 
@@ -189,16 +188,16 @@ public sealed class InstructorsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<AddInstructorSubjectResult>> AddSubject(
         Guid profileId,
-        AddInstructorSubjectRequest request,
+        AddInstructorSubjectCommand command,
         [FromServices] AddInstructorSubjectHandler handler,
         [FromServices] IAuthorizationService authorization,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(handler);
-        ArgumentNullException.ThrowIfNull(request);
 
         var result = await handler.Handle(
-            new AddInstructorSubjectCommand(profileId, request.SubjectId, request.LevelId),
+            profileId,
+            command,
             await CanManageInstructors(authorization),
             cancellationToken);
 
@@ -237,15 +236,16 @@ public sealed class InstructorsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<CancelSessionResult>> CancelMySession(
         Guid sessionId,
-        CancelInstructorSessionRequest request,
+        CancelSessionCommand command,
         [FromServices] CancelSessionHandler handler,
         CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(request);
         ArgumentNullException.ThrowIfNull(handler);
 
         return (await handler.Handle(
-            new CancelSessionCommand(sessionId, request.Reason, IsInstructorInitiated: true),
+            sessionId,
+            isInstructorInitiated: true,
+            command,
             cancellationToken)).ToActionResult(this);
     }
 
@@ -303,22 +303,16 @@ public sealed class InstructorsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<AddAvailabilityResult>> AddAvailability(
         Guid profileId,
-        AddAvailabilityRequest request,
+        AddAvailabilityCommand command,
         [FromServices] AddAvailabilityHandler handler,
         [FromServices] IAuthorizationService authorization,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(handler);
-        ArgumentNullException.ThrowIfNull(request);
 
         var result = await handler.Handle(
-            new AddAvailabilityCommand(
-                profileId,
-                request.DayOfWeek,
-                request.StartLocalTime,
-                request.EndLocalTime,
-                request.ValidFrom,
-                request.ValidUntil),
+            profileId,
+            command,
             await CanManageInstructors(authorization),
             cancellationToken);
 
@@ -358,22 +352,16 @@ public sealed class InstructorsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<AddAvailabilityOverrideResult>> AddOverride(
         Guid profileId,
-        AddAvailabilityOverrideRequest request,
+        AddAvailabilityOverrideCommand command,
         [FromServices] AddAvailabilityOverrideHandler handler,
         [FromServices] IAuthorizationService authorization,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(handler);
-        ArgumentNullException.ThrowIfNull(request);
 
         var result = await handler.Handle(
-            new AddAvailabilityOverrideCommand(
-                profileId,
-                request.OverrideDate,
-                request.OverrideType,
-                request.StartLocalTime,
-                request.EndLocalTime,
-                request.Reason),
+            profileId,
+            command,
             await CanManageInstructors(authorization),
             cancellationToken);
 
@@ -418,30 +406,4 @@ public sealed class InstructorsController : ControllerBase
     }
 }
 
-public sealed record CancelInstructorSessionRequest(string? Reason);
-
-/// <summary>Profil kimligi rotadan geldigi icin govdede tasinmaz.</summary>
-public sealed record AddInstructorSubjectRequest(Guid SubjectId, Guid? LevelId);
-
-public sealed record SetInstructorHourlyRateRequest(decimal? HourlyRate, string? Currency);
-
-public sealed record UpdateInstructorPublicProfileRequest(
-    string? Headline,
-    string? Bio,
-    string? Hobbies);
-
-public sealed record AddAvailabilityRequest(
-    DayOfWeek DayOfWeek,
-    TimeOnly StartLocalTime,
-    TimeOnly EndLocalTime,
-    DateOnly ValidFrom,
-    DateOnly? ValidUntil);
-
 public sealed record CloseAvailabilityRequest(DateOnly ValidUntil);
-
-public sealed record AddAvailabilityOverrideRequest(
-    DateOnly OverrideDate,
-    AvailabilityOverrideType OverrideType,
-    TimeOnly? StartLocalTime,
-    TimeOnly? EndLocalTime,
-    string? Reason);

@@ -17,7 +17,9 @@ public sealed class CancelSessionHandlerTests
         var setup = CreateHandler(now, now.AddHours(1));
 
         var result = await setup.Handler.Handle(
-            new CancelSessionCommand(setup.Session.Id, "Program değişikliği", true),
+            setup.Session.Id,
+            isInstructorInitiated: true,
+            new CancelSessionCommand("Program değişikliği"),
             TestContext.Current.CancellationToken);
 
         result.IsSuccess.ShouldBeTrue();
@@ -33,7 +35,9 @@ public sealed class CancelSessionHandlerTests
         var setup = CreateHandler(now, now.AddHours(4).AddMinutes(1));
 
         var result = await setup.Handler.Handle(
-            new CancelSessionCommand(setup.Session.Id, "Program değişikliği", true),
+            setup.Session.Id,
+            isInstructorInitiated: true,
+            new CancelSessionCommand("Program değişikliği"),
             TestContext.Current.CancellationToken);
 
         result.IsSuccess.ShouldBeTrue();
@@ -51,7 +55,9 @@ public sealed class CancelSessionHandlerTests
         setup.Session.ApplyCancellationPolicy(60, 360, 2);
 
         var result = await setup.Handler.Handle(
-            new CancelSessionCommand(setup.Session.Id, null, true),
+            setup.Session.Id,
+            isInstructorInitiated: true,
+            new CancelSessionCommand(null),
             TestContext.Current.CancellationToken);
 
         result.IsSuccess.ShouldBeTrue();
@@ -67,7 +73,9 @@ public sealed class CancelSessionHandlerTests
         setup.Session.ApplyCancellationPolicy(60, 360, 2);
 
         var result = await setup.Handler.Handle(
-            new CancelSessionCommand(setup.Session.Id, null, true),
+            setup.Session.Id,
+            isInstructorInitiated: true,
+            new CancelSessionCommand(null),
             TestContext.Current.CancellationToken);
 
         result.IsSuccess.ShouldBeTrue();
@@ -82,7 +90,9 @@ public sealed class CancelSessionHandlerTests
         var setup = CreateHandler(now, now.AddDays(1), assignOwnedInstructor: false);
 
         var result = await setup.Handler.Handle(
-            new CancelSessionCommand(setup.Session.Id, null, true),
+            setup.Session.Id,
+            isInstructorInitiated: true,
+            new CancelSessionCommand(null),
             TestContext.Current.CancellationToken);
 
         result.IsFailure.ShouldBeTrue();
@@ -96,7 +106,9 @@ public sealed class CancelSessionHandlerTests
         var setup = CreateHandler(now, now.AddMinutes(30), withBooking: false);
 
         var result = await setup.Handler.Handle(
-            new CancelSessionCommand(setup.Session.Id, null, true),
+            setup.Session.Id,
+            isInstructorInitiated: true,
+            new CancelSessionCommand(null),
             TestContext.Current.CancellationToken);
 
         result.IsSuccess.ShouldBeTrue();
@@ -113,7 +125,9 @@ public sealed class CancelSessionHandlerTests
         var setup = CreateHandler(now, now.AddTicks(-1));
 
         var result = await setup.Handler.Handle(
-            new CancelSessionCommand(setup.Session.Id, null, true),
+            setup.Session.Id,
+            isInstructorInitiated: true,
+            new CancelSessionCommand(null),
             TestContext.Current.CancellationToken);
 
         result.IsFailure.ShouldBeTrue();
@@ -127,10 +141,14 @@ public sealed class CancelSessionHandlerTests
         var setup = CreateHandler(now, now.AddHours(1));
 
         await setup.Handler.Handle(
-            new CancelSessionCommand(setup.Session.Id, null, true),
+            setup.Session.Id,
+            isInstructorInitiated: true,
+            new CancelSessionCommand(null),
             TestContext.Current.CancellationToken);
         var second = await setup.Handler.Handle(
-            new CancelSessionCommand(setup.Session.Id, null, true),
+            setup.Session.Id,
+            isInstructorInitiated: true,
+            new CancelSessionCommand(null),
             TestContext.Current.CancellationToken);
 
         second.IsSuccess.ShouldBeTrue();
@@ -146,7 +164,9 @@ public sealed class CancelSessionHandlerTests
         var setup = CreateHandler(now, now.AddHours(1));
 
         var result = await setup.Handler.Handle(
-            new CancelSessionCommand(setup.Session.Id, null, true),
+            setup.Session.Id,
+            isInstructorInitiated: true,
+            new CancelSessionCommand(null),
             TestContext.Current.CancellationToken);
 
         result.IsSuccess.ShouldBeTrue();

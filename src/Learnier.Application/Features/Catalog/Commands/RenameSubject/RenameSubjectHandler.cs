@@ -11,12 +11,13 @@ public sealed class RenameSubjectHandler(
     IUnitOfWork unitOfWork)
 {
     public async Task<Result> Handle(
+        Guid subjectId,
         RenameSubjectCommand command,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(command);
 
-        var subject = await catalog.FindSubjectAsync(command.SubjectId, cancellationToken);
+        var subject = await catalog.FindSubjectAsync(subjectId, cancellationToken);
 
         if (subject is null)
         {

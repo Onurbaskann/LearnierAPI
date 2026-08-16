@@ -43,6 +43,7 @@ public sealed class CreateBookingHandler(
     IClock clock)
 {
     public async Task<Result<CreateBookingResult>> Handle(
+        Guid sessionId,
         CreateBookingCommand command,
         bool canBookForOthers,
         CancellationToken cancellationToken)
@@ -75,7 +76,7 @@ public sealed class CreateBookingHandler(
 
         // Satir kilidi: bu noktadan sonra ayni oturuma gelen es zamanli istek,
         // bu islem bitene kadar bekler.
-        var session = await scheduling.FindSessionForUpdateAsync(command.SessionId, cancellationToken);
+        var session = await scheduling.FindSessionForUpdateAsync(sessionId, cancellationToken);
 
         if (session is null)
         {

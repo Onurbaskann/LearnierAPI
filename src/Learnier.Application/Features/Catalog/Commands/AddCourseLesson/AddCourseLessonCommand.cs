@@ -4,8 +4,12 @@ using Learnier.Application.Common.Results;
 
 namespace Learnier.Application.Features.Catalog.Commands.AddCourseLesson;
 
+/// <remarks>
+/// Modul kimligi komutta degil handler parametresinde tasinir: rotadan geliyor.
+/// Komut yalnizca govdeden geleni tutarsa action parametresi olarak baglanabilir
+/// ve <c>ValidationFilter</c> kurallari calistirabilir.
+/// </remarks>
 public sealed record AddCourseLessonCommand(
-    Guid ModuleId,
     string Title,
     int SortOrder,
     int EstimatedDurationMinutes,
@@ -45,6 +49,7 @@ public sealed class AddCourseLessonHandler(
     IUnitOfWork unitOfWork)
 {
     public async Task<Result<AddCourseLessonResult>> Handle(
+        Guid moduleId,
         AddCourseLessonCommand command,
         CancellationToken cancellationToken)
     {
@@ -57,7 +62,7 @@ public sealed class AddCourseLessonHandler(
 
         // Modul kendi kiraci sutununu tasimadigi icin sorgu egitim uzerinden
         // dogrulanir; baska kurumun modulu bulunamaz.
-        var module = await catalog.FindModuleWithCourseAsync(command.ModuleId, cancellationToken);
+        var module = await catalog.FindModuleWithCourseAsync(moduleId, cancellationToken);
 
         if (module is null)
         {

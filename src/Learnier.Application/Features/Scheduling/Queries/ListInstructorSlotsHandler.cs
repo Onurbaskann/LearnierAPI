@@ -10,8 +10,11 @@ namespace Learnier.Application.Features.Scheduling.Queries;
 /// Ogrenciye donen listede dogru: dolu, baslamis veya rezervasyon penceresi
 /// kapanmis slotlar hic gonderilmez. Egitmen kendi takvimini yanlisla ister.
 /// </param>
+/// <remarks>
+/// Egitmen kimligi sorguda degil handler parametresinde tasinir: rotadan geliyor
+/// veya cagiran uyeligin kendi profilinden turetiliyor.
+/// </remarks>
 public sealed record ListInstructorSlotsQuery(
-    Guid InstructorProfileId,
     Guid? CourseId,
     DateTimeOffset From,
     DateTimeOffset Until,
@@ -39,9 +42,6 @@ internal sealed class ListInstructorSlotsValidator : AbstractValidator<ListInstr
 {
     public ListInstructorSlotsValidator()
     {
-        RuleFor(query => query.InstructorProfileId)
-            .NotEmpty().WithErrorCode("scheduling.instructor_required");
-
         RuleFor(query => query.Until)
             .GreaterThan(query => query.From)
             .WithErrorCode("scheduling.slot_range_invalid");
@@ -67,6 +67,7 @@ public sealed class ListInstructorSlotsHandler(
     IClock clock)
 {
     public async Task<Result<IReadOnlyList<InstructorSlotListItem>>> Handle(
+        Guid instructorProfileId,
         ListInstructorSlotsQuery query,
         CancellationToken cancellationToken)
     {
@@ -83,7 +84,7 @@ public sealed class ListInstructorSlotsHandler(
         }
 
         var profile = await instructors.FindWithDetailsAsync(
-            query.InstructorProfileId,
+            instructorProfileId,
             cancellationToken);
         if (profile is null || profile.Status is not InstructorStatus.Active)
         {
@@ -159,8 +160,8 @@ public sealed class ListMyInstructorSlotsHandler(
 
         // Egitmen dolu ve penceresi kapanmis slotlarini da gormeli.
         return await slots.Handle(
+            profile.Id,
             new ListInstructorSlotsQuery(
-                profile.Id,
                 courseId,
                 from,
                 until,

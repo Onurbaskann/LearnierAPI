@@ -5,10 +5,12 @@ using Learnier.Domain.Scheduling;
 
 namespace Learnier.Application.Features.Scheduling.Commands.CancelSession;
 
-public sealed record CancelSessionCommand(
-    Guid SessionId,
-    string? Reason = null,
-    bool IsInstructorInitiated = false);
+/// <remarks>
+/// Oturum kimligi rotadan gelir, egitmen kaynakli olup olmadigi ise cagrilan
+/// uca gore belirlenir - ikisi de govdeden gelen bir alan degildir, bu yuzden
+/// komutta degil handler parametresinde tasinir.
+/// </remarks>
+public sealed record CancelSessionCommand(string? Reason = null);
 
 /// <param name="StudentCreditsRefunded">Gercekten iade edilen ders hakki sayisi.</param>
 /// <param name="PenaltyApplied">Egitmene bu iptal icin kesinti kaydedildi mi.</param>
@@ -42,6 +44,8 @@ public sealed class CancelSessionHandler(
     private const int DefaultInstructorCutoffHours = 4;
 
     public async Task<Result<CancelSessionResult>> Handle(
+        Guid sessionId,
+        bool isInstructorInitiated,
         CancelSessionCommand command,
         CancellationToken cancellationToken)
     {
@@ -54,7 +58,7 @@ public sealed class CancelSessionHandler(
 
         await using var transaction = await unitOfWork.BeginTransactionAsync(cancellationToken);
         var session = await scheduling.FindSessionForUpdateAsync(
-            command.SessionId, cancellationToken);
+            sessionId, cancellationToken);
 
         if (session is null)
         {
@@ -62,7 +66,7 @@ public sealed class CancelSessionHandler(
         }
 
         Guid? cancellingInstructorProfileId = null;
-        if (command.IsInstructorInitiated)
+        if (isInstructorInitiated)
         {
             if (currentTenant.MembershipId is not { } membershipId)
             {
@@ -75,7 +79,7 @@ public sealed class CancelSessionHandler(
                 return SchedulingErrors.InstructorNotFound;
             }
 
-            session = await scheduling.FindSessionAsync(command.SessionId, true, cancellationToken);
+            session = await scheduling.FindSessionAsync(sessionId, true, cancellationToken);
             if (session is null)
             {
                 return SchedulingErrors.SessionNotFound;

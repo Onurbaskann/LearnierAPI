@@ -96,16 +96,13 @@ public sealed class SchedulingController : ControllerBase
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<EnrollLearnerResult>> EnrollLearner(
         Guid classGroupId,
-        EnrollLearnerRequest request,
+        EnrollLearnerCommand command,
         [FromServices] EnrollLearnerHandler handler,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(handler);
-        ArgumentNullException.ThrowIfNull(request);
 
-        var result = await handler.Handle(
-            new EnrollLearnerCommand(classGroupId, request.LearnerUserId),
-            cancellationToken);
+        var result = await handler.Handle(classGroupId, command, cancellationToken);
 
         return result.ToActionResult(this);
     }
@@ -185,15 +182,16 @@ public sealed class SchedulingController : ControllerBase
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<CancelSessionResult>> CancelSession(
         Guid sessionId,
-        CancelSessionRequest request,
+        CancelSessionCommand command,
         [FromServices] CancelSessionHandler handler,
         CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(request);
         ArgumentNullException.ThrowIfNull(handler);
 
         var result = await handler.Handle(
-            new CancelSessionCommand(sessionId, request.Reason),
+            sessionId,
+            isInstructorInitiated: false,
+            command,
             cancellationToken);
 
         return result.ToActionResult(this);
@@ -209,24 +207,15 @@ public sealed class SchedulingController : ControllerBase
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<CompleteSessionResult>> CompleteSession(
         Guid sessionId,
-        CompleteSessionRequest request,
+        CompleteSessionCommand command,
         [FromServices] CompleteSessionHandler handler,
         [FromServices] IAuthorizationService authorization,
         CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(request);
         ArgumentNullException.ThrowIfNull(handler);
 
-        var command = new CompleteSessionCommand(
-            sessionId,
-            request.Attendances.Select(item => new CompleteSessionAttendance(
-                item.BookingId,
-                item.Status,
-                item.AttendedMinutes,
-                item.JoinedAt,
-                item.LeftAt)).ToList());
-
         var result = await handler.Handle(
+            sessionId,
             command,
             await CanManageCourses(authorization),
             cancellationToken);
@@ -247,16 +236,13 @@ public sealed class SchedulingController : ControllerBase
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult> AssignInstructor(
         Guid sessionId,
-        AssignInstructorRequest request,
+        AssignSessionInstructorCommand command,
         [FromServices] AssignSessionInstructorHandler handler,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(handler);
-        ArgumentNullException.ThrowIfNull(request);
 
-        var result = await handler.Handle(
-            new AssignSessionInstructorCommand(sessionId, request.InstructorProfileId, request.Role),
-            cancellationToken);
+        var result = await handler.Handle(sessionId, command, cancellationToken);
 
         return result.ToActionResult(this);
     }
@@ -272,7 +258,7 @@ public sealed class SchedulingController : ControllerBase
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<CreateBookingResult>> CreateBooking(
         Guid sessionId,
-        CreateBookingRequest? request,
+        CreateBookingCommand? command,
         [FromServices] CreateBookingHandler handler,
         [FromServices] IAuthorizationService authorization,
         CancellationToken cancellationToken)
@@ -280,10 +266,8 @@ public sealed class SchedulingController : ControllerBase
         ArgumentNullException.ThrowIfNull(handler);
 
         var result = await handler.Handle(
-            new CreateBookingCommand(
-                sessionId,
-                request?.LearnerUserId,
-                request?.LessonDurationMinutes),
+            sessionId,
+            command ?? new CreateBookingCommand(),
             await CanManageAllBookings(authorization),
             cancellationToken);
 
@@ -340,23 +324,13 @@ public sealed class SchedulingController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<IReadOnlyList<InstructorSlotListItem>>> ListInstructorSlots(
         Guid instructorProfileId,
-        Guid? courseId,
-        DateTimeOffset from,
-        DateTimeOffset until,
+        [FromQuery] ListInstructorSlotsQuery query,
         [FromServices] ListInstructorSlotsHandler handler,
-        CancellationToken cancellationToken,
-        [FromQuery] int? lessonDurationMinutes = null)
+        CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(handler);
 
-        var result = await handler.Handle(
-            new ListInstructorSlotsQuery(
-                instructorProfileId,
-                courseId,
-                from,
-                until,
-                lessonDurationMinutes),
-            cancellationToken);
+        var result = await handler.Handle(instructorProfileId, query, cancellationToken);
 
         return result.ToActionResult(this);
     }
@@ -458,27 +432,3 @@ public sealed class SchedulingController : ControllerBase
         return result.Succeeded;
     }
 }
-
-/// <summary>Sinif kimligi rotadan geldigi icin govdede tasinmaz.</summary>
-public sealed record EnrollLearnerRequest(Guid LearnerUserId);
-
-public sealed record AssignInstructorRequest(Guid InstructorProfileId, SessionInstructorRole Role);
-
-public sealed record CancelSessionRequest(string? Reason);
-
-public sealed record CompleteSessionAttendanceRequest(
-    Guid BookingId,
-    AttendanceStatus Status,
-    int AttendedMinutes,
-    DateTimeOffset? JoinedAt = null,
-    DateTimeOffset? LeftAt = null);
-
-public sealed record CompleteSessionRequest(
-    IReadOnlyList<CompleteSessionAttendanceRequest> Attendances);
-
-/// <param name="LearnerUserId">
-/// Bos birakilirsa istegi yapan kullanici adina rezervasyon yapilir.
-/// </param>
-public sealed record CreateBookingRequest(
-    Guid? LearnerUserId,
-    int? LessonDurationMinutes = null);

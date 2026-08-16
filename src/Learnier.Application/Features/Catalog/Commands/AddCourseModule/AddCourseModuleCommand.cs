@@ -4,8 +4,12 @@ using Learnier.Application.Common.Results;
 
 namespace Learnier.Application.Features.Catalog.Commands.AddCourseModule;
 
+/// <remarks>
+/// Egitim kimligi komutta degil handler parametresinde tasinir: rotadan geliyor.
+/// Komut yalnizca govdeden geleni tutarsa action parametresi olarak baglanabilir
+/// ve <c>ValidationFilter</c> kurallari calistirabilir.
+/// </remarks>
 public sealed record AddCourseModuleCommand(
-    Guid CourseId,
     string Title,
     int SortOrder,
     string? Description = null);
@@ -42,6 +46,7 @@ public sealed class AddCourseModuleHandler(
     IUnitOfWork unitOfWork)
 {
     public async Task<Result<AddCourseModuleResult>> Handle(
+        Guid courseId,
         AddCourseModuleCommand command,
         CancellationToken cancellationToken)
     {
@@ -52,7 +57,7 @@ public sealed class AddCourseModuleHandler(
             return CatalogErrors.OrganizationContextRequired;
         }
 
-        var course = await catalog.FindCourseAsync(command.CourseId, includeModules: true, cancellationToken);
+        var course = await catalog.FindCourseAsync(courseId, includeModules: true, cancellationToken);
 
         if (course is null)
         {

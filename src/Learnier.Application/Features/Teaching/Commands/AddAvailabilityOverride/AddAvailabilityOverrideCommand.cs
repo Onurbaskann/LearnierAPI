@@ -10,7 +10,6 @@ namespace Learnier.Application.Features.Teaching.Commands.AddAvailabilityOverrid
 /// o araligi etkiler.
 /// </param>
 public sealed record AddAvailabilityOverrideCommand(
-    Guid ProfileId,
     DateOnly OverrideDate,
     AvailabilityOverrideType OverrideType,
     TimeOnly? StartLocalTime = null,
@@ -55,6 +54,7 @@ public sealed class AddAvailabilityOverrideHandler(
     IUnitOfWork unitOfWork)
 {
     public async Task<Result<AddAvailabilityOverrideResult>> Handle(
+        Guid profileId,
         AddAvailabilityOverrideCommand command,
         bool canManageInstructors,
         CancellationToken cancellationToken)
@@ -66,7 +66,7 @@ public sealed class AddAvailabilityOverrideHandler(
             return TeachingErrors.OrganizationContextRequired;
         }
 
-        var profile = await instructors.FindWithDetailsAsync(command.ProfileId, cancellationToken);
+        var profile = await instructors.FindWithDetailsAsync(profileId, cancellationToken);
 
         if (profile is null)
         {

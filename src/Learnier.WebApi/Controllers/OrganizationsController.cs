@@ -91,16 +91,13 @@ public sealed class OrganizationsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult> AssignRole(
         Guid membershipId,
-        AssignRoleRequest request,
+        AssignRoleCommand command,
         [FromServices] AssignRoleHandler handler,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(handler);
-        ArgumentNullException.ThrowIfNull(request);
 
-        var result = await handler.Handle(
-            new AssignRoleCommand(membershipId, request.RoleId),
-            cancellationToken);
+        var result = await handler.Handle(membershipId, command, cancellationToken);
 
         return result.ToActionResult(this);
     }
@@ -125,8 +122,3 @@ public sealed class OrganizationsController : ControllerBase
         return result.ToActionResult(this);
     }
 }
-
-/// <summary>
-/// Uyelik kimligi rotadan geldigi icin govde yalnizca rolu tasir.
-/// </summary>
-public sealed record AssignRoleRequest(Guid RoleId);

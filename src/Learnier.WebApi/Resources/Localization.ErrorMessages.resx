@@ -661,4 +661,15 @@
   <data name="compensation.waiver_reason_required" xml:space="preserve"><value>A reason is required to waive a penalty.</value></data>
   <data name="compensation.waiver_reason_too_long" xml:space="preserve"><value>The waiver reason can contain at most 500 characters.</value></data>
   <data name="compensation.no_pending_penalty" xml:space="preserve"><value>The instructor has no pending penalty to waive.</value></data>
+
+  <data name="auth.email_not_verified" xml:space="preserve">
+    <value>Verify your email address before signing in.</value>
+  </data>
+  <data name="auth.invalid_verification_token" xml:space="preserve">
+    <value>This verification link is invalid or has expired. Request a new one.</value>
+  </data>
+
+  <data name="subscriptions.ledger_not_owned" xml:space="preserve">
+    <value>You can only view your own credit ledger.</value>
+  </data>
 </root>

@@ -668,4 +668,68 @@
   <data name="subscriptions.ledger_not_owned" xml:space="preserve">
     <value>Yalnızca kendi ders hakkı hareketlerinizi görebilirsiniz.</value>
   </data>
+
+  <data name="billing.plan_not_found" xml:space="preserve">
+    <value>Plan bulunamadı.</value>
+  </data>
+  <data name="billing.plan_has_no_active_price" xml:space="preserve">
+    <value>Aktif fiyatı olmayan plan satışa açılamaz.</value>
+  </data>
+  <data name="billing.plan_has_no_entitlement" xml:space="preserve">
+    <value>Hak tanımı olmayan plan satışa açılamaz.</value>
+  </data>
+  <data name="billing.subject_not_found" xml:space="preserve">
+    <value>Alan bulunamadı.</value>
+  </data>
+  <data name="billing.course_not_found" xml:space="preserve">
+    <value>Eğitim bulunamadı.</value>
+  </data>
+  <data name="billing.plan_name_required" xml:space="preserve">
+    <value>Plan adı zorunludur.</value>
+  </data>
+  <data name="billing.plan_name_too_long" xml:space="preserve">
+    <value>Plan adı en fazla 200 karakter olabilir.</value>
+  </data>
+  <data name="billing.plan_description_too_long" xml:space="preserve">
+    <value>Plan açıklaması en fazla 2000 karakter olabilir.</value>
+  </data>
+  <data name="billing.catalog_access_invalid" xml:space="preserve">
+    <value>Geçersiz katalog kapsamı.</value>
+  </data>
+  <data name="billing.currency_required" xml:space="preserve">
+    <value>Para birimi zorunludur.</value>
+  </data>
+  <data name="billing.currency_invalid" xml:space="preserve">
+    <value>Para birimi üç harfli kod olmalıdır.</value>
+  </data>
+  <data name="billing.amount_invalid" xml:space="preserve">
+    <value>Tutar negatif olamaz.</value>
+  </data>
+  <data name="billing.billing_interval_invalid" xml:space="preserve">
+    <value>Geçersiz tahsilat aralığı.</value>
+  </data>
+  <data name="billing.billing_interval_count_invalid" xml:space="preserve">
+    <value>Tahsilat aralığı 1 ile 36 arasında olmalıdır.</value>
+  </data>
+  <data name="billing.entitlement_type_invalid" xml:space="preserve">
+    <value>Geçersiz hak türü.</value>
+  </data>
+  <data name="billing.session_type_invalid" xml:space="preserve">
+    <value>Geçersiz ders türü.</value>
+  </data>
+  <data name="billing.reset_period_invalid" xml:space="preserve">
+    <value>Geçersiz yenilenme dönemi.</value>
+  </data>
+  <data name="billing.quantity_required" xml:space="preserve">
+    <value>Sayılı hak için miktar zorunludur.</value>
+  </data>
+  <data name="billing.quantity_invalid" xml:space="preserve">
+    <value>Miktar sıfırdan büyük olmalıdır.</value>
+  </data>
+  <data name="billing.quantity_not_allowed" xml:space="preserve">
+    <value>Sınırsız erişimde miktar verilemez.</value>
+  </data>
+  <data name="billing.access_target_invalid" xml:space="preserve">
+    <value>Alan veya eğitimden yalnızca biri verilmelidir.</value>
+  </data>
 </root>

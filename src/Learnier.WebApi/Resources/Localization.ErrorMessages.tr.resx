@@ -657,4 +657,15 @@
   <data name="compensation.waiver_reason_required" xml:space="preserve"><value>Ceza affetme gerekçesi gerekli.</value></data>
   <data name="compensation.waiver_reason_too_long" xml:space="preserve"><value>Ceza affetme gerekçesi en fazla 500 karakter olabilir.</value></data>
   <data name="compensation.no_pending_penalty" xml:space="preserve"><value>Eğitmenin affedilebilecek bekleyen bir cezası yok.</value></data>
+
+  <data name="auth.email_not_verified" xml:space="preserve">
+    <value>Giriş yapmadan önce e-posta adresinizi doğrulayın.</value>
+  </data>
+  <data name="auth.invalid_verification_token" xml:space="preserve">
+    <value>Bu doğrulama bağlantısı geçersiz veya süresi dolmuş. Yeni bir bağlantı isteyin.</value>
+  </data>
+
+  <data name="subscriptions.ledger_not_owned" xml:space="preserve">
+    <value>Yalnızca kendi ders hakkı hareketlerinizi görebilirsiniz.</value>
+  </data>
 </root>

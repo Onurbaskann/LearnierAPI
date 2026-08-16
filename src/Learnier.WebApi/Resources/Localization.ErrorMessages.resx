@@ -672,4 +672,68 @@
   <data name="subscriptions.ledger_not_owned" xml:space="preserve">
     <value>You can only view your own credit ledger.</value>
   </data>
+
+  <data name="billing.plan_not_found" xml:space="preserve">
+    <value>Plan not found.</value>
+  </data>
+  <data name="billing.plan_has_no_active_price" xml:space="preserve">
+    <value>A plan without an active price cannot be put on sale.</value>
+  </data>
+  <data name="billing.plan_has_no_entitlement" xml:space="preserve">
+    <value>A plan without any entitlement cannot be put on sale.</value>
+  </data>
+  <data name="billing.subject_not_found" xml:space="preserve">
+    <value>Subject not found.</value>
+  </data>
+  <data name="billing.course_not_found" xml:space="preserve">
+    <value>Course not found.</value>
+  </data>
+  <data name="billing.plan_name_required" xml:space="preserve">
+    <value>Plan name is required.</value>
+  </data>
+  <data name="billing.plan_name_too_long" xml:space="preserve">
+    <value>Plan name can be at most 200 characters.</value>
+  </data>
+  <data name="billing.plan_description_too_long" xml:space="preserve">
+    <value>Plan description can be at most 2000 characters.</value>
+  </data>
+  <data name="billing.catalog_access_invalid" xml:space="preserve">
+    <value>Invalid catalog access value.</value>
+  </data>
+  <data name="billing.currency_required" xml:space="preserve">
+    <value>Currency is required.</value>
+  </data>
+  <data name="billing.currency_invalid" xml:space="preserve">
+    <value>Currency must be a three-letter code.</value>
+  </data>
+  <data name="billing.amount_invalid" xml:space="preserve">
+    <value>Amount cannot be negative.</value>
+  </data>
+  <data name="billing.billing_interval_invalid" xml:space="preserve">
+    <value>Invalid billing interval.</value>
+  </data>
+  <data name="billing.billing_interval_count_invalid" xml:space="preserve">
+    <value>Billing interval count must be between 1 and 36.</value>
+  </data>
+  <data name="billing.entitlement_type_invalid" xml:space="preserve">
+    <value>Invalid entitlement type.</value>
+  </data>
+  <data name="billing.session_type_invalid" xml:space="preserve">
+    <value>Invalid session type.</value>
+  </data>
+  <data name="billing.reset_period_invalid" xml:space="preserve">
+    <value>Invalid reset period.</value>
+  </data>
+  <data name="billing.quantity_required" xml:space="preserve">
+    <value>Quantity is required for a metered entitlement.</value>
+  </data>
+  <data name="billing.quantity_invalid" xml:space="preserve">
+    <value>Quantity must be greater than zero.</value>
+  </data>
+  <data name="billing.quantity_not_allowed" xml:space="preserve">
+    <value>Quantity cannot be given for unlimited access.</value>
+  </data>
+  <data name="billing.access_target_invalid" xml:space="preserve">
+    <value>Provide exactly one of subject or course.</value>
+  </data>
 </root>

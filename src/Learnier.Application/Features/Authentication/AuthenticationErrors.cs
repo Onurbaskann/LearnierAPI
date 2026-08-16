@@ -39,4 +39,18 @@ internal static class AuthenticationErrors
     public static Error InvalidPasswordResetToken
         => Error.Validation("auth.invalid_password_reset_token");
 
+    /// <summary>
+    /// Hesap acilmis ancak e-posta dogrulanmamis.
+    /// </summary>
+    public static Error EmailNotVerified => Error.Forbidden("auth.email_not_verified");
+
+    /// <summary>
+    /// Dogrulama tokeni bulunamadi, suresi doldu veya daha once kullanilmis.
+    /// </summary>
+    /// <remarks>
+    /// Uc durum icin ayni kod donuluyor; gerekcesi <see cref="InvalidRefreshToken"/>
+    /// ile ayni.
+    /// </remarks>
+    public static Error InvalidVerificationToken
+        => Error.Validation("auth.invalid_verification_token");
 }

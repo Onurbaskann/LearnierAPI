@@ -5,16 +5,20 @@ using Learnier.Domain.Identity;
 namespace Learnier.Application.Features.Authentication.Commands.RegisterUser;
 
 /// <summary>
-/// Yeni ve hemen kullanilabilir bir hesap acar.
+/// Yeni hesap acar ve e-posta dogrulama tokeni gonderir.
 /// </summary>
 /// <remarks>
-/// Acik kayit akisinda e-posta dogrulamasi aranmaz; hesap kayitla birlikte aktif olur.
+/// Hesap <see cref="UserStatus.Pending"/> durumunda olusur ve dogrulanana kadar
+/// giris yapamaz; bkz. <c>LoginUserHandler</c>. Dogrulama olmadan sahte
+/// e-postalarla hesap acilabilirdi.
 /// </remarks>
 public sealed class RegisterUserHandler(
     IUserRepository users,
+    IEmailVerificationTokenRepository verificationTokens,
+    IEmailVerificationTokenFactory verificationTokenFactory,
     IPasswordHasher passwordHasher,
+    IEmailSender emailSender,
     IRegistrationMembershipProvisioner membershipProvisioner,
-    IClock clock,
     IUnitOfWork unitOfWork)
 {
     public async Task<Result<RegisterUserResult>> Handle(
@@ -40,12 +44,33 @@ public sealed class RegisterUserHandler(
             command.LastName,
             passwordHasher.Hash(command.Password));
 
-        user.ConfirmEmail(clock.UtcNow);
-
         users.Add(user);
 
+        var token = verificationTokenFactory.Create();
+
+        verificationTokens.Add(EmailVerificationToken.Issue(
+            user.Id,
+            token.TokenHash,
+            token.IssuedAt,
+            token.ExpiresAt));
+
         await membershipProvisioner.ProvisionAsync(user, cancellationToken);
+
+        // Once kaydet, sonra gonder: gonderim basarisiz olursa kullanici yeniden
+        // dogrulama isteyebilir, ama kaydedilmemis bir kullaniciya e-posta gitmesi
+        // geri donusu olmayan bir tutarsizlik olurdu.
         await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        await emailSender.SendAsync(
+            new EmailNotification(
+                user.Email,
+                "email.verification",
+                new Dictionary<string, string>(StringComparer.Ordinal)
+                {
+                    ["firstName"] = user.FirstName,
+                    ["token"] = token.RawToken
+                }),
+            cancellationToken);
 
         return new RegisterUserResult(user.Id, user.Email);
     }

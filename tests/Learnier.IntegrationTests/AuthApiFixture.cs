@@ -39,6 +39,26 @@ public sealed class AuthApiFixture : IAsyncLifetime
     /// e-posta dogrulama tokeninin ham hali yalnizca gondericiye verilir; testin
     /// akisi tamamlayabilmesi icin kaydi kendisi yazmasi gerekir.
     /// </remarks>
+    /// <summary>
+    /// Kullanicinin e-postasini dogrulanmis isaretler.
+    /// </summary>
+    /// <remarks>
+    /// Kayit sonrasi hesap Pending baslar ve giris yapamaz. Dogrulama tokeninin
+    /// ham hali yalnizca e-posta gondericisine verildigi ve testten okunamadigi
+    /// icin, giris gerektiren testler bu kisayolu kullanir. Dogrulama ucunun
+    /// kendisi <see cref="RegistrationFlowTests"/> icinde ayrica test edilir.
+    /// </remarks>
+    public async Task ConfirmEmailAsync(string email, CancellationToken cancellationToken = default)
+    {
+        await using var context = CreateContext();
+
+        var user = await context.Users.FirstAsync(u => u.Email == email, cancellationToken);
+
+        user.ConfirmEmail(DateTimeOffset.UtcNow);
+
+        await context.SaveChangesAsync(cancellationToken);
+    }
+
     public AppDbContext CreateContext()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()

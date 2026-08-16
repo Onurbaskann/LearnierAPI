@@ -54,7 +54,9 @@ public sealed class LoginUserHandler(
 
         if (user.Status is UserStatus.Pending)
         {
-            return AuthenticationErrors.AccountInactive;
+            // Pending, e-postasi henuz dogrulanmamis hesap demek. Sebebi acikca
+            // soylemek, kullanicinin her istekte anlamsiz bir hata almasindan iyi.
+            return AuthenticationErrors.EmailNotVerified;
         }
 
         if (verification is PasswordVerificationOutcome.SuccessRehashNeeded)

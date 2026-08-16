@@ -4,6 +4,7 @@ using Learnier.Application.Features.Authentication.Commands.RefreshAccessToken;
 using Learnier.Application.Features.Authentication.Commands.RequestPasswordReset;
 using Learnier.Application.Features.Authentication.Commands.ResetPassword;
 using Learnier.Application.Features.Authentication.Commands.RegisterUser;
+using Learnier.Application.Features.Authentication.Commands.VerifyEmail;
 using Learnier.WebApi.Common;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -25,6 +26,10 @@ public sealed class AuthController : ControllerBase
     /// <summary>
     /// Yeni hesap acar.
     /// </summary>
+    /// <remarks>
+    /// Hesap dogrulanmamis durumda olusur ve dogrulama e-postasi gonderilir;
+    /// giris ancak <c>verify-email</c> tamamlandiktan sonra mumkun olur.
+    /// </remarks>
     [AllowAnonymous]
     [HttpPost("register")]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -33,6 +38,25 @@ public sealed class AuthController : ControllerBase
     public async Task<ActionResult<RegisterUserResult>> Register(
         RegisterUserCommand command,
         [FromServices] RegisterUserHandler handler,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(handler);
+
+        var result = await handler.Handle(command, cancellationToken);
+
+        return result.ToActionResult(this);
+    }
+
+    /// <summary>
+    /// E-posta dogrulama tokenini tuketir ve hesabi kullanilabilir hale getirir.
+    /// </summary>
+    [AllowAnonymous]
+    [HttpPost("verify-email")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult> VerifyEmail(
+        VerifyEmailCommand command,
+        [FromServices] VerifyEmailHandler handler,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(handler);

@@ -36,6 +36,8 @@ public sealed class AppDbContext(
 
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
+    public DbSet<EmailVerificationToken> EmailVerificationTokens => Set<EmailVerificationToken>();
+
     public DbSet<Friendship> Friendships => Set<Friendship>();
 
     public DbSet<Club> Clubs => Set<Club>();

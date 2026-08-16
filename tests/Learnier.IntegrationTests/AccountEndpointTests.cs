@@ -24,6 +24,9 @@ public sealed class AccountEndpointTests(AuthApiFixture fixture) : IClassFixture
             new RegisterUserCommand(email, "eskiParola123", "Parola", "Testi"),
             TestContext.Current.CancellationToken)).StatusCode.ShouldBe(HttpStatusCode.OK);
 
+        // Kayit sonrasi hesap dogrulanmamis durumda; giris icin once dogrulanir.
+        await fixture.ConfirmEmailAsync(email, TestContext.Current.CancellationToken);
+
         var loginResponse = await client.PostAsJsonAsync(
             new Uri("/api/v1/auth/login", UriKind.Relative),
             new LoginUserCommand(email, "eskiParola123"),
@@ -70,6 +73,8 @@ public sealed class AccountEndpointTests(AuthApiFixture fixture) : IClassFixture
             TestContext.Current.CancellationToken);
 
         registration.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        await fixture.ConfirmEmailAsync(email, TestContext.Current.CancellationToken);
 
         var loginResponse = await client.PostAsJsonAsync(
             new Uri("/api/v1/auth/login", UriKind.Relative),

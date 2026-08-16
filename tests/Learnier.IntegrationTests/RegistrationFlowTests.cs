@@ -24,7 +24,7 @@ public sealed class RegistrationFlowTests(AuthApiFixture fixture) : IClassFixtur
     private const string Password = "CokGuvenli123";
 
     [Fact]
-    public async Task NewAccount_CanSignInImmediately()
+    public async Task NewAccount_CanSignInAfterVerification()
     {
         using var client = fixture.CreateClient();
         var email = UniqueEmail();
@@ -36,6 +36,17 @@ public sealed class RegistrationFlowTests(AuthApiFixture fixture) : IClassFixtur
             TestContext.Current.CancellationToken);
 
         result.ShouldNotBeNull();
+
+        // Kayit sonrasi hesap dogrulanmamis: giris ancak dogrulamadan sonra gecer.
+        var beforeVerification = await client.PostAsJsonAsync(
+            LoginEndpoint,
+            new LoginUserCommand(email, Password),
+            TestContext.Current.CancellationToken);
+
+        beforeVerification.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+
+        await fixture.ConfirmEmailAsync(email, TestContext.Current.CancellationToken);
+
         var login = await client.PostAsJsonAsync(
             LoginEndpoint,
             new LoginUserCommand(email, Password),
@@ -51,6 +62,7 @@ public sealed class RegistrationFlowTests(AuthApiFixture fixture) : IClassFixtur
         var email = UniqueEmail();
 
         await Register(client, email);
+        await fixture.ConfirmEmailAsync(email, TestContext.Current.CancellationToken);
 
         var login = await client.PostAsJsonAsync(
             LoginEndpoint,
@@ -98,6 +110,8 @@ public sealed class RegistrationFlowTests(AuthApiFixture fixture) : IClassFixtur
         var email = UniqueEmail();
 
         await Register(client, email);
+        await fixture.ConfirmEmailAsync(email, TestContext.Current.CancellationToken);
+
         var login = await client.PostAsJsonAsync(
             LoginEndpoint,
             new LoginUserCommand(email, Password),

@@ -39,4 +39,10 @@ public sealed class JwtOptions
     [Range(1, 365)]
     public int RefreshTokenLifetimeDays { get; init; } = 30;
 
+    /// <summary>
+    /// E-posta dogrulama tokeninin omru. Kisa tutulur: token e-posta kutusunda
+    /// duran ve tek basina hesabi aktive eden bir sirdir.
+    /// </summary>
+    [Range(1, 168)]
+    public int EmailVerificationTokenLifetimeHours { get; init; } = 24;
 }

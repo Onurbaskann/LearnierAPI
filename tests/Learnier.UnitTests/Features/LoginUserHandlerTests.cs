@@ -118,17 +118,24 @@ public sealed class LoginUserHandlerTests
         result.Error.Code.ShouldBe("auth.account_suspended");
     }
 
+    /// <summary>
+    /// E-postasi dogrulanmamis hesap giris yapamaz.
+    /// </summary>
+    /// <remarks>
+    /// Kayit sonrasi hesap Pending baslar; dogrulama ucu tamamlanana kadar giris
+    /// engellenir. Sebep acikca bildirilir, genel bir "hesap kullanilamiyor"
+    /// mesaji kullaniciyi ne yapacagi konusunda yalniz birakirdi.
+    /// </remarks>
     [Fact]
-    public async Task Fails_WhenAccountIsInactive()
+    public async Task Fails_WhenEmailIsNotVerified()
     {
-        // Davet gibi baska bir akistan bekleyen hesap.
         SetupUser(User.Register("a@b.com", "Ad", "Soyad", Hash));
         _passwordHasher.Verify(Hash, Password).Returns(PasswordVerificationOutcome.Success);
 
         var result = await _handler.Handle(new LoginUserCommand("a@b.com", Password), TestContext.Current.CancellationToken);
 
         result.IsFailure.ShouldBeTrue();
-        result.Error.Code.ShouldBe("auth.account_inactive");
+        result.Error.Code.ShouldBe("auth.email_not_verified");
     }
 
     [Fact]

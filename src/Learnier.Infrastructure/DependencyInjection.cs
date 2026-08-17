@@ -71,7 +71,6 @@ public static class DependencyInjection
         services.AddScoped<IClubAccessPolicy, EfClubAccessPolicy>();
         services.AddScoped<ILearnerOnboardingRepository, EfLearnerOnboardingRepository>();
         services.AddScoped<IRefreshTokenRepository, EfRefreshTokenRepository>();
-        services.AddScoped<IEmailVerificationTokenRepository, EfEmailVerificationTokenRepository>();
         services.AddScoped<IRegistrationMembershipProvisioner, RegistrationMembershipProvisioner>();
         services.AddScoped<IOrganizationRepository, EfOrganizationRepository>();
         services.AddScoped<IRoleRepository, EfRoleRepository>();
@@ -131,7 +130,6 @@ public static class DependencyInjection
         services.AddSingleton<IPasswordHasher, PasswordHasher>();
         services.AddSingleton<IPasswordResetTokenStore, MemoryPasswordResetTokenStore>();
         services.AddSingleton<IRefreshTokenFactory, RefreshTokenFactory>();
-        services.AddSingleton<IEmailVerificationTokenFactory, EmailVerificationTokenFactory>();
         services.AddScoped<ITokenService, JwtTokenService>();
 
         services.AddOptions<PasswordResetOptions>()

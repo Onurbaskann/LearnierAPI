@@ -1,5 +1,6 @@
 using Learnier.Application.Common.Abstractions;
 using Learnier.Application.Common.Security;
+using Learnier.Domain.Billing;
 using Learnier.Domain.Identity;
 using Learnier.Infrastructure.Persistence.Seeding;
 using Microsoft.EntityFrameworkCore;
@@ -117,6 +118,59 @@ public sealed class SeedingTests(PostgresFixture postgres) : IClassFixture<Postg
     }
 
     [Fact]
+    public async Task AdminAccount_GetsClubManagementPermission()
+    {
+        await using var provider = TestServices.BuildProvider(postgres);
+        await DatabaseSeeder.RunAsync(provider, includeDevelopmentData: true, TestContext.Current.CancellationToken);
+
+        await using var scope = provider.CreateAsyncScope();
+        var memberships = scope.ServiceProvider.GetRequiredService<IMembershipProvider>();
+        var permissions = scope.ServiceProvider.GetRequiredService<IPermissionProvider>();
+        var (userId, organizationId) = await FindAccountAsync("admin@hotmail.com");
+
+        var membership = await memberships.FindActiveMembership(
+            userId,
+            organizationId,
+            TestContext.Current.CancellationToken);
+
+        membership.ShouldNotBeNull();
+        var codes = await permissions.GetPermissions(
+            membership.MembershipId,
+            TestContext.Current.CancellationToken);
+
+        codes.ShouldContain(Permissions.Club.Manage);
+        codes.ShouldContain(Permissions.Course.Manage);
+        codes.ShouldContain(Permissions.Organization.MemberManage);
+    }
+
+    [Fact]
+    public async Task DemoStudent_GetsRealEnglishPackageAccess()
+    {
+        await using var provider = TestServices.BuildProvider(postgres);
+        await DatabaseSeeder.RunAsync(provider, includeDevelopmentData: true, TestContext.Current.CancellationToken);
+
+        var (studentId, organizationId) = await FindAccountAsync("ogrenci@hotmail.com");
+        await using var context = postgres.CreateContext();
+
+        var hasEnglishAccess = await context.Subscriptions
+            .Where(subscription =>
+                subscription.OrganizationId == organizationId
+                && subscription.SubscriberUserId == studentId
+                && subscription.Status == SubscriptionStatus.Active)
+            .SelectMany(subscription => context.PlanSubjectAccess
+                .Where(access => access.PlanId == subscription.PlanPrice.PlanId)
+                .Select(access => access.Subject.Name))
+            .AnyAsync(name => name == "İngilizce", TestContext.Current.CancellationToken);
+
+        hasEnglishAccess.ShouldBeTrue();
+
+        var (packageFreeStudentId, _) = await FindAccountAsync("paketsiz@hotmail.com");
+        (await context.Subscriptions.AnyAsync(
+            subscription => subscription.SubscriberUserId == packageFreeStudentId,
+            TestContext.Current.CancellationToken)).ShouldBeFalse();
+    }
+
+    [Fact]
     public async Task WithoutDevelopmentData_OnlyReferenceDataIsWritten()
     {
         // Bu test sinifin paylasilan veritabanini kullanamaz: kardes testler oraya
@@ -177,7 +231,11 @@ public sealed class SeedingTests(PostgresFixture postgres) : IClassFixture<Postg
                 .CountAsync(TestContext.Current.CancellationToken),
             await context.MembershipRoles
                 .IgnoreQueryFilters([Infrastructure.Persistence.AppDbContext.TenantFilterName])
-                .CountAsync(TestContext.Current.CancellationToken));
+                .CountAsync(TestContext.Current.CancellationToken),
+            await context.Subjects.CountAsync(TestContext.Current.CancellationToken),
+            await context.SubscriptionPlans.CountAsync(TestContext.Current.CancellationToken),
+            await context.PlanSubjectAccess.CountAsync(TestContext.Current.CancellationToken),
+            await context.Subscriptions.CountAsync(TestContext.Current.CancellationToken));
     }
 
     private sealed record SeedCounts(
@@ -187,5 +245,9 @@ public sealed class SeedingTests(PostgresFixture postgres) : IClassFixture<Postg
         int Users,
         int Organizations,
         int Memberships,
-        int MembershipRoles);
+        int MembershipRoles,
+        int Subjects,
+        int SubscriptionPlans,
+        int PlanSubjectAccess,
+        int Subscriptions);
 }

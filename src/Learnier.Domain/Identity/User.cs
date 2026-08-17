@@ -95,6 +95,18 @@ public sealed class User : AggregateRoot, IAuditableEntity
         PasswordHash = passwordHash;
     }
 
+    public void UpdateContact(string email, string firstName, string lastName, string? phone)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(email);
+        ArgumentException.ThrowIfNullOrWhiteSpace(firstName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(lastName);
+
+        Email = email.Trim();
+        FirstName = firstName.Trim();
+        LastName = lastName.Trim();
+        Phone = string.IsNullOrWhiteSpace(phone) ? null : phone.Trim();
+    }
+
     public void Suspend() => Status = UserStatus.Suspended;
 
     public void Reinstate() => Status = EmailVerifiedAt is null ? UserStatus.Pending : UserStatus.Active;

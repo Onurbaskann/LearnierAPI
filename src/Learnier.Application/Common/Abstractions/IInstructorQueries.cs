@@ -25,4 +25,27 @@ public interface IInstructorQueries
         Guid profileId,
         DateOnly from,
         CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<InstructorStudentListItem>?> ListMyStudentsAsync(
+        Guid membershipId,
+        CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<InstructorScheduleListItem>?> ListMyScheduleAsync(
+        Guid membershipId,
+        DateTimeOffset? from,
+        DateTimeOffset? until,
+        DateTimeOffset now,
+        CancellationToken cancellationToken);
+
+    Task<InstructorDashboardStats?> FindMyDashboardAsync(
+        Guid membershipId,
+        DateTimeOffset monthStartsAt,
+        DateTimeOffset monthEndsAt,
+        CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<InstructorEarningListItem>?> ListMyEarningsAsync(
+        Guid membershipId,
+        DateTimeOffset? from,
+        DateTimeOffset? until,
+        CancellationToken cancellationToken);
 }

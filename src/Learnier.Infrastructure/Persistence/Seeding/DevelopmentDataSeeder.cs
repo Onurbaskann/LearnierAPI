@@ -1,5 +1,7 @@
 using Learnier.Application.Common.Abstractions;
 using Learnier.Application.Common.Security;
+using Learnier.Domain.Billing;
+using Learnier.Domain.Catalog;
 using Learnier.Domain.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -27,6 +29,9 @@ internal sealed partial class DevelopmentDataSeeder(
     ILogger<DevelopmentDataSeeder> logger)
 {
     private const string OrganizationSlug = "learnier";
+    private const string DemoStudentEmail = "ogrenci@hotmail.com";
+    private const string EnglishSubjectName = "İngilizce";
+    private const string EnglishPlanName = "Demo İngilizce Paketi";
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Seed: development organization created.")]
     private static partial void LogOrganizationCreated(ILogger logger);
@@ -39,6 +44,7 @@ internal sealed partial class DevelopmentDataSeeder(
     /// </summary>
     private static readonly DevelopmentAccount[] Accounts =
     [
+        new("admin@hotmail.com", "admin123", "Learnier", "Admin", SystemRoles.OrganizationAdmin),
         new("ogrenci@hotmail.com", "ogrenci123", "Deniz", "Yilmaz", SystemRoles.Student),
         new("ogretmen@hotmail.com", "ogretmen123", "Emine", "Tekin", SystemRoles.Instructor),
         // Paketsiz panel durumunu test etmek icin kullanilan hesap; abonelik verilmez.
@@ -56,6 +62,101 @@ internal sealed partial class DevelopmentDataSeeder(
         }
 
         await context.SaveChangesAsync(cancellationToken);
+        await EnsureDemoEnglishPackageAsync(organization, cancellationToken);
+        await context.SaveChangesAsync(cancellationToken);
+    }
+
+    private async Task EnsureDemoEnglishPackageAsync(
+        Organization organization,
+        CancellationToken cancellationToken)
+    {
+        var subject = await context.Subjects.FirstOrDefaultAsync(
+            s => s.OrganizationId == organization.Id && s.Name == EnglishSubjectName,
+            cancellationToken);
+
+        if (subject is null)
+        {
+            subject = Subject.Create(organization.Id, EnglishSubjectName, "ingilizce");
+            context.Subjects.Add(subject);
+        }
+
+        var plan = await context.SubscriptionPlans
+            .Include(p => p.Prices)
+            .Include(p => p.Entitlements)
+            .FirstOrDefaultAsync(
+                p => p.OrganizationId == organization.Id && p.Name == EnglishPlanName,
+                cancellationToken);
+
+        PlanPrice price;
+        if (plan is null)
+        {
+            plan = SubscriptionPlan.CreateLessonPackage(
+                organization.Id,
+                EnglishPlanName,
+                monthlyLessonCredits: 12,
+                lessonDurationMinutes: 50,
+                "Geliştirme öğrenci hesabı için İngilizce erişimi.");
+            plan.Activate();
+            price = plan.AddPrice("TRY", 0, BillingInterval.Month, 12, clock.UtcNow);
+            context.SubscriptionPlans.Add(plan);
+        }
+        else
+        {
+            plan.ConfigureLessonPackage(12, 50);
+            price = plan.Prices.FirstOrDefault(p => p.Status == PlanPriceStatus.Active)
+                ?? plan.AddPrice("TRY", 0, BillingInterval.Month, 12, clock.UtcNow);
+        }
+
+        var hasSubjectAccess = await context.PlanSubjectAccess.AnyAsync(
+            access => access.PlanId == plan.Id && access.SubjectId == subject.Id,
+            cancellationToken);
+
+        if (!hasSubjectAccess)
+        {
+            context.PlanSubjectAccess.Add(PlanSubjectAccess.Create(plan.Id, subject.Id));
+        }
+
+        var studentId = await context.Users
+            .Where(u => u.Email == DemoStudentEmail)
+            .Select(u => u.Id)
+            .SingleAsync(cancellationToken);
+
+        var subscription = await context.Subscriptions.FirstOrDefaultAsync(
+            subscription =>
+                subscription.SubscriberUserId == studentId
+                && subscription.PlanPrice.PlanId == plan.Id
+                && subscription.Status == SubscriptionStatus.Active
+                && subscription.CurrentPeriodEnd > clock.UtcNow,
+            cancellationToken);
+
+        if (subscription is null)
+        {
+            subscription = Subscription.CreateForUser(
+                organization.Id,
+                studentId,
+                price.Id,
+                clock.UtcNow,
+                clock.UtcNow.AddYears(10));
+            subscription.Activate();
+            context.Subscriptions.Add(subscription);
+        }
+
+        var hasInitialGrant = await context.CreditLedger.AnyAsync(
+            entry => entry.SubscriptionId == subscription.Id
+                     && entry.TransactionType == CreditTransactionType.PeriodGrant,
+            cancellationToken);
+
+        if (!hasInitialGrant)
+        {
+            context.CreditLedger.Add(CreditLedgerEntry.Grant(
+                subscription.Id,
+                studentId,
+                Learnier.Domain.Scheduling.SessionType.Private,
+                plan.MonthlyLessonCredits!.Value,
+                clock.UtcNow,
+                clock.UtcNow.AddMonths(1),
+                subscription.CurrentPeriodStart));
+        }
     }
 
     private async Task<Organization> EnsureOrganizationAsync(CancellationToken cancellationToken)

@@ -24,13 +24,23 @@ internal sealed class DirectPurchaseEntitlementPolicy : IBookingEntitlementPolic
     public Task<Result<BookingGrant>> AuthorizeAsync(
         Guid learnerUserId,
         LessonSession session,
+        int? lessonDurationMinutes,
         CancellationToken cancellationToken)
         => Task.FromResult(Result.Success(new BookingGrant(BookingAccessSource.DirectPurchase)));
 
-    public Task ReleaseAsync(
+    public Task<Result<Guid?>> ReserveAsync(
+        SessionBooking booking,
+        CancellationToken cancellationToken)
+        => Task.FromResult(Result.Success<Guid?>(null));
+
+    public Task<Result> ConsumeAsync(
+        SessionBooking booking,
+        CancellationToken cancellationToken)
+        => Task.FromResult(Result.Success());
+
+    public Task<Result<bool>> ReleaseAsync(
         SessionBooking booking,
         bool refundable,
         CancellationToken cancellationToken)
-        // Kredi defteri henuz yok; iade edilecek bir hak da yok.
-        => Task.CompletedTask;
+        => Task.FromResult(Result.Success(false));
 }

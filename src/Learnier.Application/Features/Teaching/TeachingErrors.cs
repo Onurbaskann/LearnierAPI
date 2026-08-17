@@ -22,6 +22,9 @@ internal static class TeachingErrors
 
     public static Error SubjectNotFound => Error.Validation("teaching.subject_not_found");
 
+    public static Error InstructorSubjectNotFound
+        => Error.NotFound("teaching.instructor_subject_not_found");
+
     public static Error LevelNotFound => Error.Validation("teaching.level_not_found");
 
     /// <summary>Seviye, yetkinlik icin secilen alana ait degil.</summary>
@@ -37,4 +40,7 @@ internal static class TeachingErrors
     public static Error AvailabilityOverlaps => Error.Conflict("teaching.availability_overlaps");
 
     public static Error AvailabilityNotFound => Error.NotFound("teaching.availability_not_found");
+
+    public static Error AvailabilityDateRangeInvalid
+        => Error.Validation("teaching.availability_date_range_invalid");
 }

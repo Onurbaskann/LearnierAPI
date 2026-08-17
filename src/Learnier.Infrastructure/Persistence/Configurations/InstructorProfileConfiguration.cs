@@ -13,6 +13,8 @@ internal sealed class InstructorProfileConfiguration : IEntityTypeConfiguration<
         builder.HasKey(p => p.Id);
 
         builder.Property(p => p.Bio).HasMaxLength(4000);
+        builder.Property(p => p.Headline).HasMaxLength(160);
+        builder.Property(p => p.Hobbies).HasMaxLength(500);
         builder.Property(p => p.TimeZoneId).HasMaxLength(64).IsRequired();
 
         builder.Property(p => p.Status)

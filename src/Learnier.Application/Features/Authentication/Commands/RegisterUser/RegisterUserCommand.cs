@@ -6,12 +6,4 @@ public sealed record RegisterUserCommand(
     string FirstName,
     string LastName);
 
-/// <summary>
-/// Kayit sonucu.
-/// </summary>
-/// <remarks>
-/// Token dondurulmez: hesap henuz dogrulanmamis oldugu icin giris yapamaz.
-/// <see cref="VerificationRequired"/> her zaman dogru; alan, ileride davetle
-/// gelen ve dogrulama gerektirmeyen kayitlar eklendiginde anlam kazanacak.
-/// </remarks>
-public sealed record RegisterUserResult(Guid UserId, string Email, bool VerificationRequired);
+public sealed record RegisterUserResult(Guid UserId, string Email);

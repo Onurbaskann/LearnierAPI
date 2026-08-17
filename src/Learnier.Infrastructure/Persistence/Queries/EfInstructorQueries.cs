@@ -1,6 +1,8 @@
 using Learnier.Application.Common.Abstractions;
 using Learnier.Application.Common.Models;
 using Learnier.Application.Features.Teaching.Queries;
+using Learnier.Domain.Progress;
+using Learnier.Domain.Scheduling;
 using Learnier.Domain.Teaching;
 using Microsoft.EntityFrameworkCore;
 
@@ -13,6 +15,9 @@ namespace Learnier.Infrastructure.Persistence.Queries;
 /// </remarks>
 internal sealed class EfInstructorQueries(AppDbContext context) : IInstructorQueries
 {
+    /// <summary>Politika snapshot'i olmayan eski oturumlar icin cezasiz iptal siniri.</summary>
+    private const int DefaultInstructorCutoffHours = 4;
+
     public async Task<PagedResult<InstructorListItem>> ListAsync(
         PageRequest page,
         Guid? subjectId,
@@ -44,6 +49,7 @@ internal sealed class EfInstructorQueries(AppDbContext context) : IInstructorQue
                 p.MembershipId,
                 p.Membership.User.FirstName,
                 p.Membership.User.LastName,
+                p.Headline,
                 p.Status,
                 p.TimeZoneId,
                 p.Subjects
@@ -68,7 +74,9 @@ internal sealed class EfInstructorQueries(AppDbContext context) : IInstructorQue
                 p.MembershipId,
                 p.Membership.User.FirstName,
                 p.Membership.User.LastName,
+                p.Headline,
                 p.Bio,
+                p.Hobbies,
                 p.TimeZoneId,
                 p.Status,
                 p.DefaultHourlyRate,
@@ -118,4 +126,240 @@ internal sealed class EfInstructorQueries(AppDbContext context) : IInstructorQue
                 o.OverrideType,
                 o.Reason))
             .ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<InstructorStudentListItem>?> ListMyStudentsAsync(
+        Guid membershipId,
+        CancellationToken cancellationToken)
+    {
+        var profileId = await context.InstructorProfiles
+            .Where(p => p.MembershipId == membershipId)
+            .Select(p => (Guid?)p.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (profileId is null)
+        {
+            return null;
+        }
+
+        var bookings = await context.SessionBookings
+            .AsNoTracking()
+            .Where(b => b.Status == BookingStatus.Reserved
+                        || b.Status == BookingStatus.Attended
+                        || b.Status == BookingStatus.NoShow)
+            .Where(b => b.Session.Status != LessonSessionStatus.Cancelled)
+            .Where(b => b.Session.Instructors.Any(i => i.InstructorProfileId == profileId))
+            .Select(b => new
+            {
+                b.LearnerUserId,
+                b.Learner.FirstName,
+                b.Learner.LastName,
+                CourseTitle = b.Session.Course.Title,
+                b.Session.StartsAt
+            })
+            .ToListAsync(cancellationToken);
+
+        return bookings
+            .GroupBy(b => new { b.LearnerUserId, b.FirstName, b.LastName })
+            .Select(group => new InstructorStudentListItem(
+                group.Key.LearnerUserId,
+                group.Key.FirstName,
+                group.Key.LastName,
+                group.Select(b => b.CourseTitle).Distinct().Order().ToList(),
+                group.Count(),
+                group.Max(b => b.StartsAt)))
+            .OrderBy(item => item.FirstName)
+            .ThenBy(item => item.UserId)
+            .ToList();
+    }
+
+    public async Task<IReadOnlyList<InstructorScheduleListItem>?> ListMyScheduleAsync(
+        Guid membershipId,
+        DateTimeOffset? from,
+        DateTimeOffset? until,
+        DateTimeOffset now,
+        CancellationToken cancellationToken)
+    {
+        var profileId = await context.InstructorProfiles
+            .Where(profile => profile.MembershipId == membershipId)
+            .Select(profile => (Guid?)profile.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (profileId is null)
+        {
+            return null;
+        }
+
+        var query = context.LessonSessions
+            .AsNoTracking()
+            .Where(session => session.Status != LessonSessionStatus.Cancelled)
+            .Where(session => session.Instructors.Any(instructor =>
+                instructor.InstructorProfileId == profileId))
+            .Where(session => session.Bookings.Any(booking =>
+                booking.Status == BookingStatus.Reserved
+                || booking.Status == BookingStatus.Attended
+                || booking.Status == BookingStatus.NoShow));
+
+        if (from is { } startsAfter)
+        {
+            query = query.Where(session => session.EndsAt >= startsAfter);
+        }
+
+        if (until is { } startsBefore)
+        {
+            query = query.Where(session => session.StartsAt <= startsBefore);
+        }
+
+        var rows = await query
+            .OrderBy(session => session.StartsAt)
+            .ThenBy(session => session.Id)
+            .Select(session => new InstructorScheduleListItem(
+                session.Id,
+                session.Course.Title,
+                session.StartsAt,
+                session.EndsAt,
+                session.Status,
+                session.InstructorCancellationDeadlineAt,
+                // Zaman kiyaslamalari bellekte yapiliyor; asagidaki donusume bak.
+                false,
+                false,
+                0m,
+                session.Bookings
+                    .Where(booking => booking.Status == BookingStatus.Reserved
+                                      || booking.Status == BookingStatus.Attended
+                                      || booking.Status == BookingStatus.NoShow)
+                    .OrderBy(booking => booking.BookedAt)
+                    .ThenBy(booking => booking.Id)
+                    .Select(booking => new InstructorScheduleLearner(
+                        booking.LearnerUserId,
+                        booking.Learner.FirstName,
+                        booking.Learner.LastName))
+                    .ToList()))
+            .ToListAsync(cancellationToken);
+
+        return rows
+            .Select(item =>
+            {
+                var deadline = item.InstructorCancellationDeadlineAt
+                    ?? item.StartsAt.AddHours(-DefaultInstructorCutoffHours);
+                var canCancel = item.Status is not LessonSessionStatus.Completed
+                                && now < item.StartsAt;
+                return item with
+                {
+                    CanCancel = canCancel,
+                    WillReceivePenaltyIfCancelled = canCancel && now > deadline
+                };
+            })
+            .ToList();
+    }
+
+    public async Task<InstructorDashboardStats?> FindMyDashboardAsync(
+        Guid membershipId,
+        DateTimeOffset monthStartsAt,
+        DateTimeOffset monthEndsAt,
+        CancellationToken cancellationToken)
+    {
+        var profile = await context.InstructorProfiles
+            .AsNoTracking()
+            .Where(p => p.MembershipId == membershipId)
+            .Select(p => new { p.Id, p.DefaultHourlyRate, p.DefaultHourlyRateCurrency })
+            .FirstOrDefaultAsync(cancellationToken);
+        if (profile is null)
+        {
+            return null;
+        }
+
+        var sessions = context.LessonSessions
+            .AsNoTracking()
+            .Where(s => s.Instructors.Any(i => i.InstructorProfileId == profile.Id));
+
+        var studentCount = await context.SessionBookings
+            .AsNoTracking()
+            .Where(b => b.Status == BookingStatus.Reserved
+                        || b.Status == BookingStatus.Attended
+                        || b.Status == BookingStatus.NoShow)
+            .Where(b => b.Session.Status != LessonSessionStatus.Cancelled)
+            .Where(b => b.Session.Instructors.Any(i => i.InstructorProfileId == profile.Id))
+            .Select(b => b.LearnerUserId)
+            .Distinct()
+            .CountAsync(cancellationToken);
+
+        var completedLessons = await sessions
+            .CountAsync(s => s.Status == LessonSessionStatus.Completed, cancellationToken);
+        var monthEarnings = await context.InstructorEarnings
+            .AsNoTracking()
+            .Where(earning => earning.InstructorProfileId == profile.Id
+                              && earning.EarnedAt >= monthStartsAt
+                              && earning.EarnedAt < monthEndsAt)
+            .Select(earning => new { earning.NetAmount, earning.Currency })
+            .ToListAsync(cancellationToken);
+        var currency = monthEarnings.Select(item => item.Currency).FirstOrDefault()
+            ?? profile.DefaultHourlyRateCurrency
+            ?? "TRY";
+        var thisMonthTotal = monthEarnings
+            .Where(item => item.Currency == currency)
+            .Sum(item => item.NetAmount);
+        var averageRating = await context.SessionFeedback
+            .AsNoTracking()
+            .Where(f => f.TargetInstructorProfileId == profile.Id)
+            .Select(f => (double?)f.Rating)
+            .AverageAsync(cancellationToken);
+
+        return new InstructorDashboardStats(
+            studentCount,
+            completedLessons,
+            decimal.Round(thisMonthTotal, 2),
+            currency,
+            averageRating);
+    }
+
+    public async Task<IReadOnlyList<InstructorEarningListItem>?> ListMyEarningsAsync(
+        Guid membershipId,
+        DateTimeOffset? from,
+        DateTimeOffset? until,
+        CancellationToken cancellationToken)
+    {
+        var profile = await context.InstructorProfiles
+            .AsNoTracking()
+            .Where(p => p.MembershipId == membershipId)
+            .Select(p => new { p.Id, p.DefaultHourlyRate, p.DefaultHourlyRateCurrency })
+            .FirstOrDefaultAsync(cancellationToken);
+        if (profile is null)
+        {
+            return null;
+        }
+
+        var query = context.InstructorEarnings
+            .AsNoTracking()
+            .Where(earning => earning.InstructorProfileId == profile.Id);
+        if (from is { } after)
+        {
+            query = query.Where(earning => earning.EarnedAt >= after);
+        }
+
+        if (until is { } before)
+        {
+            query = query.Where(earning => earning.EarnedAt <= before);
+        }
+
+        return await query
+            .OrderByDescending(earning => earning.EarnedAt)
+            .Select(earning => new InstructorEarningListItem(
+                earning.SessionId,
+                context.LessonSessions
+                    .Where(session => session.Id == earning.SessionId)
+                    .Select(session => session.Course.Title)
+                    .Single(),
+                context.LessonSessions
+                    .Where(session => session.Id == earning.SessionId)
+                    .Select(session => session.StartsAt)
+                    .Single(),
+                context.SessionBookings.Count(booking =>
+                    booking.SessionId == earning.SessionId
+                    && (booking.Status == BookingStatus.Attended
+                        || booking.Status == BookingStatus.NoShow)),
+                earning.NetAmount,
+                earning.Currency,
+                earning.GrossAmount,
+                earning.PenaltyPercentage,
+                earning.PenaltyAmount))
+            .ToListAsync(cancellationToken);
+    }
 }

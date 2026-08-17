@@ -47,6 +47,11 @@ public interface ISchedulingRepository
     /// </remarks>
     Task<SessionBooking?> FindNextWaitlistedAsync(Guid sessionId, CancellationToken cancellationToken);
 
+    /// <summary>Oturum iptalinde kapatilacak rezervasyonlar.</summary>
+    Task<IReadOnlyList<SessionBooking>> ListActiveBookingsAsync(
+        Guid sessionId,
+        CancellationToken cancellationToken);
+
     /// <summary>
     /// Egitmenin verilen aralikta baska bir oturumu var mi?
     /// </summary>
@@ -59,6 +64,11 @@ public interface ISchedulingRepository
 
     Task<bool> InstructorExistsAsync(Guid instructorProfileId, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Es zamanli manuel slot acma islemlerini siraya koymak icin egitmen profilini kilitler.
+    /// </summary>
+    Task<bool> LockInstructorAsync(Guid instructorProfileId, CancellationToken cancellationToken);
+
     Task<int> CountActiveMembersAsync(Guid classGroupId, CancellationToken cancellationToken);
 
     void AddClassGroup(ClassGroup classGroup);
@@ -66,4 +76,6 @@ public interface ISchedulingRepository
     void AddSession(LessonSession session);
 
     void AddBooking(SessionBooking booking);
+
+    void AddAttendance(SessionAttendance attendance);
 }

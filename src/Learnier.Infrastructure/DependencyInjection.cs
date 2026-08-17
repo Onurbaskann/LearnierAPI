@@ -8,6 +8,8 @@ using Learnier.Infrastructure.Persistence.Interceptors;
 using Learnier.Infrastructure.Persistence.Queries;
 using Learnier.Infrastructure.Persistence.Repositories;
 using Learnier.Infrastructure.Scheduling;
+using Learnier.Infrastructure.Billing;
+using Learnier.Infrastructure.Registration;
 using Learnier.Infrastructure.Persistence.Seeding;
 using Learnier.Infrastructure.Time;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -64,20 +66,37 @@ public static class DependencyInjection
 
         services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<AppDbContext>());
         services.AddScoped<IUserRepository, EfUserRepository>();
+        services.AddScoped<IFriendshipRepository, EfFriendshipRepository>();
+        services.AddScoped<IClubRepository, EfClubRepository>();
+        services.AddScoped<IClubAccessPolicy, EfClubAccessPolicy>();
+        services.AddScoped<ILearnerOnboardingRepository, EfLearnerOnboardingRepository>();
         services.AddScoped<IRefreshTokenRepository, EfRefreshTokenRepository>();
         services.AddScoped<IEmailVerificationTokenRepository, EfEmailVerificationTokenRepository>();
+        services.AddScoped<IRegistrationMembershipProvisioner, RegistrationMembershipProvisioner>();
         services.AddScoped<IOrganizationRepository, EfOrganizationRepository>();
         services.AddScoped<IRoleRepository, EfRoleRepository>();
         services.AddScoped<IMembershipRepository, EfMembershipRepository>();
         services.AddScoped<ICatalogRepository, EfCatalogRepository>();
         services.AddScoped<ICatalogQueries, EfCatalogQueries>();
+        services.AddScoped<IActivePackageQueries, EfActivePackageQueries>();
+        services.AddScoped<ICreditLedgerQueries, EfCreditLedgerQueries>();
+        services.AddScoped<IPackagePurchaseRepository, EfPackagePurchaseRepository>();
+        services.AddScoped<IPlanRepository, EfPlanRepository>();
         services.AddScoped<IInstructorRepository, EfInstructorRepository>();
         services.AddScoped<IInstructorQueries, EfInstructorQueries>();
         services.AddScoped<ISchedulingRepository, EfSchedulingRepository>();
+        services.AddScoped<ISchedulingQueries, EfSchedulingQueries>();
 
-        // GECICI: abonelik ve kredi defteri Faz 4'te gelecek. Bu yer tutucu her
-        // rezervasyona izin verir - bkz. DirectPurchaseEntitlementPolicy.
-        services.AddScoped<IBookingEntitlementPolicy, DirectPurchaseEntitlementPolicy>();
+        services.AddScoped<IBookingEntitlementPolicy, SubscriptionCreditEntitlementPolicy>();
+        services.AddScoped<IInstructorCompensationService, InstructorCompensationService>();
+        services.AddScoped<ICancellationPolicyService, CancellationPolicyService>();
+        services.AddScoped<ICreditPeriodRenewalProcessor, CreditPeriodRenewalProcessor>();
+        services.AddHostedService<CreditPeriodRenewalWorker>();
+
+        services.AddOptions<CreditRenewalOptions>()
+            .Bind(configuration.GetSection(CreditRenewalOptions.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
 
         // Gercek bir saglayici baglanana kadar e-postalar yalnizca loga yazilir;
         // uretime cikmadan once degistirilmeli (bkz. LoggingEmailSender).
@@ -89,6 +108,11 @@ public static class DependencyInjection
         services.AddScoped<DevelopmentDataSeeder>();
 
         services.AddIdentityServices(configuration);
+
+        services.AddOptions<RegistrationOptions>()
+            .Bind(configuration.GetSection(RegistrationOptions.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
 
         return services;
     }
@@ -105,9 +129,15 @@ public static class DependencyInjection
             .ValidateOnStart();
 
         services.AddSingleton<IPasswordHasher, PasswordHasher>();
+        services.AddSingleton<IPasswordResetTokenStore, MemoryPasswordResetTokenStore>();
         services.AddSingleton<IRefreshTokenFactory, RefreshTokenFactory>();
         services.AddSingleton<IEmailVerificationTokenFactory, EmailVerificationTokenFactory>();
         services.AddScoped<ITokenService, JwtTokenService>();
+
+        services.AddOptions<PasswordResetOptions>()
+            .Bind(configuration.GetSection(PasswordResetOptions.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
 
         services.AddScoped<IMembershipProvider, EfMembershipProvider>();
         services.AddScoped<IPermissionProvider, EfPermissionProvider>();

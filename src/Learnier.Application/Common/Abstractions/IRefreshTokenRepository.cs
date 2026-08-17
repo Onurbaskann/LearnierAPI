@@ -16,6 +16,11 @@ public interface IRefreshTokenRepository
     /// </remarks>
     Task<RefreshToken?> FindByHashAsync(string tokenHash, CancellationToken cancellationToken);
 
+    Task<IReadOnlyList<RefreshToken>> FindActiveByUserIdAsync(
+        Guid userId,
+        DateTimeOffset now,
+        CancellationToken cancellationToken);
+
     void Add(RefreshToken token);
 }
 

@@ -7,6 +7,7 @@ using Learnier.Application.Features.Catalog.Commands.CreateSubject;
 using Learnier.Application.Features.Organizations.Commands.CreateOrganization;
 using Learnier.Application.Features.Scheduling.Commands.CreateBooking;
 using Learnier.Application.Features.Scheduling.Commands.CreateSession;
+using Learnier.Application.Features.Subscriptions;
 using Learnier.Domain.Scheduling;
 using Learnier.WebApi.Controllers;
 using Microsoft.EntityFrameworkCore;
@@ -46,7 +47,7 @@ public sealed class BookingConcurrencyTests(AuthApiFixture fixture) : IClassFixt
         var responses = await Task.WhenAll(
             learners.Select(l => l.Client.PostAsJsonAsync(
                 new Uri($"/api/v1/sessions/{setup.SessionId}/bookings", UriKind.Relative),
-                new CreateBookingRequest(null),
+                new CreateBookingCommand(),
                 TestContext.Current.CancellationToken)));
 
         foreach (var response in responses)
@@ -87,7 +88,7 @@ public sealed class BookingConcurrencyTests(AuthApiFixture fixture) : IClassFixt
         await Task.WhenAll(
             learners.Select(l => l.Client.PostAsJsonAsync(
                 new Uri($"/api/v1/sessions/{setup.SessionId}/bookings", UriKind.Relative),
-                new CreateBookingRequest(null),
+                new CreateBookingCommand(),
                 TestContext.Current.CancellationToken)));
 
         await AssertReservedCount(setup.SessionId, expected: 3);
@@ -192,7 +193,7 @@ public sealed class BookingConcurrencyTests(AuthApiFixture fixture) : IClassFixt
     private static Task<HttpResponseMessage> Book(HttpClient client, Guid sessionId)
         => client.PostAsJsonAsync(
             new Uri($"/api/v1/sessions/{sessionId}/bookings", UriKind.Relative),
-            new CreateBookingRequest(null),
+            new CreateBookingCommand(),
             TestContext.Current.CancellationToken);
 
     private async Task AssertReservedCount(Guid sessionId, int expected)
@@ -277,7 +278,7 @@ public sealed class BookingConcurrencyTests(AuthApiFixture fixture) : IClassFixt
         var sessionId = (await session.Content.ReadFromJsonAsync<CreateSessionResult>(
             TestJson.Options, TestContext.Current.CancellationToken))!.SessionId;
 
-        return new SessionSetup(ownerClient, created.OrganizationId, sessionId);
+        return new SessionSetup(ownerClient, created.OrganizationId, subjectId, sessionId);
     }
 
     /// <summary>
@@ -307,6 +308,17 @@ public sealed class BookingConcurrencyTests(AuthApiFixture fixture) : IClassFixt
             await SignIn(client, email, "CokGuvenli123");
             client.DefaultRequestHeaders.Add(
                 OrganizationHeader, setup.OrganizationId.ToString());
+
+            var package = await client.PostAsJsonAsync(
+                new Uri("/api/v1/subscriptions/demo-purchases", UriKind.Relative),
+                new PurchaseDemoPackageCommand(
+                    setup.SubjectId,
+                    LessonsPerWeek: 2,
+                    DurationMonths: 6,
+                    LessonDurationMinutes: 50),
+                TestContext.Current.CancellationToken);
+
+            package.StatusCode.ShouldBe(HttpStatusCode.OK);
 
             learners.Add(new Learner(email, client));
         }
@@ -379,7 +391,11 @@ public sealed class BookingConcurrencyTests(AuthApiFixture fixture) : IClassFixt
 
     private sealed record Learner(string Email, HttpClient Client);
 
-    private sealed record SessionSetup(HttpClient OwnerClient, Guid OrganizationId, Guid SessionId)
+    private sealed record SessionSetup(
+        HttpClient OwnerClient,
+        Guid OrganizationId,
+        Guid SubjectId,
+        Guid SessionId)
     {
         public void Dispose() => OwnerClient.Dispose();
     }

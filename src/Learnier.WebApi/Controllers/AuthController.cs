@@ -1,5 +1,8 @@
 using Learnier.Application.Features.Authentication.Commands.LoginUser;
+using Learnier.Application.Features.Authentication.Commands.LogoutUser;
 using Learnier.Application.Features.Authentication.Commands.RefreshAccessToken;
+using Learnier.Application.Features.Authentication.Commands.RequestPasswordReset;
+using Learnier.Application.Features.Authentication.Commands.ResetPassword;
 using Learnier.Application.Features.Authentication.Commands.RegisterUser;
 using Learnier.Application.Features.Authentication.Commands.VerifyEmail;
 using Learnier.WebApi.Common;
@@ -109,6 +112,61 @@ public sealed class AuthController : ControllerBase
 
         var result = await handler.Handle(command, cancellationToken);
 
+        return result.ToActionResult(this);
+    }
+
+    /// <summary>
+    /// Mevcut yenileme tokenini iptal ederek oturumu sonlandirir.
+    /// </summary>
+    [AllowAnonymous]
+    [HttpPost("logout")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult> Logout(
+        LogoutUserCommand command,
+        [FromServices] LogoutUserHandler handler,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(handler);
+
+        var result = await handler.Handle(command, cancellationToken);
+
+        return result.ToActionResult(this);
+    }
+
+    /// <summary>
+    /// Kayitli hesaba parola sifirlama baglantisi gonderilmesini ister.
+    /// </summary>
+    [AllowAnonymous]
+    [HttpPost("forgot-password")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult> ForgotPassword(
+        RequestPasswordResetCommand command,
+        [FromServices] RequestPasswordResetHandler handler,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(handler);
+
+        var result = await handler.Handle(command, cancellationToken);
+        return result.ToActionResult(this);
+    }
+
+    /// <summary>
+    /// Tek kullanimlik tokenla yeni parola belirler.
+    /// </summary>
+    [AllowAnonymous]
+    [HttpPost("reset-password")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult> ResetPassword(
+        ResetPasswordCommand command,
+        [FromServices] ResetPasswordHandler handler,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(handler);
+
+        var result = await handler.Handle(command, cancellationToken);
         return result.ToActionResult(this);
     }
 }

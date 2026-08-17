@@ -2,7 +2,9 @@ using Learnier.WebApi.Localization;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Localization;
+using Npgsql;
 
 namespace Learnier.WebApi.Common;
 
@@ -10,9 +12,10 @@ namespace Learnier.WebApi.Common;
 /// Yakalanmamis istisnalari RFC 9457 uyumlu ProblemDetails yanitina cevirir.
 /// </summary>
 /// <remarks>
-/// Buraya yalnizca <b>beklenmeyen</b> hatalar duser. Is kurali ihlalleri
-/// (kontenjan dolu, iptal suresi gecti gibi) istisna degil <c>Result</c> ile tasinir.
-/// Bu ayrimin pratik faydasi: buradaki her kayit gercekten incelenmesi gereken bir olaydir.
+/// Is kurali ihlalleri (kontenjan dolu, iptal suresi gecti gibi) istisna degil
+/// <c>Result</c> ile tasinir. Yalnizca veritabaninda kesinlesebilen yaris kosullari
+/// burada bilinen istemci hatalarina donusturulur; diger kayitlar incelenmesi gereken
+/// beklenmeyen olaylardir.
 /// </remarks>
 internal sealed partial class GlobalExceptionHandler(
     ILogger<GlobalExceptionHandler> logger,
@@ -45,16 +48,38 @@ internal sealed partial class GlobalExceptionHandler(
             httpContext.Request.Method,
             httpContext.Request.Path);
 
+        var uniqueConstraint = exception is DbUpdateException
+        {
+            InnerException: PostgresException
+            {
+                SqlState: PostgresErrorCodes.UniqueViolation,
+                ConstraintName: { } constraintName
+            }
+        }
+            ? constraintName
+            : null;
+        var errorCode = uniqueConstraint switch
+        {
+            "ix_friendships_first_user_id_second_user_id" => "friends.request_already_pending",
+            "ix_clubs_organization_id_subject_id" => "clubs.already_exists_for_subject",
+            "ix_club_rooms_club_id_name" => "clubs.room_already_exists",
+            _ => "common.unexpected_error"
+        };
+        var isConflict = errorCode != "common.unexpected_error";
+        var status = isConflict
+            ? StatusCodes.Status409Conflict
+            : StatusCodes.Status500InternalServerError;
+
         var problem = new ProblemDetails
         {
-            Status = StatusCodes.Status500InternalServerError,
-            Title = "Server Error",
+            Status = status,
+            Title = isConflict ? "Conflict" : "Server Error",
             // Istisna detaylari istemciye sizdirilmaz; ayrinti loglarda kalir.
-            Detail = localizer["common.unexpected_error"],
+            Detail = localizer[errorCode],
             Instance = httpContext.Request.Path
         };
 
-        problem.Extensions["errorCode"] = "common.unexpected_error";
+        problem.Extensions["errorCode"] = errorCode;
         problem.Extensions["traceId"] = httpContext.TraceIdentifier;
 
         httpContext.Response.StatusCode = problem.Status.Value;

@@ -111,6 +111,14 @@ internal sealed class EfSchedulingRepository(AppDbContext context) : IScheduling
             .ThenBy(b => b.Id)
             .FirstOrDefaultAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<SessionBooking>> ListActiveBookingsAsync(
+        Guid sessionId,
+        CancellationToken cancellationToken)
+        => await context.SessionBookings
+            .Include(booking => booking.Attendance)
+            .Where(b => b.SessionId == sessionId && b.Status != BookingStatus.Cancelled)
+            .ToListAsync(cancellationToken);
+
     /// <inheritdoc />
     /// <remarks>
     /// Cakisma esitlik degil aralik kesisimi sorusudur: yeni oturum mevcut oturum
@@ -148,6 +156,22 @@ internal sealed class EfSchedulingRepository(AppDbContext context) : IScheduling
             .Where(p => p.Id == instructorProfileId)
             .AnyAsync(p => context.Memberships.Any(m => m.Id == p.MembershipId), cancellationToken);
 
+    public async Task<bool> LockInstructorAsync(
+        Guid instructorProfileId,
+        CancellationToken cancellationToken)
+    {
+        var locked = await context.InstructorProfiles
+            .FromSqlInterpolated(
+                $"SELECT * FROM instructor_profiles WHERE id = {instructorProfileId} FOR UPDATE")
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return locked is not null
+               && await context.Memberships.AnyAsync(
+                   m => m.Id == locked.MembershipId,
+                   cancellationToken);
+    }
+
     public async Task<int> CountActiveMembersAsync(Guid classGroupId, CancellationToken cancellationToken)
         => await context.ClassGroupMembers
             .CountAsync(
@@ -160,4 +184,6 @@ internal sealed class EfSchedulingRepository(AppDbContext context) : IScheduling
     public void AddSession(LessonSession session) => context.LessonSessions.Add(session);
 
     public void AddBooking(SessionBooking booking) => context.SessionBookings.Add(booking);
+
+    public void AddAttendance(SessionAttendance attendance) => context.SessionAttendances.Add(attendance);
 }

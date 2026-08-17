@@ -118,10 +118,17 @@ public sealed class LoginUserHandlerTests
         result.Error.Code.ShouldBe("auth.account_suspended");
     }
 
+    /// <summary>
+    /// E-postasi dogrulanmamis hesap giris yapamaz.
+    /// </summary>
+    /// <remarks>
+    /// Kayit sonrasi hesap Pending baslar; dogrulama ucu tamamlanana kadar giris
+    /// engellenir. Sebep acikca bildirilir, genel bir "hesap kullanilamiyor"
+    /// mesaji kullaniciyi ne yapacagi konusunda yalniz birakirdi.
+    /// </remarks>
     [Fact]
     public async Task Fails_WhenEmailIsNotVerified()
     {
-        // Register sonrasi dogrulanmamis hesap.
         SetupUser(User.Register("a@b.com", "Ad", "Soyad", Hash));
         _passwordHasher.Verify(Hash, Password).Returns(PasswordVerificationOutcome.Success);
 

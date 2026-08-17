@@ -23,6 +23,61 @@ namespace Learnier.Infrastructure.Persistence.Migrations
             NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "citext");
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Learnier.Domain.Billing.CancellationPolicy", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<int>("InstructorPenaltyCutoffMinutes")
+                        .HasColumnType("integer")
+                        .HasColumnName("instructor_penalty_cutoff_minutes");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organization_id");
+
+                    b.Property<int>("StudentRefundCutoffMinutes")
+                        .HasColumnType("integer")
+                        .HasColumnName("student_refund_cutoff_minutes");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("integer")
+                        .HasColumnName("version");
+
+                    b.HasKey("Id")
+                        .HasName("pk_cancellation_policies");
+
+                    b.HasIndex("OrganizationId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_cancellation_policies_organization_id");
+
+                    b.ToTable("cancellation_policies", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_cancellation_policy_instructor_cutoff", "instructor_penalty_cutoff_minutes BETWEEN 0 AND 10080");
+
+                            t.HasCheckConstraint("ck_cancellation_policy_student_cutoff", "student_refund_cutoff_minutes BETWEEN 0 AND 10080");
+
+                            t.HasCheckConstraint("ck_cancellation_policy_version", "version > 0");
+                        });
+                });
+
             modelBuilder.Entity("Learnier.Domain.Billing.CreditLedgerEntry", b =>
                 {
                     b.Property<Guid>("Id")
@@ -44,6 +99,10 @@ namespace Learnier.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("LearnerUserId")
                         .HasColumnType("uuid")
                         .HasColumnName("learner_user_id");
+
+                    b.Property<DateTimeOffset?>("PeriodStart")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("period_start");
 
                     b.Property<int>("Quantity")
                         .HasColumnType("integer")
@@ -68,8 +127,13 @@ namespace Learnier.Infrastructure.Persistence.Migrations
                     b.HasKey("Id")
                         .HasName("pk_credit_ledger");
 
-                    b.HasIndex("BookingId")
-                        .HasDatabaseName("ix_credit_ledger_booking_id");
+                    b.HasIndex("BookingId", "TransactionType")
+                        .IsUnique()
+                        .HasDatabaseName("ix_credit_ledger_booking_id_transaction_type");
+
+                    b.HasIndex("ExpiresAt", "SubscriptionId")
+                        .HasDatabaseName("ix_credit_ledger_due_period_grants")
+                        .HasFilter("transaction_type = 'PeriodGrant'");
 
                     b.HasIndex("LearnerUserId", "SessionType")
                         .HasDatabaseName("ix_credit_ledger_learner_user_id_session_type");
@@ -77,9 +141,373 @@ namespace Learnier.Infrastructure.Persistence.Migrations
                     b.HasIndex("SubscriptionId", "LearnerUserId", "ExpiresAt")
                         .HasDatabaseName("ix_credit_ledger_subscription_id_learner_user_id_expires_at");
 
+                    b.HasIndex("SubscriptionId", "SessionType", "TransactionType", "PeriodStart")
+                        .IsUnique()
+                        .HasDatabaseName("ix_credit_ledger_subscription_id_session_type_transaction_type")
+                        .HasFilter("period_start IS NOT NULL AND transaction_type IN ('PeriodGrant', 'Expire')");
+
                     b.ToTable("credit_ledger", null, t =>
                         {
-                            t.HasCheckConstraint("ck_credit_ledger_quantity_not_zero", "quantity <> 0");
+                            t.HasCheckConstraint("ck_credit_ledger_quantity_not_zero", "quantity <> 0 OR transaction_type = 'Consume'");
+                        });
+                });
+
+            modelBuilder.Entity("Learnier.Domain.Billing.InstructorCompensationRate", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("amount");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)")
+                        .HasColumnName("currency");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<int>("LessonDurationMinutes")
+                        .HasColumnType("integer")
+                        .HasColumnName("lesson_duration_minutes");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organization_id");
+
+                    b.Property<Guid>("SubjectId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("subject_id");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id")
+                        .HasName("pk_instructor_compensation_rates");
+
+                    b.HasIndex("SubjectId")
+                        .HasDatabaseName("ix_instructor_compensation_rates_subject_id");
+
+                    b.HasIndex("OrganizationId", "SubjectId", "LessonDurationMinutes")
+                        .IsUnique()
+                        .HasDatabaseName("ix_instructor_compensation_rates_organization_id_subject_id_le");
+
+                    b.ToTable("instructor_compensation_rates", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_instructor_compensation_amount", "amount >= 0");
+
+                            t.HasCheckConstraint("ck_instructor_compensation_duration", "lesson_duration_minutes IN (30, 50)");
+                        });
+                });
+
+            modelBuilder.Entity("Learnier.Domain.Billing.InstructorEarning", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)")
+                        .HasColumnName("currency");
+
+                    b.Property<DateTimeOffset>("EarnedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("earned_at");
+
+                    b.Property<decimal>("GrossAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("gross_amount");
+
+                    b.Property<Guid>("InstructorProfileId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("instructor_profile_id");
+
+                    b.Property<int>("LessonDurationMinutes")
+                        .HasColumnType("integer")
+                        .HasColumnName("lesson_duration_minutes");
+
+                    b.Property<decimal>("NetAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("net_amount");
+
+                    b.Property<decimal>("PenaltyAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("penalty_amount");
+
+                    b.Property<decimal>("PenaltyPercentage")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)")
+                        .HasColumnName("penalty_percentage");
+
+                    b.Property<Guid>("SessionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("session_id");
+
+                    b.Property<Guid>("SubjectId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("subject_id");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id")
+                        .HasName("pk_instructor_earnings");
+
+                    b.HasIndex("SubjectId")
+                        .HasDatabaseName("ix_instructor_earnings_subject_id");
+
+                    b.HasIndex("InstructorProfileId", "EarnedAt")
+                        .HasDatabaseName("ix_instructor_earnings_instructor_profile_id_earned_at");
+
+                    b.HasIndex("SessionId", "InstructorProfileId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_instructor_earnings_session_id_instructor_profile_id");
+
+                    b.ToTable("instructor_earnings", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_instructor_earning_amounts", "gross_amount >= 0 AND penalty_amount >= 0 AND net_amount >= 0");
+
+                            t.HasCheckConstraint("ck_instructor_earning_penalty", "penalty_percentage >= 0 AND penalty_percentage <= 100");
+                        });
+                });
+
+            modelBuilder.Entity("Learnier.Domain.Billing.InstructorPenaltyEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid?>("ActorUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("actor_user_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<Guid?>("EarningId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("earning_id");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("event_type");
+
+                    b.Property<Guid>("InstructorProfileId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("instructor_profile_id");
+
+                    b.Property<int>("Level")
+                        .HasColumnType("integer")
+                        .HasColumnName("level");
+
+                    b.Property<DateTimeOffset>("OccurredAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("occurred_at");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organization_id");
+
+                    b.Property<decimal>("Percentage")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)")
+                        .HasColumnName("percentage");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("reason");
+
+                    b.Property<Guid?>("SessionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("session_id");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id")
+                        .HasName("pk_instructor_penalty_events");
+
+                    b.HasIndex("EarningId")
+                        .HasDatabaseName("ix_instructor_penalty_events_earning_id");
+
+                    b.HasIndex("SessionId")
+                        .HasDatabaseName("ix_instructor_penalty_events_session_id");
+
+                    b.HasIndex("InstructorProfileId", "OccurredAt")
+                        .HasDatabaseName("ix_instructor_penalty_events_instructor_profile_id_occurred_at");
+
+                    b.HasIndex("InstructorProfileId", "SessionId", "EventType")
+                        .IsUnique()
+                        .HasDatabaseName("ix_instructor_penalty_events_instructor_profile_id_session_id_")
+                        .HasFilter("session_id IS NOT NULL");
+
+                    b.ToTable("instructor_penalty_events", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_instructor_penalty_event_level", "level >= 0");
+
+                            t.HasCheckConstraint("ck_instructor_penalty_event_percentage", "percentage >= 0 AND percentage <= 100");
+                        });
+                });
+
+            modelBuilder.Entity("Learnier.Domain.Billing.InstructorPenaltyState", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<Guid>("InstructorProfileId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("instructor_profile_id");
+
+                    b.Property<Guid?>("LastCancelledSessionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("last_cancelled_session_id");
+
+                    b.Property<DateTimeOffset?>("LastPenaltyAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("last_penalty_at");
+
+                    b.Property<int>("Level")
+                        .HasColumnType("integer")
+                        .HasColumnName("level");
+
+                    b.Property<decimal?>("PendingPercentage")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)")
+                        .HasColumnName("pending_percentage");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id")
+                        .HasName("pk_instructor_penalty_states");
+
+                    b.HasIndex("InstructorProfileId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_instructor_penalty_states_instructor_profile_id");
+
+                    b.HasIndex("LastCancelledSessionId")
+                        .HasDatabaseName("ix_instructor_penalty_states_last_cancelled_session_id");
+
+                    b.ToTable("instructor_penalty_states", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_instructor_penalty_state_level", "level >= 0");
+
+                            t.HasCheckConstraint("ck_instructor_penalty_state_percentage", "pending_percentage IS NULL OR pending_percentage BETWEEN 0 AND 100");
+                        });
+                });
+
+            modelBuilder.Entity("Learnier.Domain.Billing.InstructorPenaltyStep", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<int>("Level")
+                        .HasColumnType("integer")
+                        .HasColumnName("level");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organization_id");
+
+                    b.Property<decimal>("Percentage")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)")
+                        .HasColumnName("percentage");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id")
+                        .HasName("pk_instructor_penalty_steps");
+
+                    b.HasIndex("OrganizationId", "Level")
+                        .IsUnique()
+                        .HasDatabaseName("ix_instructor_penalty_steps_organization_id_level");
+
+                    b.ToTable("instructor_penalty_steps", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_instructor_penalty_level", "level > 0");
+
+                            t.HasCheckConstraint("ck_instructor_penalty_percentage", "percentage >= 0 AND percentage <= 100");
                         });
                 });
 
@@ -407,6 +835,10 @@ namespace Learnier.Infrastructure.Persistence.Migrations
                     b.HasKey("PlanId", "SubjectId")
                         .HasName("pk_plan_subject_access");
 
+                    b.HasIndex("PlanId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_plan_subject_access_plan_id");
+
                     b.HasIndex("SubjectId")
                         .HasDatabaseName("ix_plan_subject_access_subject_id");
 
@@ -599,6 +1031,14 @@ namespace Learnier.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(4000)")
                         .HasColumnName("description");
 
+                    b.Property<int?>("LessonDurationMinutes")
+                        .HasColumnType("integer")
+                        .HasColumnName("lesson_duration_minutes");
+
+                    b.Property<int?>("MonthlyLessonCredits")
+                        .HasColumnType("integer")
+                        .HasColumnName("monthly_lesson_credits");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -629,7 +1069,14 @@ namespace Learnier.Infrastructure.Persistence.Migrations
                     b.HasIndex("OrganizationId", "Status")
                         .HasDatabaseName("ix_subscription_plans_organization_id_status");
 
-                    b.ToTable("subscription_plans", (string)null);
+                    b.ToTable("subscription_plans", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_subscription_plans_lesson_duration", "lesson_duration_minutes IS NULL OR lesson_duration_minutes IN (30, 50)");
+
+                            t.HasCheckConstraint("ck_subscription_plans_lesson_package_complete", "(monthly_lesson_credits IS NULL AND lesson_duration_minutes IS NULL) OR (monthly_lesson_credits IS NOT NULL AND lesson_duration_minutes IS NOT NULL)");
+
+                            t.HasCheckConstraint("ck_subscription_plans_monthly_credits_positive", "monthly_lesson_credits IS NULL OR monthly_lesson_credits > 0");
+                        });
                 });
 
             modelBuilder.Entity("Learnier.Domain.Billing.SubscriptionSeat", b =>
@@ -1557,6 +2004,108 @@ namespace Learnier.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Learnier.Domain.Progress.LearnerOnboardingProfile", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.PrimitiveCollection<string[]>("AvailabilityPreferences")
+                        .IsRequired()
+                        .HasColumnType("text[]")
+                        .HasColumnName("availability_preferences");
+
+                    b.Property<DateTimeOffset>("CompletedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("completed_at");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.PrimitiveCollection<string[]>("DifficultyAreas")
+                        .IsRequired()
+                        .HasColumnType("text[]")
+                        .HasColumnName("difficulty_areas");
+
+                    b.Property<Guid?>("EstimatedLevelId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("estimated_level_id");
+
+                    b.Property<string>("InstructorPreference")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("instructor_preference");
+
+                    b.Property<Guid>("LearnerUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("learner_user_id");
+
+                    b.Property<string>("LearningGoal")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("learning_goal");
+
+                    b.Property<string>("LessonFocus")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("lesson_focus");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organization_id");
+
+                    b.Property<string>("SelfAssessment")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("self_assessment");
+
+                    b.Property<Guid>("SubjectId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("subject_id");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.Property<int>("WeeklyLessonGoal")
+                        .HasColumnType("integer")
+                        .HasColumnName("weekly_lesson_goal");
+
+                    b.HasKey("Id")
+                        .HasName("pk_learner_onboarding_profiles");
+
+                    b.HasIndex("EstimatedLevelId")
+                        .HasDatabaseName("ix_learner_onboarding_profiles_estimated_level_id");
+
+                    b.HasIndex("LearnerUserId")
+                        .HasDatabaseName("ix_learner_onboarding_profiles_learner_user_id");
+
+                    b.HasIndex("SubjectId")
+                        .HasDatabaseName("ix_learner_onboarding_profiles_subject_id");
+
+                    b.HasIndex("OrganizationId", "LearnerUserId", "SubjectId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_learner_onboarding_profiles_organization_id_learner_user_id");
+
+                    b.ToTable("learner_onboarding_profiles", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_learner_onboarding_profiles_weekly_goal", "weekly_lesson_goal >= 1 AND weekly_lesson_goal <= 7");
+                        });
+                });
+
             modelBuilder.Entity("Learnier.Domain.Progress.LessonCompletion", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1824,6 +2373,10 @@ namespace Learnier.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamptz")
                         .HasColumnName("cancellation_deadline_at");
 
+                    b.Property<int?>("CancellationPolicyVersion")
+                        .HasColumnType("integer")
+                        .HasColumnName("cancellation_policy_version");
+
                     b.Property<string>("CancellationReason")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)")
@@ -1856,6 +2409,10 @@ namespace Learnier.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset>("EndsAt")
                         .HasColumnType("timestamptz")
                         .HasColumnName("ends_at");
+
+                    b.Property<DateTimeOffset?>("InstructorCancellationDeadlineAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("instructor_cancellation_deadline_at");
 
                     b.Property<string>("MeetingProvider")
                         .HasMaxLength(32)
@@ -2136,6 +2693,227 @@ namespace Learnier.Infrastructure.Persistence.Migrations
                     b.ToTable("session_instructors", (string)null);
                 });
 
+            modelBuilder.Entity("Learnier.Domain.Social.Club", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("description");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("name");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organization_id");
+
+                    b.Property<Guid>("SubjectId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("subject_id");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id")
+                        .HasName("pk_clubs");
+
+                    b.HasIndex("SubjectId")
+                        .HasDatabaseName("ix_clubs_subject_id");
+
+                    b.HasIndex("OrganizationId", "SubjectId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_clubs_organization_id_subject_id");
+
+                    b.ToTable("clubs", (string)null);
+                });
+
+            modelBuilder.Entity("Learnier.Domain.Social.ClubMessage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("AuthorUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("author_user_id");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("body");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<Guid>("RoomId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("room_id");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id")
+                        .HasName("pk_club_messages");
+
+                    b.HasIndex("AuthorUserId")
+                        .HasDatabaseName("ix_club_messages_author_user_id");
+
+                    b.HasIndex("RoomId", "CreatedAt")
+                        .HasDatabaseName("ix_club_messages_room_id_created_at");
+
+                    b.ToTable("club_messages", (string)null);
+                });
+
+            modelBuilder.Entity("Learnier.Domain.Social.ClubRoom", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("ClubId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("club_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer")
+                        .HasColumnName("sort_order");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("type");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id")
+                        .HasName("pk_club_rooms");
+
+                    b.HasIndex("ClubId", "Name")
+                        .IsUnique()
+                        .HasDatabaseName("ix_club_rooms_club_id_name");
+
+                    b.HasIndex("ClubId", "SortOrder")
+                        .HasDatabaseName("ix_club_rooms_club_id_sort_order");
+
+                    b.ToTable("club_rooms", (string)null);
+                });
+
+            modelBuilder.Entity("Learnier.Domain.Social.Friendship", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("FirstUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("first_user_id");
+
+                    b.Property<DateTimeOffset>("RequestedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("requested_at");
+
+                    b.Property<Guid>("RequestedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("requested_by_user_id");
+
+                    b.Property<DateTimeOffset?>("RespondedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("responded_at");
+
+                    b.Property<Guid>("SecondUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("second_user_id");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("status");
+
+                    b.HasKey("Id")
+                        .HasName("pk_friendships");
+
+                    b.HasIndex("SecondUserId")
+                        .HasDatabaseName("ix_friendships_second_user_id");
+
+                    b.HasIndex("FirstUserId", "SecondUserId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_friendships_first_user_id_second_user_id");
+
+                    b.HasIndex("RequestedByUserId", "Status")
+                        .HasDatabaseName("ix_friendships_requested_by_user_id_status");
+
+                    b.ToTable("friendships", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_friendships_distinct_users", "first_user_id <> second_user_id");
+
+                            t.HasCheckConstraint("ck_friendships_requester_is_participant", "requested_by_user_id = first_user_id OR requested_by_user_id = second_user_id");
+
+                            t.HasCheckConstraint("ck_friendships_response_matches_status", "(status = 'Pending') = (responded_at IS NULL)");
+                        });
+                });
+
             modelBuilder.Entity("Learnier.Domain.Teaching.InstructorAvailability", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2296,6 +3074,16 @@ namespace Learnier.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(3)")
                         .HasColumnName("default_hourly_rate_currency");
 
+                    b.Property<string>("Headline")
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)")
+                        .HasColumnName("headline");
+
+                    b.Property<string>("Hobbies")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("hobbies");
+
                     b.Property<Guid>("MembershipId")
                         .HasColumnType("uuid")
                         .HasColumnName("membership_id");
@@ -2393,6 +3181,16 @@ namespace Learnier.Infrastructure.Persistence.Migrations
                     b.ToTable("instructor_subjects", (string)null);
                 });
 
+            modelBuilder.Entity("Learnier.Domain.Billing.CancellationPolicy", b =>
+                {
+                    b.HasOne("Learnier.Domain.Identity.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_cancellation_policies_organizations_organization_id");
+                });
+
             modelBuilder.Entity("Learnier.Domain.Billing.CreditLedgerEntry", b =>
                 {
                     b.HasOne("Learnier.Domain.Scheduling.SessionBooking", null)
@@ -2418,6 +3216,78 @@ namespace Learnier.Infrastructure.Persistence.Migrations
                     b.Navigation("Learner");
 
                     b.Navigation("Subscription");
+                });
+
+            modelBuilder.Entity("Learnier.Domain.Billing.InstructorCompensationRate", b =>
+                {
+                    b.HasOne("Learnier.Domain.Catalog.Subject", null)
+                        .WithMany()
+                        .HasForeignKey("SubjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_instructor_compensation_rates_subjects_subject_id");
+                });
+
+            modelBuilder.Entity("Learnier.Domain.Billing.InstructorEarning", b =>
+                {
+                    b.HasOne("Learnier.Domain.Teaching.InstructorProfile", null)
+                        .WithMany()
+                        .HasForeignKey("InstructorProfileId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_instructor_earnings_instructor_profiles_instructor_profile_");
+
+                    b.HasOne("Learnier.Domain.Scheduling.LessonSession", null)
+                        .WithMany()
+                        .HasForeignKey("SessionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_instructor_earnings_lesson_sessions_session_id");
+
+                    b.HasOne("Learnier.Domain.Catalog.Subject", null)
+                        .WithMany()
+                        .HasForeignKey("SubjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_instructor_earnings_subjects_subject_id");
+                });
+
+            modelBuilder.Entity("Learnier.Domain.Billing.InstructorPenaltyEvent", b =>
+                {
+                    b.HasOne("Learnier.Domain.Billing.InstructorEarning", null)
+                        .WithMany()
+                        .HasForeignKey("EarningId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_instructor_penalty_events_instructor_earnings_earning_id");
+
+                    b.HasOne("Learnier.Domain.Teaching.InstructorProfile", null)
+                        .WithMany()
+                        .HasForeignKey("InstructorProfileId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_instructor_penalty_events_instructor_profiles_instructor_pr");
+
+                    b.HasOne("Learnier.Domain.Scheduling.LessonSession", null)
+                        .WithMany()
+                        .HasForeignKey("SessionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_instructor_penalty_events_lesson_sessions_session_id");
+                });
+
+            modelBuilder.Entity("Learnier.Domain.Billing.InstructorPenaltyState", b =>
+                {
+                    b.HasOne("Learnier.Domain.Teaching.InstructorProfile", null)
+                        .WithMany()
+                        .HasForeignKey("InstructorProfileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_instructor_penalty_states_instructor_profiles_instructor_pr");
+
+                    b.HasOne("Learnier.Domain.Scheduling.LessonSession", null)
+                        .WithMany()
+                        .HasForeignKey("LastCancelledSessionId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_instructor_penalty_states_lesson_sessions_last_cancelled_se");
                 });
 
             modelBuilder.Entity("Learnier.Domain.Billing.Payment", b =>
@@ -2830,6 +3700,40 @@ namespace Learnier.Infrastructure.Persistence.Migrations
                     b.Navigation("Learner");
                 });
 
+            modelBuilder.Entity("Learnier.Domain.Progress.LearnerOnboardingProfile", b =>
+                {
+                    b.HasOne("Learnier.Domain.Catalog.Level", "EstimatedLevel")
+                        .WithMany()
+                        .HasForeignKey("EstimatedLevelId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_learner_onboarding_profiles_levels_estimated_level_id");
+
+                    b.HasOne("Learnier.Domain.Identity.User", null)
+                        .WithMany()
+                        .HasForeignKey("LearnerUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_learner_onboarding_profiles_users_learner_user_id");
+
+                    b.HasOne("Learnier.Domain.Identity.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_learner_onboarding_profiles_organizations_organization_id");
+
+                    b.HasOne("Learnier.Domain.Catalog.Subject", "Subject")
+                        .WithMany()
+                        .HasForeignKey("SubjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_learner_onboarding_profiles_subjects_subject_id");
+
+                    b.Navigation("EstimatedLevel");
+
+                    b.Navigation("Subject");
+                });
+
             modelBuilder.Entity("Learnier.Domain.Progress.LessonCompletion", b =>
                 {
                     b.HasOne("Learnier.Domain.Catalog.CourseLesson", "CourseLesson")
@@ -3040,6 +3944,86 @@ namespace Learnier.Infrastructure.Persistence.Migrations
                     b.Navigation("Session");
                 });
 
+            modelBuilder.Entity("Learnier.Domain.Social.Club", b =>
+                {
+                    b.HasOne("Learnier.Domain.Identity.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_clubs_organizations_organization_id");
+
+                    b.HasOne("Learnier.Domain.Catalog.Subject", "Subject")
+                        .WithMany()
+                        .HasForeignKey("SubjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_clubs_subjects_subject_id");
+
+                    b.Navigation("Subject");
+                });
+
+            modelBuilder.Entity("Learnier.Domain.Social.ClubMessage", b =>
+                {
+                    b.HasOne("Learnier.Domain.Identity.User", "AuthorUser")
+                        .WithMany()
+                        .HasForeignKey("AuthorUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_club_messages_users_author_user_id");
+
+                    b.HasOne("Learnier.Domain.Social.ClubRoom", "Room")
+                        .WithMany()
+                        .HasForeignKey("RoomId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_club_messages_club_rooms_room_id");
+
+                    b.Navigation("AuthorUser");
+
+                    b.Navigation("Room");
+                });
+
+            modelBuilder.Entity("Learnier.Domain.Social.ClubRoom", b =>
+                {
+                    b.HasOne("Learnier.Domain.Social.Club", "Club")
+                        .WithMany("Rooms")
+                        .HasForeignKey("ClubId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_club_rooms_clubs_club_id");
+
+                    b.Navigation("Club");
+                });
+
+            modelBuilder.Entity("Learnier.Domain.Social.Friendship", b =>
+                {
+                    b.HasOne("Learnier.Domain.Identity.User", "FirstUser")
+                        .WithMany()
+                        .HasForeignKey("FirstUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_friendships_users_first_user_id");
+
+                    b.HasOne("Learnier.Domain.Identity.User", null)
+                        .WithMany()
+                        .HasForeignKey("RequestedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_friendships_users_requested_by_user_id");
+
+                    b.HasOne("Learnier.Domain.Identity.User", "SecondUser")
+                        .WithMany()
+                        .HasForeignKey("SecondUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_friendships_users_second_user_id");
+
+                    b.Navigation("FirstUser");
+
+                    b.Navigation("SecondUser");
+                });
+
             modelBuilder.Entity("Learnier.Domain.Teaching.InstructorAvailability", b =>
                 {
                     b.HasOne("Learnier.Domain.Teaching.InstructorProfile", "InstructorProfile")
@@ -3165,6 +4149,11 @@ namespace Learnier.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Learnier.Domain.Scheduling.SessionBooking", b =>
                 {
                     b.Navigation("Attendance");
+                });
+
+            modelBuilder.Entity("Learnier.Domain.Social.Club", b =>
+                {
+                    b.Navigation("Rooms");
                 });
 
             modelBuilder.Entity("Learnier.Domain.Teaching.InstructorProfile", b =>

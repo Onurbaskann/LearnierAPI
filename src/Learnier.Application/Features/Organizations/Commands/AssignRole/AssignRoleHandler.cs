@@ -13,7 +13,10 @@ public sealed class AssignRoleHandler(
     ICurrentTenant currentTenant,
     IUnitOfWork unitOfWork)
 {
-    public async Task<Result> Handle(AssignRoleCommand command, CancellationToken cancellationToken)
+    public async Task<Result> Handle(
+        Guid membershipId,
+        AssignRoleCommand command,
+        CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(command);
 
@@ -24,7 +27,7 @@ public sealed class AssignRoleHandler(
 
         // Sorgu kiraci filtresine tabi: baska bir organizasyonun uyeligi buradan
         // bulunamaz, yani kimlik bilinse bile yabanci bir uyelige rol atanamaz.
-        var membership = await memberships.FindWithRolesAsync(command.MembershipId, cancellationToken);
+        var membership = await memberships.FindWithRolesAsync(membershipId, cancellationToken);
 
         if (membership is null)
         {

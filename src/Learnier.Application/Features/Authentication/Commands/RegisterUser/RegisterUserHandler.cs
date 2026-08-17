@@ -9,7 +9,8 @@ namespace Learnier.Application.Features.Authentication.Commands.RegisterUser;
 /// </summary>
 /// <remarks>
 /// Hesap <see cref="UserStatus.Pending"/> durumunda olusur ve dogrulanana kadar
-/// giris yapamaz; bkz. <c>LoginUserHandler</c>.
+/// giris yapamaz; bkz. <c>LoginUserHandler</c>. Dogrulama olmadan sahte
+/// e-postalarla hesap acilabilirdi.
 /// </remarks>
 public sealed class RegisterUserHandler(
     IUserRepository users,
@@ -17,6 +18,7 @@ public sealed class RegisterUserHandler(
     IEmailVerificationTokenFactory verificationTokenFactory,
     IPasswordHasher passwordHasher,
     IEmailSender emailSender,
+    IRegistrationMembershipProvisioner membershipProvisioner,
     IUnitOfWork unitOfWork)
 {
     public async Task<Result<RegisterUserResult>> Handle(
@@ -52,6 +54,8 @@ public sealed class RegisterUserHandler(
             token.IssuedAt,
             token.ExpiresAt));
 
+        await membershipProvisioner.ProvisionAsync(user, cancellationToken);
+
         // Once kaydet, sonra gonder: gonderim basarisiz olursa kullanici yeniden
         // dogrulama isteyebilir, ama kaydedilmemis bir kullaniciya e-posta gitmesi
         // geri donusu olmayan bir tutarsizlik olurdu.
@@ -68,6 +72,6 @@ public sealed class RegisterUserHandler(
                 }),
             cancellationToken);
 
-        return new RegisterUserResult(user.Id, user.Email, VerificationRequired: true);
+        return new RegisterUserResult(user.Id, user.Email);
     }
 }

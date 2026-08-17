@@ -2,6 +2,8 @@ using Learnier.Application.Common.Security;
 using Learnier.Application.Features.Organizations.Commands.AssignRole;
 using Learnier.Application.Features.Organizations.Commands.CreateOrganization;
 using Learnier.Application.Features.Organizations.Commands.InviteMember;
+using Learnier.Application.Features.Organizations.Commands.RemoveRole;
+using Learnier.Application.Features.Organizations.Queries;
 using Learnier.WebApi.Common;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -20,6 +22,20 @@ namespace Learnier.WebApi.Controllers;
 [Authorize]
 public sealed class OrganizationsController : ControllerBase
 {
+    [HttpGet("members")]
+    [Authorize(Policy = Permissions.Organization.MemberManage)]
+    public async Task<ActionResult<IReadOnlyList<OrganizationMemberListItem>>> ListMembers(
+        [FromServices] ListOrganizationMembersHandler handler,
+        CancellationToken cancellationToken)
+        => (await handler.Handle(cancellationToken)).ToActionResult(this);
+
+    [HttpGet("roles")]
+    [Authorize(Policy = Permissions.Organization.MemberManage)]
+    public async Task<ActionResult<IReadOnlyList<OrganizationRoleListItem>>> ListRoles(
+        [FromServices] ListOrganizationRolesHandler handler,
+        CancellationToken cancellationToken)
+        => (await handler.Handle(cancellationToken)).ToActionResult(this);
+
     /// <summary>
     /// Yeni organizasyon olusturur. Kurucu otomatik olarak sahip rolunu alir.
     /// </summary>
@@ -75,22 +91,34 @@ public sealed class OrganizationsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult> AssignRole(
         Guid membershipId,
-        AssignRoleRequest request,
+        AssignRoleCommand command,
         [FromServices] AssignRoleHandler handler,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(handler);
-        ArgumentNullException.ThrowIfNull(request);
 
-        var result = await handler.Handle(
-            new AssignRoleCommand(membershipId, request.RoleId),
-            cancellationToken);
+        var result = await handler.Handle(membershipId, command, cancellationToken);
+
+        return result.ToActionResult(this);
+    }
+
+    /// <summary>Bir uyelikten atanmis rolu kaldirir.</summary>
+    [HttpDelete("members/{membershipId:guid}/roles/{roleId:guid}")]
+    [Authorize(Policy = Permissions.Organization.MemberManage)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult> RemoveRole(
+        Guid membershipId,
+        Guid roleId,
+        [FromServices] RemoveRoleHandler handler,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(handler);
+
+        var result = await handler.Handle(new RemoveRoleCommand(membershipId, roleId), cancellationToken);
 
         return result.ToActionResult(this);
     }
 }
-
-/// <summary>
-/// Uyelik kimligi rotadan geldigi icin govde yalnizca rolu tasir.
-/// </summary>
-public sealed record AssignRoleRequest(Guid RoleId);

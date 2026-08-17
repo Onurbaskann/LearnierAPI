@@ -165,6 +165,108 @@ public sealed class CatalogEndpointTests(AuthApiFixture fixture) : IClassFixture
         secondClient.Dispose();
     }
 
+    [Fact]
+    public async Task Subject_CanBeRenamedAndArchived()
+    {
+        var (client, _) = await NewOrganizationClient();
+        var subjectId = await CreateSubject(client, "Eski Ad");
+
+        var renamed = await client.PatchAsJsonAsync(
+            new Uri($"/api/v1/subjects/{subjectId}", UriKind.Relative),
+            new { name = "Yeni Ad" },
+            TestContext.Current.CancellationToken);
+
+        renamed.StatusCode.ShouldBe(HttpStatusCode.NoContent);
+
+        var activeSubjects = await client.GetFromJsonAsync<IReadOnlyList<SubjectListItem>>(
+            new Uri("/api/v1/subjects", UriKind.Relative),
+            TestJson.Options,
+            TestContext.Current.CancellationToken);
+
+        activeSubjects!.Single(s => s.Id == subjectId).Name.ShouldBe("Yeni Ad");
+
+        var archived = await client.PostAsync(
+            new Uri($"/api/v1/subjects/{subjectId}/archive", UriKind.Relative),
+            content: null,
+            TestContext.Current.CancellationToken);
+
+        archived.StatusCode.ShouldBe(HttpStatusCode.NoContent);
+
+        var visibleSubjects = await client.GetFromJsonAsync<IReadOnlyList<SubjectListItem>>(
+            new Uri("/api/v1/subjects", UriKind.Relative),
+            TestJson.Options,
+            TestContext.Current.CancellationToken);
+
+        visibleSubjects!.Select(s => s.Id).ShouldNotContain(subjectId);
+
+        var allSubjects = await client.GetFromJsonAsync<IReadOnlyList<SubjectListItem>>(
+            new Uri("/api/v1/subjects?includeArchived=true", UriKind.Relative),
+            TestJson.Options,
+            TestContext.Current.CancellationToken);
+
+        var archivedSubject = allSubjects!.Single(s => s.Id == subjectId);
+        archivedSubject.Status.ShouldBe(Domain.Catalog.SubjectStatus.Archived);
+
+        // Arsivleme idempotenttir; ayni istek tekrarlandiginda da basarili olur.
+        var archivedAgain = await client.PostAsync(
+            new Uri($"/api/v1/subjects/{subjectId}/archive", UriKind.Relative),
+            content: null,
+            TestContext.Current.CancellationToken);
+
+        archivedAgain.StatusCode.ShouldBe(HttpStatusCode.NoContent);
+
+        client.Dispose();
+    }
+
+    [Fact]
+    public async Task SubjectMutation_IsIsolatedBetweenOrganizations()
+    {
+        var (ownerClient, _) = await NewOrganizationClient();
+        var subjectId = await CreateSubject(ownerClient, "Gizli Alan");
+        var (otherClient, _) = await NewOrganizationClient();
+
+        var rename = await otherClient.PatchAsJsonAsync(
+            new Uri($"/api/v1/subjects/{subjectId}", UriKind.Relative),
+            new { name = "Degistirilemez" },
+            TestContext.Current.CancellationToken);
+
+        rename.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+
+        var archive = await otherClient.PostAsync(
+            new Uri($"/api/v1/subjects/{subjectId}/archive", UriKind.Relative),
+            content: null,
+            TestContext.Current.CancellationToken);
+
+        archive.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+
+        ownerClient.Dispose();
+        otherClient.Dispose();
+    }
+
+    [Fact]
+    public async Task SubjectMutation_RequiresCatalogManagePermission()
+    {
+        var (ownerClient, organizationId) = await NewOrganizationClient();
+        var subjectId = await CreateSubject(ownerClient, "Yonetilen Alan");
+        using var readerClient = await InviteReader(ownerClient, organizationId);
+
+        var rename = await readerClient.PatchAsJsonAsync(
+            new Uri($"/api/v1/subjects/{subjectId}", UriKind.Relative),
+            new { name = "Yetkisiz Ad" },
+            TestContext.Current.CancellationToken);
+
+        rename.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+
+        var archive = await readerClient.PostAsync(
+            new Uri($"/api/v1/subjects/{subjectId}/archive", UriKind.Relative),
+            content: null,
+            TestContext.Current.CancellationToken);
+
+        archive.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+
+        ownerClient.Dispose();
+    }
+
     /// <summary>
     /// Baska bir alanin seviyesi egitime atanamaz.
     /// </summary>
@@ -224,6 +326,84 @@ public sealed class CatalogEndpointTests(AuthApiFixture fixture) : IClassFixture
         second.StatusCode.ShouldBe(HttpStatusCode.Conflict);
 
         client.Dispose();
+    }
+
+    [Fact]
+    public async Task Course_CanBeArchivedWithoutDeletingItsCurriculum()
+    {
+        var (ownerClient, organizationId) = await NewOrganizationClient();
+        var subjectId = await CreateSubject(ownerClient, "Arsiv Alani");
+        var courseId = await CreateCourse(ownerClient, subjectId, "Arsivlenecek Egitim", publish: true);
+        var moduleId = await AddModule(ownerClient, courseId, "Korunan Modul", 1);
+        await AddLesson(ownerClient, moduleId, "Korunan Ders", 1, 30);
+        using var readerClient = await InviteReader(ownerClient, organizationId);
+
+        var archived = await ownerClient.PostAsync(
+            new Uri($"/api/v1/courses/{courseId}/archive", UriKind.Relative),
+            content: null,
+            TestContext.Current.CancellationToken);
+
+        archived.StatusCode.ShouldBe(HttpStatusCode.NoContent);
+
+        var ownerDetail = await ownerClient.GetFromJsonAsync<CourseDetail>(
+            new Uri($"/api/v1/courses/{courseId}", UriKind.Relative),
+            TestJson.Options,
+            TestContext.Current.CancellationToken);
+
+        ownerDetail!.Status.ShouldBe(Domain.Catalog.CourseStatus.Archived);
+        ownerDetail.Modules.Single().Lessons.Single().Title.ShouldBe("Korunan Ders");
+
+        var readerDetail = await readerClient.GetAsync(
+            new Uri($"/api/v1/courses/{courseId}", UriKind.Relative),
+            TestContext.Current.CancellationToken);
+
+        readerDetail.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+
+        var archivedAgain = await ownerClient.PostAsync(
+            new Uri($"/api/v1/courses/{courseId}/archive", UriKind.Relative),
+            content: null,
+            TestContext.Current.CancellationToken);
+
+        archivedAgain.StatusCode.ShouldBe(HttpStatusCode.NoContent);
+
+        ownerClient.Dispose();
+    }
+
+    [Fact]
+    public async Task CourseArchive_IsIsolatedBetweenOrganizations()
+    {
+        var (ownerClient, _) = await NewOrganizationClient();
+        var subjectId = await CreateSubject(ownerClient, "Sahip Alan");
+        var courseId = await CreateCourse(ownerClient, subjectId, "Gizli Egitim");
+        var (otherClient, _) = await NewOrganizationClient();
+
+        var archive = await otherClient.PostAsync(
+            new Uri($"/api/v1/courses/{courseId}/archive", UriKind.Relative),
+            content: null,
+            TestContext.Current.CancellationToken);
+
+        archive.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+
+        ownerClient.Dispose();
+        otherClient.Dispose();
+    }
+
+    [Fact]
+    public async Task CourseArchive_RequiresCatalogManagePermission()
+    {
+        var (ownerClient, organizationId) = await NewOrganizationClient();
+        var subjectId = await CreateSubject(ownerClient, "Yetki Alani");
+        var courseId = await CreateCourse(ownerClient, subjectId, "Yonetilen Egitim", publish: true);
+        using var readerClient = await InviteReader(ownerClient, organizationId);
+
+        var archive = await readerClient.PostAsync(
+            new Uri($"/api/v1/courses/{courseId}/archive", UriKind.Relative),
+            content: null,
+            TestContext.Current.CancellationToken);
+
+        archive.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+
+        ownerClient.Dispose();
     }
 
     [Fact]

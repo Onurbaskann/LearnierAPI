@@ -31,6 +31,10 @@ public sealed class InstructorProfile : AggregateRoot, IAuditableEntity
 
     public string? Bio { get; private set; }
 
+    public string? Headline { get; private set; }
+
+    public string? Hobbies { get; private set; }
+
     /// <summary>
     /// Egitmenin uygunluk saatlerinin yorumlandigi saat dilimi.
     /// </summary>
@@ -86,6 +90,13 @@ public sealed class InstructorProfile : AggregateRoot, IAuditableEntity
 
     public void Suspend() => Status = InstructorStatus.Suspended;
 
+    public void UpdatePublicProfile(string? headline, string? bio, string? hobbies)
+    {
+        Headline = string.IsNullOrWhiteSpace(headline) ? null : headline.Trim();
+        Bio = string.IsNullOrWhiteSpace(bio) ? null : bio.Trim();
+        Hobbies = string.IsNullOrWhiteSpace(hobbies) ? null : hobbies.Trim();
+    }
+
     /// <summary>
     /// Saatlik ucreti belirler. Ucret temizlenecekse iki deger de bos gecilir.
     /// </summary>
@@ -112,6 +123,7 @@ public sealed class InstructorProfile : AggregateRoot, IAuditableEntity
         var existing = _subjects.Find(s => s.SubjectId == subjectId && s.LevelId == levelId);
         if (existing is not null)
         {
+            existing.Activate();
             return existing;
         }
 

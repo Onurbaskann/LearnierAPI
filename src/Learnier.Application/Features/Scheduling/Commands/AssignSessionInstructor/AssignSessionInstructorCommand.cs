@@ -5,8 +5,12 @@ using Learnier.Domain.Scheduling;
 
 namespace Learnier.Application.Features.Scheduling.Commands.AssignSessionInstructor;
 
+/// <remarks>
+/// Oturum kimligi komutta degil handler parametresinde tasinir: rotadan geliyor.
+/// Komut yalnizca govdeden geleni tutarsa action parametresi olarak baglanabilir
+/// ve <c>ValidationFilter</c> kurallari calistirabilir.
+/// </remarks>
 public sealed record AssignSessionInstructorCommand(
-    Guid SessionId,
     Guid InstructorProfileId,
     SessionInstructorRole Role);
 
@@ -44,6 +48,7 @@ public sealed class AssignSessionInstructorHandler(
     IUnitOfWork unitOfWork)
 {
     public async Task<Result> Handle(
+        Guid sessionId,
         AssignSessionInstructorCommand command,
         CancellationToken cancellationToken)
     {
@@ -55,7 +60,7 @@ public sealed class AssignSessionInstructorHandler(
         }
 
         var session = await scheduling.FindSessionAsync(
-            command.SessionId, includeInstructors: true, cancellationToken);
+            sessionId, includeInstructors: true, cancellationToken);
 
         if (session is null)
         {

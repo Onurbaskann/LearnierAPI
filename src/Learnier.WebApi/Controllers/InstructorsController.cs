@@ -4,8 +4,14 @@ using Learnier.Application.Features.Teaching.Commands.ActivateInstructor;
 using Learnier.Application.Features.Teaching.Commands.AddAvailability;
 using Learnier.Application.Features.Teaching.Commands.AddAvailabilityOverride;
 using Learnier.Application.Features.Teaching.Commands.AddInstructorSubject;
+using Learnier.Application.Features.Teaching.Commands.CloseAvailability;
 using Learnier.Application.Features.Teaching.Commands.CreateInstructorProfile;
+using Learnier.Application.Features.Teaching.Commands.DeactivateInstructorSubject;
+using Learnier.Application.Features.Teaching.Commands.SetInstructorHourlyRate;
+using Learnier.Application.Features.Teaching.Commands.SuspendInstructor;
+using Learnier.Application.Features.Teaching.Commands.UpdateInstructorPublicProfile;
 using Learnier.Application.Features.Teaching.Queries;
+using Learnier.Application.Features.Scheduling.Commands.CancelSession;
 using Learnier.Domain.Teaching;
 using Learnier.WebApi.Common;
 using Microsoft.AspNetCore.Authorization;
@@ -67,6 +73,72 @@ public sealed class InstructorsController : ControllerBase
         return result.ToActionResult(this);
     }
 
+    /// <summary>Egitmen profilini askiya alir.</summary>
+    [HttpPost("{profileId:guid}/suspend")]
+    [Authorize(Policy = Permissions.Organization.MemberManage)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult> Suspend(
+        Guid profileId,
+        [FromServices] SuspendInstructorHandler handler,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(handler);
+
+        var result = await handler.Handle(profileId, cancellationToken);
+
+        return result.ToActionResult(this);
+    }
+
+    /// <summary>Egitmenin varsayilan saatlik ucretini belirler veya temizler.</summary>
+    [HttpPatch("{profileId:guid}/hourly-rate")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult> SetHourlyRate(
+        Guid profileId,
+        SetInstructorHourlyRateCommand command,
+        [FromServices] SetInstructorHourlyRateHandler handler,
+        [FromServices] IAuthorizationService authorization,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(handler);
+
+        var result = await handler.Handle(
+            profileId,
+            command,
+            await CanManageInstructors(authorization),
+            cancellationToken);
+
+        return result.ToActionResult(this);
+    }
+
+    /// <summary>Egitmenin ogrencilere gorunen profil metinlerini gunceller.</summary>
+    [HttpPatch("{profileId:guid}/public-profile")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult> UpdatePublicProfile(
+        Guid profileId,
+        UpdateInstructorPublicProfileCommand command,
+        [FromServices] UpdateInstructorPublicProfileHandler handler,
+        [FromServices] IAuthorizationService authorization,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(handler);
+
+        var result = await handler.Handle(
+            profileId,
+            command,
+            await CanManageInstructors(authorization),
+            cancellationToken);
+
+        return result.ToActionResult(this);
+    }
+
     /// <summary>Kurumun egitmenlerini sayfali listeler.</summary>
     /// <param name="subjectId">Verilirse yalnizca o alanda yetkin egitmenler doner.</param>
     [HttpGet]
@@ -116,16 +188,106 @@ public sealed class InstructorsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<AddInstructorSubjectResult>> AddSubject(
         Guid profileId,
-        AddInstructorSubjectRequest request,
+        AddInstructorSubjectCommand command,
         [FromServices] AddInstructorSubjectHandler handler,
         [FromServices] IAuthorizationService authorization,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(handler);
-        ArgumentNullException.ThrowIfNull(request);
 
         var result = await handler.Handle(
-            new AddInstructorSubjectCommand(profileId, request.SubjectId, request.LevelId),
+            profileId,
+            command,
+            await CanManageInstructors(authorization),
+            cancellationToken);
+
+        return result.ToActionResult(this);
+    }
+
+    [HttpGet("me/students")]
+    [Authorize(Policy = Permissions.Course.Read)]
+    public async Task<ActionResult<IReadOnlyList<InstructorStudentListItem>>> ListMyStudents(
+        [FromServices] ListMyInstructorStudentsHandler handler,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(handler);
+        return (await handler.Handle(cancellationToken)).ToActionResult(this);
+    }
+
+    /// <summary>Yalnizca aktif rezervasyonu bulunan egitmen derslerini listeler.</summary>
+    [HttpGet("me/schedule")]
+    [Authorize(Policy = Permissions.Course.Read)]
+    public async Task<ActionResult<IReadOnlyList<InstructorScheduleListItem>>> ListMySchedule(
+        [FromServices] ListMyInstructorScheduleHandler handler,
+        CancellationToken cancellationToken,
+        [FromQuery] DateTimeOffset? from = null,
+        [FromQuery] DateTimeOffset? to = null)
+    {
+        ArgumentNullException.ThrowIfNull(handler);
+        return (await handler.Handle(from, to, cancellationToken)).ToActionResult(this);
+    }
+
+    /// <summary>Egitmen kendi dersini baslangictan en az bir saat once iptal eder.</summary>
+    [HttpPost("me/schedule/{sessionId:guid}/cancel")]
+    [Authorize(Policy = Permissions.Session.Cancel)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<CancelSessionResult>> CancelMySession(
+        Guid sessionId,
+        CancelSessionCommand command,
+        [FromServices] CancelSessionHandler handler,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(handler);
+
+        return (await handler.Handle(
+            sessionId,
+            isInstructorInitiated: true,
+            command,
+            cancellationToken)).ToActionResult(this);
+    }
+
+    [HttpGet("me/dashboard")]
+    [Authorize(Policy = Permissions.Course.Read)]
+    public async Task<ActionResult<InstructorDashboardStats>> GetMyDashboard(
+        [FromServices] GetMyInstructorDashboardHandler handler,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(handler);
+        return (await handler.Handle(cancellationToken)).ToActionResult(this);
+    }
+
+    [HttpGet("me/earnings")]
+    [Authorize(Policy = Permissions.Course.Read)]
+    public async Task<ActionResult<IReadOnlyList<InstructorEarningListItem>>> ListMyEarnings(
+        [FromServices] ListMyInstructorEarningsHandler handler,
+        CancellationToken cancellationToken,
+        [FromQuery] DateTimeOffset? from = null,
+        [FromQuery] DateTimeOffset? to = null)
+    {
+        ArgumentNullException.ThrowIfNull(handler);
+        return (await handler.Handle(from, to, cancellationToken)).ToActionResult(this);
+    }
+
+    /// <summary>Egitmenin brans yetkinligini pasiflestirir.</summary>
+    [HttpPost("{profileId:guid}/subjects/{instructorSubjectId:guid}/deactivate")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult> DeactivateSubject(
+        Guid profileId,
+        Guid instructorSubjectId,
+        [FromServices] DeactivateInstructorSubjectHandler handler,
+        [FromServices] IAuthorizationService authorization,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(handler);
+
+        var result = await handler.Handle(
+            profileId,
+            instructorSubjectId,
             await CanManageInstructors(authorization),
             cancellationToken);
 
@@ -141,22 +303,41 @@ public sealed class InstructorsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<AddAvailabilityResult>> AddAvailability(
         Guid profileId,
-        AddAvailabilityRequest request,
+        AddAvailabilityCommand command,
         [FromServices] AddAvailabilityHandler handler,
         [FromServices] IAuthorizationService authorization,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(handler);
-        ArgumentNullException.ThrowIfNull(request);
 
         var result = await handler.Handle(
-            new AddAvailabilityCommand(
-                profileId,
-                request.DayOfWeek,
-                request.StartLocalTime,
-                request.EndLocalTime,
-                request.ValidFrom,
-                request.ValidUntil),
+            profileId,
+            command,
+            await CanManageInstructors(authorization),
+            cancellationToken);
+
+        return result.ToActionResult(this);
+    }
+
+    /// <summary>Haftalik uygunlugu gecmis kaydi silmeden kapatir.</summary>
+    [HttpPost("{profileId:guid}/availabilities/{availabilityId:guid}/close")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult> CloseAvailability(
+        Guid profileId,
+        Guid availabilityId,
+        CloseAvailabilityRequest request,
+        [FromServices] CloseAvailabilityHandler handler,
+        [FromServices] IAuthorizationService authorization,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        ArgumentNullException.ThrowIfNull(handler);
+
+        var result = await handler.Handle(
+            new CloseAvailabilityCommand(profileId, availabilityId, request.ValidUntil),
             await CanManageInstructors(authorization),
             cancellationToken);
 
@@ -171,22 +352,16 @@ public sealed class InstructorsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<AddAvailabilityOverrideResult>> AddOverride(
         Guid profileId,
-        AddAvailabilityOverrideRequest request,
+        AddAvailabilityOverrideCommand command,
         [FromServices] AddAvailabilityOverrideHandler handler,
         [FromServices] IAuthorizationService authorization,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(handler);
-        ArgumentNullException.ThrowIfNull(request);
 
         var result = await handler.Handle(
-            new AddAvailabilityOverrideCommand(
-                profileId,
-                request.OverrideDate,
-                request.OverrideType,
-                request.StartLocalTime,
-                request.EndLocalTime,
-                request.Reason),
+            profileId,
+            command,
             await CanManageInstructors(authorization),
             cancellationToken);
 
@@ -231,19 +406,4 @@ public sealed class InstructorsController : ControllerBase
     }
 }
 
-/// <summary>Profil kimligi rotadan geldigi icin govdede tasinmaz.</summary>
-public sealed record AddInstructorSubjectRequest(Guid SubjectId, Guid? LevelId);
-
-public sealed record AddAvailabilityRequest(
-    DayOfWeek DayOfWeek,
-    TimeOnly StartLocalTime,
-    TimeOnly EndLocalTime,
-    DateOnly ValidFrom,
-    DateOnly? ValidUntil);
-
-public sealed record AddAvailabilityOverrideRequest(
-    DateOnly OverrideDate,
-    AvailabilityOverrideType OverrideType,
-    TimeOnly? StartLocalTime,
-    TimeOnly? EndLocalTime,
-    string? Reason);
+public sealed record CloseAvailabilityRequest(DateOnly ValidUntil);

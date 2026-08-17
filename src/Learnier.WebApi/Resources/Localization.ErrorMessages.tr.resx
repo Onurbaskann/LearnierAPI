@@ -95,8 +95,8 @@
   <data name="auth.account_suspended" xml:space="preserve">
     <value>Bu hesap askıya alınmış. Lütfen destek ile iletişime geçin.</value>
   </data>
-  <data name="auth.email_not_verified" xml:space="preserve">
-    <value>Giriş yapmadan önce e-posta adresinizi doğrulayın.</value>
+  <data name="auth.account_inactive" xml:space="preserve">
+    <value>Bu hesap henüz aktif değil.</value>
   </data>
   <data name="auth.refresh_token_required" xml:space="preserve">
     <value>Yenileme tokeni gerekli.</value>
@@ -131,9 +131,6 @@
   </data>
   <data name="auth.verification_token_required" xml:space="preserve">
     <value>Doğrulama tokeni gerekli.</value>
-  </data>
-  <data name="auth.invalid_verification_token" xml:space="preserve">
-    <value>Bu doğrulama bağlantısı geçersiz veya süresi dolmuş. Yeni bir bağlantı isteyin.</value>
   </data>
 
   <data name="organization.slug_already_taken" xml:space="preserve">
@@ -309,6 +306,9 @@
   <data name="teaching.subject_not_found" xml:space="preserve">
     <value>Seçilen eğitim alanı mevcut değil.</value>
   </data>
+  <data name="teaching.instructor_subject_not_found" xml:space="preserve">
+    <value>Eğitmen branş yetkinliği bulunamadı.</value>
+  </data>
   <data name="teaching.level_not_found" xml:space="preserve">
     <value>Seçilen seviye mevcut değil.</value>
   </data>
@@ -379,6 +379,15 @@
   <data name="scheduling.session_not_found" xml:space="preserve">
     <value>Oturum bulunamadı.</value>
   </data>
+  <data name="scheduling.session_not_cancellable" xml:space="preserve">
+    <value>Tamamlanmış oturum iptal edilemez.</value>
+  </data>
+  <data name="scheduling.instructor_cancellation_deadline_passed" xml:space="preserve">
+    <value>Ders başlangıcına bir saat veya daha az kaldığı için iptal edilemez.</value>
+  </data>
+  <data name="scheduling.cancellation_reason_too_long" xml:space="preserve">
+    <value>İptal gerekçesi çok uzun.</value>
+  </data>
   <data name="scheduling.instructor_not_found" xml:space="preserve">
     <value>Seçilen eğitmen mevcut değil.</value>
   </data>
@@ -387,6 +396,15 @@
   </data>
   <data name="scheduling.session_not_bookable" xml:space="preserve">
     <value>Bu oturum rezervasyona kapalı.</value>
+  </data>
+  <data name="scheduling.slot_not_owned" xml:space="preserve">
+    <value>Yalnızca kendi ders slotlarınızı yönetebilirsiniz.</value>
+  </data>
+  <data name="scheduling.session_not_owned" xml:space="preserve">
+    <value>Yalnızca kendi derslerinizi iptal edebilirsiniz.</value>
+  </data>
+  <data name="scheduling.slot_has_booking" xml:space="preserve">
+    <value>Rezervasyon alınmış bir ders slotu kapatılamaz.</value>
   </data>
   <data name="scheduling.already_booked" xml:space="preserve">
     <value>Bu oturum için zaten bir rezervasyonunuz var.</value>
@@ -444,5 +462,274 @@
   </data>
   <data name="scheduling.session_required" xml:space="preserve">
     <value>Oturum gerekli.</value>
+  </data>
+  <data name="auth.password_reset_token_required" xml:space="preserve">
+    <value>Parola sıfırlama kodu gerekli.</value>
+  </data>
+  <data name="auth.invalid_password_reset_token" xml:space="preserve">
+    <value>Bu parola sıfırlama bağlantısı geçersiz veya süresi dolmuş.</value>
+  </data>
+  <data name="account.current_password_required" xml:space="preserve">
+    <value>Mevcut şifre gerekli.</value>
+  </data>
+  <data name="account.current_password_invalid" xml:space="preserve">
+    <value>Mevcut şifre yanlış.</value>
+  </data>
+  <data name="friends.user_not_found" xml:space="preserve">
+    <value>Bu e-posta adresiyle kayıtlı kullanıcı bulunamadı.</value>
+  </data>
+  <data name="friends.cannot_add_self" xml:space="preserve">
+    <value>Kendinize arkadaşlık isteği gönderemezsiniz.</value>
+  </data>
+  <data name="friends.already_friends" xml:space="preserve">
+    <value>Bu kullanıcıyla zaten arkadaşsınız.</value>
+  </data>
+  <data name="friends.request_already_pending" xml:space="preserve">
+    <value>Bu kullanıcılar arasında zaten bekleyen bir arkadaşlık isteği var.</value>
+  </data>
+  <data name="friends.request_not_found" xml:space="preserve">
+    <value>Arkadaşlık isteği bulunamadı.</value>
+  </data>
+  <data name="friends.request_not_owned" xml:space="preserve">
+    <value>Bu arkadaşlık isteğini yanıtlama yetkiniz yok.</value>
+  </data>
+  <data name="friends.email_required" xml:space="preserve">
+    <value>E-posta adresi gerekli.</value>
+  </data>
+  <data name="friends.email_invalid" xml:space="preserve">
+    <value>Geçerli bir e-posta adresi girin.</value>
+  </data>
+  <data name="friends.email_too_long" xml:space="preserve">
+    <value>E-posta adresi 320 karakterden uzun olamaz.</value>
+  </data>
+  <data name="friends.friendship_not_found" xml:space="preserve">
+    <value>Arkadaşlık bulunamadı.</value>
+  </data>
+  <data name="friends.friendship_not_owned" xml:space="preserve">
+    <value>Bu arkadaşlığı silme yetkiniz yok.</value>
+  </data>
+  <data name="friends.search_term_required" xml:space="preserve">
+    <value>Arama metni gerekli.</value>
+  </data>
+  <data name="friends.search_term_too_short" xml:space="preserve">
+    <value>Arama metni en az 2 karakter olmalı.</value>
+  </data>
+  <data name="friends.search_term_too_long" xml:space="preserve">
+    <value>Arama metni 100 karakterden uzun olamaz.</value>
+  </data>
+  <data name="friends.user_id_required" xml:space="preserve">
+    <value>Kullanıcı gerekli.</value>
+  </data>
+  <data name="clubs.subject_not_found" xml:space="preserve">
+    <value>Ders alanı bulunamadı.</value>
+  </data>
+  <data name="clubs.already_exists_for_subject" xml:space="preserve">
+    <value>Bu ders alanı için zaten bir kulüp bulunuyor.</value>
+  </data>
+  <data name="clubs.club_not_found" xml:space="preserve">
+    <value>Kulüp bulunamadı.</value>
+  </data>
+  <data name="clubs.already_closed" xml:space="preserve">
+    <value>Kulüp zaten kapalı.</value>
+  </data>
+  <data name="clubs.already_open" xml:space="preserve">
+    <value>Kulüp zaten açık.</value>
+  </data>
+  <data name="clubs.subject_id_required" xml:space="preserve">
+    <value>Ders alanı gerekli.</value>
+  </data>
+  <data name="clubs.name_required" xml:space="preserve">
+    <value>Kulüp adı gerekli.</value>
+  </data>
+  <data name="clubs.name_too_long" xml:space="preserve">
+    <value>Kulüp adı 200 karakterden uzun olamaz.</value>
+  </data>
+  <data name="clubs.description_too_long" xml:space="preserve">
+    <value>Kulüp açıklaması 1000 karakterden uzun olamaz.</value>
+  </data>
+  <data name="clubs.package_required" xml:space="preserve">
+    <value>Bu ders alanını kapsayan aktif bir paket gerekli.</value>
+  </data>
+  <data name="clubs.room_not_found" xml:space="preserve">
+    <value>Kulüp odası bulunamadı.</value>
+  </data>
+  <data name="clubs.room_already_exists" xml:space="preserve">
+    <value>Kulüpte bu ada sahip bir oda zaten bulunuyor.</value>
+  </data>
+  <data name="clubs.text_room_required" xml:space="preserve">
+    <value>Mesaj yalnızca metin odalarına gönderilebilir.</value>
+  </data>
+  <data name="clubs.room_name_required" xml:space="preserve">
+    <value>Oda adı gerekli.</value>
+  </data>
+  <data name="clubs.room_name_too_long" xml:space="preserve">
+    <value>Oda adı 100 karakterden uzun olamaz.</value>
+  </data>
+  <data name="clubs.room_type_invalid" xml:space="preserve">
+    <value>Oda türü geçersiz.</value>
+  </data>
+  <data name="clubs.room_sort_order_invalid" xml:space="preserve">
+    <value>Oda sırası negatif olamaz.</value>
+  </data>
+  <data name="clubs.message_required" xml:space="preserve">
+    <value>Mesaj gerekli.</value>
+  </data>
+  <data name="clubs.message_too_long" xml:space="preserve">
+    <value>Mesaj 2000 karakterden uzun olamaz.</value>
+  </data>
+  <data name="subscriptions.subject_required" xml:space="preserve">
+    <value>Ders alanı seçimi gerekli.</value>
+  </data>
+  <data name="subscriptions.subject_not_found" xml:space="preserve">
+    <value>Seçilen ders alanı bulunamadı.</value>
+  </data>
+  <data name="subscriptions.frequency_invalid" xml:space="preserve">
+    <value>Haftalık ders sayısı geçersiz.</value>
+  </data>
+  <data name="subscriptions.duration_invalid" xml:space="preserve">
+    <value>Paket süresi geçersiz.</value>
+  </data>
+  <data name="booking.lesson_package_required" xml:space="preserve">
+    <value>Bu ders için uygun bir ders paketi gerekli.</value>
+  </data>
+  <data name="booking.course_not_found" xml:space="preserve">
+    <value>Dersin bağlı olduğu eğitim bulunamadı.</value>
+  </data>
+  <data name="booking.compatible_package_not_found" xml:space="preserve">
+    <value>Bu ders alanını ve {duration} dakikalık dersi kapsayan aktif paket bulunamadı.</value>
+  </data>
+  <data name="booking.credit_exhausted" xml:space="preserve">
+    <value>Bu paket için kullanılabilir ders hakkın kalmadı.</value>
+  </data>
+  <data name="booking.subscription_missing" xml:space="preserve">
+    <value>Rezervasyonun abonelik bilgisi eksik.</value>
+  </data>
+  <data name="booking.credit_reservation_missing" xml:space="preserve">
+    <value>Rezervasyona ait kredi hareketi bulunamadı.</value>
+  </data>
+  <data name="booking.session_not_found" xml:space="preserve">
+    <value>Ders oturumu bulunamadı.</value>
+  </data>
+  <data name="scheduling.session_not_completable" xml:space="preserve">
+    <value>Bu ders tamamlanamaz.</value>
+  </data>
+  <data name="scheduling.session_not_ended" xml:space="preserve">
+    <value>Ders, bitiş saatinden önce tamamlanamaz.</value>
+  </data>
+  <data name="scheduling.session_has_no_reservations" xml:space="preserve">
+    <value>Tamamlanacak derste aktif rezervasyon bulunmuyor.</value>
+  </data>
+  <data name="scheduling.attendance_set_mismatch" xml:space="preserve">
+    <value>Her aktif rezervasyon için bir katılım sonucu gönderilmelidir.</value>
+  </data>
+  <data name="scheduling.attendance_required" xml:space="preserve">
+    <value>Katılım bilgileri gerekli.</value>
+  </data>
+  <data name="scheduling.attendance_status_invalid" xml:space="preserve">
+    <value>Katılım durumu geçersiz.</value>
+  </data>
+  <data name="scheduling.attended_minutes_invalid" xml:space="preserve">
+    <value>Katılım süresi negatif olamaz.</value>
+  </data>
+  <data name="scheduling.absent_minutes_invalid" xml:space="preserve">
+    <value>Katılmayan öğrenci için katılım süresi sıfır olmalıdır.</value>
+  </data>
+  <data name="scheduling.attended_minutes_required" xml:space="preserve">
+    <value>Katılan öğrenci için katılım süresi girilmelidir.</value>
+  </data>
+  <data name="scheduling.attendance_time_range_invalid" xml:space="preserve">
+    <value>Dersten ayrılma zamanı katılma zamanından önce olamaz.</value>
+  </data>
+  <data name="scheduling.attendance_booking_duplicate" xml:space="preserve">
+    <value>Aynı rezervasyon için birden fazla katılım sonucu gönderilemez.</value>
+  </data>
+  <data name="compensation.subject_required" xml:space="preserve"><value>Ders alanı gerekli.</value></data>
+  <data name="compensation.duration_invalid" xml:space="preserve"><value>Ders süresi 30 veya 50 dakika olmalıdır.</value></data>
+  <data name="compensation.amount_invalid" xml:space="preserve"><value>Ders ücreti negatif olamaz.</value></data>
+  <data name="compensation.currency_required" xml:space="preserve"><value>Para birimi gerekli.</value></data>
+  <data name="compensation.currency_invalid" xml:space="preserve"><value>Para birimi üç karakterli ISO kodu olmalıdır.</value></data>
+  <data name="compensation.penalty_steps_required" xml:space="preserve"><value>En az bir penalty basamağı gerekli.</value></data>
+  <data name="compensation.penalty_steps_too_many" xml:space="preserve"><value>En fazla 20 penalty basamağı tanımlanabilir.</value></data>
+  <data name="compensation.penalty_percentage_invalid" xml:space="preserve"><value>Penalty oranları 0 ile 100 arasında olmalıdır.</value></data>
+  <data name="compensation.penalty_steps_not_increasing" xml:space="preserve"><value>Penalty oranları her basamakta artmalıdır.</value></data>
+  <data name="compensation.rate_not_configured" xml:space="preserve"><value>Bu ders alanı ve {duration} dakikalık süre için eğitmen ücreti tanımlanmamış.</value></data>
+  <data name="compensation.instructor_required" xml:space="preserve"><value>Eğitmen seçimi gerekli.</value></data>
+  <data name="compensation.waiver_reason_required" xml:space="preserve"><value>Ceza affetme gerekçesi gerekli.</value></data>
+  <data name="compensation.waiver_reason_too_long" xml:space="preserve"><value>Ceza affetme gerekçesi en fazla 500 karakter olabilir.</value></data>
+  <data name="compensation.no_pending_penalty" xml:space="preserve"><value>Eğitmenin affedilebilecek bekleyen bir cezası yok.</value></data>
+
+  <data name="auth.email_not_verified" xml:space="preserve">
+    <value>Giriş yapmadan önce e-posta adresinizi doğrulayın.</value>
+  </data>
+  <data name="auth.invalid_verification_token" xml:space="preserve">
+    <value>Bu doğrulama bağlantısı geçersiz veya süresi dolmuş. Yeni bir bağlantı isteyin.</value>
+  </data>
+
+  <data name="subscriptions.ledger_not_owned" xml:space="preserve">
+    <value>Yalnızca kendi ders hakkı hareketlerinizi görebilirsiniz.</value>
+  </data>
+
+  <data name="billing.plan_not_found" xml:space="preserve">
+    <value>Plan bulunamadı.</value>
+  </data>
+  <data name="billing.plan_has_no_active_price" xml:space="preserve">
+    <value>Aktif fiyatı olmayan plan satışa açılamaz.</value>
+  </data>
+  <data name="billing.plan_has_no_entitlement" xml:space="preserve">
+    <value>Hak tanımı olmayan plan satışa açılamaz.</value>
+  </data>
+  <data name="billing.subject_not_found" xml:space="preserve">
+    <value>Alan bulunamadı.</value>
+  </data>
+  <data name="billing.course_not_found" xml:space="preserve">
+    <value>Eğitim bulunamadı.</value>
+  </data>
+  <data name="billing.plan_name_required" xml:space="preserve">
+    <value>Plan adı zorunludur.</value>
+  </data>
+  <data name="billing.plan_name_too_long" xml:space="preserve">
+    <value>Plan adı en fazla 200 karakter olabilir.</value>
+  </data>
+  <data name="billing.plan_description_too_long" xml:space="preserve">
+    <value>Plan açıklaması en fazla 2000 karakter olabilir.</value>
+  </data>
+  <data name="billing.catalog_access_invalid" xml:space="preserve">
+    <value>Geçersiz katalog kapsamı.</value>
+  </data>
+  <data name="billing.currency_required" xml:space="preserve">
+    <value>Para birimi zorunludur.</value>
+  </data>
+  <data name="billing.currency_invalid" xml:space="preserve">
+    <value>Para birimi üç harfli kod olmalıdır.</value>
+  </data>
+  <data name="billing.amount_invalid" xml:space="preserve">
+    <value>Tutar negatif olamaz.</value>
+  </data>
+  <data name="billing.billing_interval_invalid" xml:space="preserve">
+    <value>Geçersiz tahsilat aralığı.</value>
+  </data>
+  <data name="billing.billing_interval_count_invalid" xml:space="preserve">
+    <value>Tahsilat aralığı 1 ile 36 arasında olmalıdır.</value>
+  </data>
+  <data name="billing.entitlement_type_invalid" xml:space="preserve">
+    <value>Geçersiz hak türü.</value>
+  </data>
+  <data name="billing.session_type_invalid" xml:space="preserve">
+    <value>Geçersiz ders türü.</value>
+  </data>
+  <data name="billing.reset_period_invalid" xml:space="preserve">
+    <value>Geçersiz yenilenme dönemi.</value>
+  </data>
+  <data name="billing.quantity_required" xml:space="preserve">
+    <value>Sayılı hak için miktar zorunludur.</value>
+  </data>
+  <data name="billing.quantity_invalid" xml:space="preserve">
+    <value>Miktar sıfırdan büyük olmalıdır.</value>
+  </data>
+  <data name="billing.quantity_not_allowed" xml:space="preserve">
+    <value>Sınırsız erişimde miktar verilemez.</value>
+  </data>
+  <data name="billing.access_target_invalid" xml:space="preserve">
+    <value>Alan veya eğitimden yalnızca biri verilmelidir.</value>
   </data>
 </root>

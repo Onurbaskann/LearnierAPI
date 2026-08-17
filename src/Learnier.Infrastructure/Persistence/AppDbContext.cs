@@ -7,6 +7,7 @@ using Learnier.Domain.Common;
 using Learnier.Domain.Identity;
 using Learnier.Domain.Progress;
 using Learnier.Domain.Scheduling;
+using Learnier.Domain.Social;
 using Learnier.Domain.Teaching;
 using Microsoft.EntityFrameworkCore;
 
@@ -36,6 +37,14 @@ public sealed class AppDbContext(
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     public DbSet<EmailVerificationToken> EmailVerificationTokens => Set<EmailVerificationToken>();
+
+    public DbSet<Friendship> Friendships => Set<Friendship>();
+
+    public DbSet<Club> Clubs => Set<Club>();
+
+    public DbSet<ClubRoom> ClubRooms => Set<ClubRoom>();
+
+    public DbSet<ClubMessage> ClubMessages => Set<ClubMessage>();
 
     public DbSet<Subject> Subjects => Set<Subject>();
 
@@ -84,6 +93,19 @@ public sealed class AppDbContext(
 
     public DbSet<CreditLedgerEntry> CreditLedger => Set<CreditLedgerEntry>();
 
+    public DbSet<InstructorCompensationRate> InstructorCompensationRates
+        => Set<InstructorCompensationRate>();
+
+    public DbSet<InstructorPenaltyStep> InstructorPenaltySteps => Set<InstructorPenaltyStep>();
+
+    public DbSet<InstructorPenaltyState> InstructorPenaltyStates => Set<InstructorPenaltyState>();
+
+    public DbSet<InstructorPenaltyEvent> InstructorPenaltyEvents => Set<InstructorPenaltyEvent>();
+
+    public DbSet<InstructorEarning> InstructorEarnings => Set<InstructorEarning>();
+
+    public DbSet<CancellationPolicy> CancellationPolicies => Set<CancellationPolicy>();
+
     public DbSet<PaymentCustomer> PaymentCustomers => Set<PaymentCustomer>();
 
     public DbSet<Payment> Payments => Set<Payment>();
@@ -91,6 +113,8 @@ public sealed class AppDbContext(
     public DbSet<Refund> Refunds => Set<Refund>();
 
     public DbSet<LearnerCourseProgress> LearnerCourseProgress => Set<LearnerCourseProgress>();
+
+    public DbSet<LearnerOnboardingProfile> LearnerOnboardingProfiles => Set<LearnerOnboardingProfile>();
 
     public DbSet<LessonCompletion> LessonCompletions => Set<LessonCompletion>();
 
@@ -220,6 +244,17 @@ public sealed class AppDbContext(
             TenantFilterName,
             l => CurrentOrganizationId == null
                  || l.Module.Course.OrganizationId == CurrentOrganizationId);
+
+        // Sosyal alan: oda kulube, mesaj odaya baglidir.
+        modelBuilder.Entity<ClubRoom>().HasQueryFilter(
+            TenantFilterName,
+            room => CurrentOrganizationId == null
+                    || room.Club.OrganizationId == CurrentOrganizationId);
+
+        modelBuilder.Entity<ClubMessage>().HasQueryFilter(
+            TenantFilterName,
+            message => CurrentOrganizationId == null
+                       || message.Room.Club.OrganizationId == CurrentOrganizationId);
 
         // Egitmen kayitlari uyelik uzerinden organizasyona baglidir.
         modelBuilder.Entity<InstructorProfile>().HasQueryFilter(

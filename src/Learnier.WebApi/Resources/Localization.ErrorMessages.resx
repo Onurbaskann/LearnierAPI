@@ -99,8 +99,8 @@
   <data name="auth.account_suspended" xml:space="preserve">
     <value>This account has been suspended. Please contact support.</value>
   </data>
-  <data name="auth.email_not_verified" xml:space="preserve">
-    <value>Verify your email address before signing in.</value>
+  <data name="auth.account_inactive" xml:space="preserve">
+    <value>This account is not active yet.</value>
   </data>
   <data name="auth.refresh_token_required" xml:space="preserve">
     <value>Refresh token is required.</value>
@@ -135,9 +135,6 @@
   </data>
   <data name="auth.verification_token_required" xml:space="preserve">
     <value>Verification token is required.</value>
-  </data>
-  <data name="auth.invalid_verification_token" xml:space="preserve">
-    <value>This verification link is invalid or has expired. Request a new one.</value>
   </data>
 
   <data name="organization.slug_already_taken" xml:space="preserve">
@@ -313,6 +310,9 @@
   <data name="teaching.subject_not_found" xml:space="preserve">
     <value>The selected subject does not exist.</value>
   </data>
+  <data name="teaching.instructor_subject_not_found" xml:space="preserve">
+    <value>Instructor subject competency not found.</value>
+  </data>
   <data name="teaching.level_not_found" xml:space="preserve">
     <value>The selected level does not exist.</value>
   </data>
@@ -383,6 +383,15 @@
   <data name="scheduling.session_not_found" xml:space="preserve">
     <value>Session not found.</value>
   </data>
+  <data name="scheduling.session_not_cancellable" xml:space="preserve">
+    <value>A completed session cannot be cancelled.</value>
+  </data>
+  <data name="scheduling.instructor_cancellation_deadline_passed" xml:space="preserve">
+    <value>The lesson cannot be cancelled one hour or less before it starts.</value>
+  </data>
+  <data name="scheduling.cancellation_reason_too_long" xml:space="preserve">
+    <value>Cancellation reason is too long.</value>
+  </data>
   <data name="scheduling.instructor_not_found" xml:space="preserve">
     <value>The selected instructor does not exist.</value>
   </data>
@@ -391,6 +400,15 @@
   </data>
   <data name="scheduling.session_not_bookable" xml:space="preserve">
     <value>This session is not open for booking.</value>
+  </data>
+  <data name="scheduling.slot_not_owned" xml:space="preserve">
+    <value>You can only manage your own lesson slots.</value>
+  </data>
+  <data name="scheduling.session_not_owned" xml:space="preserve">
+    <value>You can only cancel your own lessons.</value>
+  </data>
+  <data name="scheduling.slot_has_booking" xml:space="preserve">
+    <value>A reserved lesson slot cannot be closed.</value>
   </data>
   <data name="scheduling.already_booked" xml:space="preserve">
     <value>A booking already exists for this session.</value>
@@ -448,5 +466,274 @@
   </data>
   <data name="scheduling.session_required" xml:space="preserve">
     <value>Session is required.</value>
+  </data>
+  <data name="auth.password_reset_token_required" xml:space="preserve">
+    <value>Password reset token is required.</value>
+  </data>
+  <data name="auth.invalid_password_reset_token" xml:space="preserve">
+    <value>This password reset link is invalid or has expired.</value>
+  </data>
+  <data name="account.current_password_required" xml:space="preserve">
+    <value>Current password is required.</value>
+  </data>
+  <data name="account.current_password_invalid" xml:space="preserve">
+    <value>Current password is incorrect.</value>
+  </data>
+  <data name="friends.user_not_found" xml:space="preserve">
+    <value>No user was found with this email address.</value>
+  </data>
+  <data name="friends.cannot_add_self" xml:space="preserve">
+    <value>You cannot send a friend request to yourself.</value>
+  </data>
+  <data name="friends.already_friends" xml:space="preserve">
+    <value>You are already friends with this user.</value>
+  </data>
+  <data name="friends.request_already_pending" xml:space="preserve">
+    <value>A pending friend request already exists between these users.</value>
+  </data>
+  <data name="friends.request_not_found" xml:space="preserve">
+    <value>The friend request was not found.</value>
+  </data>
+  <data name="friends.request_not_owned" xml:space="preserve">
+    <value>You are not allowed to respond to this friend request.</value>
+  </data>
+  <data name="friends.email_required" xml:space="preserve">
+    <value>Email is required.</value>
+  </data>
+  <data name="friends.email_invalid" xml:space="preserve">
+    <value>Enter a valid email address.</value>
+  </data>
+  <data name="friends.email_too_long" xml:space="preserve">
+    <value>Email cannot exceed 320 characters.</value>
+  </data>
+  <data name="friends.friendship_not_found" xml:space="preserve">
+    <value>The friendship was not found.</value>
+  </data>
+  <data name="friends.friendship_not_owned" xml:space="preserve">
+    <value>You are not allowed to remove this friendship.</value>
+  </data>
+  <data name="friends.search_term_required" xml:space="preserve">
+    <value>Search term is required.</value>
+  </data>
+  <data name="friends.search_term_too_short" xml:space="preserve">
+    <value>Search term must contain at least 2 characters.</value>
+  </data>
+  <data name="friends.search_term_too_long" xml:space="preserve">
+    <value>Search term cannot exceed 100 characters.</value>
+  </data>
+  <data name="friends.user_id_required" xml:space="preserve">
+    <value>User is required.</value>
+  </data>
+  <data name="clubs.subject_not_found" xml:space="preserve">
+    <value>The subject was not found.</value>
+  </data>
+  <data name="clubs.already_exists_for_subject" xml:space="preserve">
+    <value>A club already exists for this subject.</value>
+  </data>
+  <data name="clubs.club_not_found" xml:space="preserve">
+    <value>The club was not found.</value>
+  </data>
+  <data name="clubs.already_closed" xml:space="preserve">
+    <value>The club is already closed.</value>
+  </data>
+  <data name="clubs.already_open" xml:space="preserve">
+    <value>The club is already open.</value>
+  </data>
+  <data name="clubs.subject_id_required" xml:space="preserve">
+    <value>Subject is required.</value>
+  </data>
+  <data name="clubs.name_required" xml:space="preserve">
+    <value>Club name is required.</value>
+  </data>
+  <data name="clubs.name_too_long" xml:space="preserve">
+    <value>Club name cannot exceed 200 characters.</value>
+  </data>
+  <data name="clubs.description_too_long" xml:space="preserve">
+    <value>Club description cannot exceed 1000 characters.</value>
+  </data>
+  <data name="clubs.package_required" xml:space="preserve">
+    <value>An active package covering this subject is required.</value>
+  </data>
+  <data name="clubs.room_not_found" xml:space="preserve">
+    <value>The club room was not found.</value>
+  </data>
+  <data name="clubs.room_already_exists" xml:space="preserve">
+    <value>A room with this name already exists in the club.</value>
+  </data>
+  <data name="clubs.text_room_required" xml:space="preserve">
+    <value>Messages can only be sent to text rooms.</value>
+  </data>
+  <data name="clubs.room_name_required" xml:space="preserve">
+    <value>Room name is required.</value>
+  </data>
+  <data name="clubs.room_name_too_long" xml:space="preserve">
+    <value>Room name cannot exceed 100 characters.</value>
+  </data>
+  <data name="clubs.room_type_invalid" xml:space="preserve">
+    <value>Room type is invalid.</value>
+  </data>
+  <data name="clubs.room_sort_order_invalid" xml:space="preserve">
+    <value>Room sort order cannot be negative.</value>
+  </data>
+  <data name="clubs.message_required" xml:space="preserve">
+    <value>Message is required.</value>
+  </data>
+  <data name="clubs.message_too_long" xml:space="preserve">
+    <value>Message cannot exceed 2000 characters.</value>
+  </data>
+  <data name="subscriptions.subject_required" xml:space="preserve">
+    <value>Subject selection is required.</value>
+  </data>
+  <data name="subscriptions.subject_not_found" xml:space="preserve">
+    <value>The selected subject was not found.</value>
+  </data>
+  <data name="subscriptions.frequency_invalid" xml:space="preserve">
+    <value>The weekly lesson frequency is invalid.</value>
+  </data>
+  <data name="subscriptions.duration_invalid" xml:space="preserve">
+    <value>The package duration is invalid.</value>
+  </data>
+  <data name="booking.lesson_package_required" xml:space="preserve">
+    <value>A compatible lesson package is required for this session.</value>
+  </data>
+  <data name="booking.course_not_found" xml:space="preserve">
+    <value>The course associated with this session was not found.</value>
+  </data>
+  <data name="booking.compatible_package_not_found" xml:space="preserve">
+    <value>No active package covers this subject and a {duration}-minute lesson.</value>
+  </data>
+  <data name="booking.credit_exhausted" xml:space="preserve">
+    <value>There are no lesson credits remaining in this package.</value>
+  </data>
+  <data name="booking.subscription_missing" xml:space="preserve">
+    <value>The booking is missing its subscription reference.</value>
+  </data>
+  <data name="booking.credit_reservation_missing" xml:space="preserve">
+    <value>The booking credit reservation could not be found.</value>
+  </data>
+  <data name="booking.session_not_found" xml:space="preserve">
+    <value>The lesson session was not found.</value>
+  </data>
+  <data name="scheduling.session_not_completable" xml:space="preserve">
+    <value>This session cannot be completed.</value>
+  </data>
+  <data name="scheduling.session_not_ended" xml:space="preserve">
+    <value>The session cannot be completed before its end time.</value>
+  </data>
+  <data name="scheduling.session_has_no_reservations" xml:space="preserve">
+    <value>The session has no active reservations to complete.</value>
+  </data>
+  <data name="scheduling.attendance_set_mismatch" xml:space="preserve">
+    <value>An attendance result must be supplied for every active reservation.</value>
+  </data>
+  <data name="scheduling.attendance_required" xml:space="preserve">
+    <value>Attendance information is required.</value>
+  </data>
+  <data name="scheduling.attendance_status_invalid" xml:space="preserve">
+    <value>The attendance status is invalid.</value>
+  </data>
+  <data name="scheduling.attended_minutes_invalid" xml:space="preserve">
+    <value>Attended minutes cannot be negative.</value>
+  </data>
+  <data name="scheduling.absent_minutes_invalid" xml:space="preserve">
+    <value>Attended minutes must be zero for an absent learner.</value>
+  </data>
+  <data name="scheduling.attended_minutes_required" xml:space="preserve">
+    <value>Attended minutes are required for a learner who attended.</value>
+  </data>
+  <data name="scheduling.attendance_time_range_invalid" xml:space="preserve">
+    <value>The leave time cannot be earlier than the join time.</value>
+  </data>
+  <data name="scheduling.attendance_booking_duplicate" xml:space="preserve">
+    <value>Attendance cannot be supplied more than once for the same booking.</value>
+  </data>
+  <data name="compensation.subject_required" xml:space="preserve"><value>Subject is required.</value></data>
+  <data name="compensation.duration_invalid" xml:space="preserve"><value>Lesson duration must be 30 or 50 minutes.</value></data>
+  <data name="compensation.amount_invalid" xml:space="preserve"><value>Lesson compensation cannot be negative.</value></data>
+  <data name="compensation.currency_required" xml:space="preserve"><value>Currency is required.</value></data>
+  <data name="compensation.currency_invalid" xml:space="preserve"><value>Currency must be a three-character ISO code.</value></data>
+  <data name="compensation.penalty_steps_required" xml:space="preserve"><value>At least one penalty step is required.</value></data>
+  <data name="compensation.penalty_steps_too_many" xml:space="preserve"><value>At most 20 penalty steps can be configured.</value></data>
+  <data name="compensation.penalty_percentage_invalid" xml:space="preserve"><value>Penalty percentages must be between 0 and 100.</value></data>
+  <data name="compensation.penalty_steps_not_increasing" xml:space="preserve"><value>Penalty percentages must increase at every step.</value></data>
+  <data name="compensation.rate_not_configured" xml:space="preserve"><value>Instructor compensation is not configured for this subject and {duration}-minute duration.</value></data>
+  <data name="compensation.instructor_required" xml:space="preserve"><value>Instructor is required.</value></data>
+  <data name="compensation.waiver_reason_required" xml:space="preserve"><value>A reason is required to waive a penalty.</value></data>
+  <data name="compensation.waiver_reason_too_long" xml:space="preserve"><value>The waiver reason can contain at most 500 characters.</value></data>
+  <data name="compensation.no_pending_penalty" xml:space="preserve"><value>The instructor has no pending penalty to waive.</value></data>
+
+  <data name="auth.email_not_verified" xml:space="preserve">
+    <value>Verify your email address before signing in.</value>
+  </data>
+  <data name="auth.invalid_verification_token" xml:space="preserve">
+    <value>This verification link is invalid or has expired. Request a new one.</value>
+  </data>
+
+  <data name="subscriptions.ledger_not_owned" xml:space="preserve">
+    <value>You can only view your own credit ledger.</value>
+  </data>
+
+  <data name="billing.plan_not_found" xml:space="preserve">
+    <value>Plan not found.</value>
+  </data>
+  <data name="billing.plan_has_no_active_price" xml:space="preserve">
+    <value>A plan without an active price cannot be put on sale.</value>
+  </data>
+  <data name="billing.plan_has_no_entitlement" xml:space="preserve">
+    <value>A plan without any entitlement cannot be put on sale.</value>
+  </data>
+  <data name="billing.subject_not_found" xml:space="preserve">
+    <value>Subject not found.</value>
+  </data>
+  <data name="billing.course_not_found" xml:space="preserve">
+    <value>Course not found.</value>
+  </data>
+  <data name="billing.plan_name_required" xml:space="preserve">
+    <value>Plan name is required.</value>
+  </data>
+  <data name="billing.plan_name_too_long" xml:space="preserve">
+    <value>Plan name can be at most 200 characters.</value>
+  </data>
+  <data name="billing.plan_description_too_long" xml:space="preserve">
+    <value>Plan description can be at most 2000 characters.</value>
+  </data>
+  <data name="billing.catalog_access_invalid" xml:space="preserve">
+    <value>Invalid catalog access value.</value>
+  </data>
+  <data name="billing.currency_required" xml:space="preserve">
+    <value>Currency is required.</value>
+  </data>
+  <data name="billing.currency_invalid" xml:space="preserve">
+    <value>Currency must be a three-letter code.</value>
+  </data>
+  <data name="billing.amount_invalid" xml:space="preserve">
+    <value>Amount cannot be negative.</value>
+  </data>
+  <data name="billing.billing_interval_invalid" xml:space="preserve">
+    <value>Invalid billing interval.</value>
+  </data>
+  <data name="billing.billing_interval_count_invalid" xml:space="preserve">
+    <value>Billing interval count must be between 1 and 36.</value>
+  </data>
+  <data name="billing.entitlement_type_invalid" xml:space="preserve">
+    <value>Invalid entitlement type.</value>
+  </data>
+  <data name="billing.session_type_invalid" xml:space="preserve">
+    <value>Invalid session type.</value>
+  </data>
+  <data name="billing.reset_period_invalid" xml:space="preserve">
+    <value>Invalid reset period.</value>
+  </data>
+  <data name="billing.quantity_required" xml:space="preserve">
+    <value>Quantity is required for a metered entitlement.</value>
+  </data>
+  <data name="billing.quantity_invalid" xml:space="preserve">
+    <value>Quantity must be greater than zero.</value>
+  </data>
+  <data name="billing.quantity_not_allowed" xml:space="preserve">
+    <value>Quantity cannot be given for unlimited access.</value>
+  </data>
+  <data name="billing.access_target_invalid" xml:space="preserve">
+    <value>Provide exactly one of subject or course.</value>
   </data>
 </root>

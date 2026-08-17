@@ -2,6 +2,7 @@ using Learnier.Application.Common.Models;
 using Learnier.Application.Common.Security;
 using Learnier.Application.Features.Catalog.Commands.AddCourseLesson;
 using Learnier.Application.Features.Catalog.Commands.AddCourseModule;
+using Learnier.Application.Features.Catalog.Commands.ArchiveCourse;
 using Learnier.Application.Features.Catalog.Commands.CreateCourse;
 using Learnier.Application.Features.Catalog.Commands.PublishCourse;
 using Learnier.Application.Features.Catalog.Queries;
@@ -49,6 +50,24 @@ public sealed class CoursesController : ControllerBase
     public async Task<ActionResult> Publish(
         Guid courseId,
         [FromServices] PublishCourseHandler handler,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(handler);
+
+        var result = await handler.Handle(courseId, cancellationToken);
+
+        return result.ToActionResult(this);
+    }
+
+    /// <summary>Egitimi gecmis baglantilarini silmeden arsivler.</summary>
+    [HttpPost("{courseId:guid}/archive")]
+    [Authorize(Policy = Permissions.Course.Manage)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult> Archive(
+        Guid courseId,
+        [FromServices] ArchiveCourseHandler handler,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(handler);
@@ -119,16 +138,13 @@ public sealed class CoursesController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<AddCourseModuleResult>> AddModule(
         Guid courseId,
-        AddCourseModuleRequest request,
+        AddCourseModuleCommand command,
         [FromServices] AddCourseModuleHandler handler,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(handler);
-        ArgumentNullException.ThrowIfNull(request);
 
-        var result = await handler.Handle(
-            new AddCourseModuleCommand(courseId, request.Title, request.SortOrder, request.Description),
-            cancellationToken);
+        var result = await handler.Handle(courseId, command, cancellationToken);
 
         return result.ToActionResult(this);
     }
@@ -142,21 +158,13 @@ public sealed class CoursesController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<AddCourseLessonResult>> AddLesson(
         Guid moduleId,
-        AddCourseLessonRequest request,
+        AddCourseLessonCommand command,
         [FromServices] AddCourseLessonHandler handler,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(handler);
-        ArgumentNullException.ThrowIfNull(request);
 
-        var result = await handler.Handle(
-            new AddCourseLessonCommand(
-                moduleId,
-                request.Title,
-                request.SortOrder,
-                request.EstimatedDurationMinutes,
-                request.Description),
-            cancellationToken);
+        var result = await handler.Handle(moduleId, command, cancellationToken);
 
         return result.ToActionResult(this);
     }
@@ -177,13 +185,3 @@ public sealed class CoursesController : ControllerBase
         return result.Succeeded;
     }
 }
-
-/// <summary>Egitim kimligi rotadan geldigi icin govdede tasinmaz.</summary>
-public sealed record AddCourseModuleRequest(string Title, int SortOrder, string? Description);
-
-/// <summary>Modul kimligi rotadan geldigi icin govdede tasinmaz.</summary>
-public sealed record AddCourseLessonRequest(
-    string Title,
-    int SortOrder,
-    int EstimatedDurationMinutes,
-    string? Description);

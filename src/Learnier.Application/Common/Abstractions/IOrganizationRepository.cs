@@ -19,6 +19,10 @@ public interface IOrganizationRepository
 
 public interface IRoleRepository
 {
+    Task<IReadOnlyList<Role>> ListUsableAsync(
+        Guid organizationId,
+        CancellationToken cancellationToken);
+
     /// <summary>
     /// Koda gore sistem rolunu bulur. Sistem rollerinin organizasyonu yoktur ve
     /// her kurumda kullanilabilirler.
@@ -37,6 +41,8 @@ public interface IRoleRepository
 
 public interface IMembershipRepository
 {
+    Task<IReadOnlyList<OrganizationMembership>> ListAsync(CancellationToken cancellationToken);
+
     /// <summary>
     /// Uyeligi rolleriyle birlikte getirir.
     /// </summary>

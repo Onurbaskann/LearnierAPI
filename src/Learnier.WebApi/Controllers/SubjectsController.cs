@@ -1,6 +1,8 @@
 using Learnier.Application.Common.Security;
 using Learnier.Application.Features.Catalog.Commands.CreateLevel;
 using Learnier.Application.Features.Catalog.Commands.CreateSubject;
+using Learnier.Application.Features.Catalog.Commands.ArchiveSubject;
+using Learnier.Application.Features.Catalog.Commands.RenameSubject;
 using Learnier.Application.Features.Catalog.Queries;
 using Learnier.Application.Features.Catalog.Queries.ListSubjects;
 using Learnier.WebApi.Common;
@@ -58,6 +60,44 @@ public sealed class SubjectsController : ControllerBase
         return result.ToActionResult(this);
     }
 
+    /// <summary>Egitim alaninin gorunen adini degistirir.</summary>
+    [HttpPatch("{subjectId:guid}")]
+    [Authorize(Policy = Permissions.Course.Manage)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult> Rename(
+        Guid subjectId,
+        RenameSubjectCommand command,
+        [FromServices] RenameSubjectHandler handler,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(handler);
+
+        var result = await handler.Handle(subjectId, command, cancellationToken);
+
+        return result.ToActionResult(this);
+    }
+
+    /// <summary>Egitim alanini gecmis baglantilarini silmeden arsivler.</summary>
+    [HttpPost("{subjectId:guid}/archive")]
+    [Authorize(Policy = Permissions.Course.Manage)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult> Archive(
+        Guid subjectId,
+        [FromServices] ArchiveSubjectHandler handler,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(handler);
+
+        var result = await handler.Handle(subjectId, cancellationToken);
+
+        return result.ToActionResult(this);
+    }
+
     /// <summary>Alana seviye ekler.</summary>
     [HttpPost("{subjectId:guid}/levels")]
     [Authorize(Policy = Permissions.Course.Manage)]
@@ -67,16 +107,13 @@ public sealed class SubjectsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<CreateLevelResult>> CreateLevel(
         Guid subjectId,
-        CreateLevelRequest request,
+        CreateLevelCommand command,
         [FromServices] CreateLevelHandler handler,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(handler);
-        ArgumentNullException.ThrowIfNull(request);
 
-        var result = await handler.Handle(
-            new CreateLevelCommand(subjectId, request.Code, request.Name, request.SortOrder),
-            cancellationToken);
+        var result = await handler.Handle(subjectId, command, cancellationToken);
 
         return result.ToActionResult(this);
     }
@@ -98,6 +135,3 @@ public sealed class SubjectsController : ControllerBase
         return result.ToActionResult(this);
     }
 }
-
-/// <summary>Alan kimligi rotadan geldigi icin govdede tasinmaz.</summary>
-public sealed record CreateLevelRequest(string Code, string Name, int SortOrder);

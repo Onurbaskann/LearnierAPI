@@ -26,6 +26,7 @@ public static class Permissions
     {
         public const string Create = "session.create";
         public const string Cancel = "session.cancel";
+        public const string Complete = "session.complete";
     }
 
     public static class Booking
@@ -49,5 +50,17 @@ public static class Permissions
     public static class Organization
     {
         public const string MemberManage = "organization.member.manage";
+    }
+
+    public static class Compensation
+    {
+        public const string Manage = "compensation.manage";
+    }
+
+    public static class Club
+    {
+        public const string Read = "club.read";
+        public const string Manage = "club.manage";
+        public const string MessageSend = "club.message.send";
     }
 }

@@ -296,6 +296,146 @@ public sealed class InstructorEndpointTests(AuthApiFixture fixture) : IClassFixt
         context.Dispose();
     }
 
+    [Fact]
+    public async Task Instructor_CanReadOwnStudentsAndDashboard()
+    {
+        var context = await NewOrganization();
+        await CreateProfile(context.OwnerClient, context.InstructorMembershipId);
+        using var instructorClient = await context.SignInAsInstructor();
+
+        var students = await instructorClient.GetFromJsonAsync<IReadOnlyList<InstructorStudentListItem>>(
+            new Uri("/api/v1/instructors/me/students", UriKind.Relative),
+            TestJson.Options,
+            TestContext.Current.CancellationToken);
+        var dashboard = await instructorClient.GetFromJsonAsync<InstructorDashboardStats>(
+            new Uri("/api/v1/instructors/me/dashboard", UriKind.Relative),
+            TestJson.Options,
+            TestContext.Current.CancellationToken);
+        var earnings = await instructorClient.GetFromJsonAsync<IReadOnlyList<InstructorEarningListItem>>(
+            new Uri("/api/v1/instructors/me/earnings", UriKind.Relative),
+            TestJson.Options,
+            TestContext.Current.CancellationToken);
+        var schedule = await instructorClient.GetFromJsonAsync<IReadOnlyList<InstructorScheduleListItem>>(
+            new Uri("/api/v1/instructors/me/schedule", UriKind.Relative),
+            TestJson.Options,
+            TestContext.Current.CancellationToken);
+
+        students!.ShouldBeEmpty();
+        dashboard!.StudentCount.ShouldBe(0);
+        dashboard.CompletedLessons.ShouldBe(0);
+        dashboard.ThisMonthTotal.ShouldBe(0m);
+        dashboard.AverageRating.ShouldBeNull();
+        earnings!.ShouldBeEmpty();
+        schedule!.ShouldBeEmpty();
+
+        context.Dispose();
+    }
+
+    [Fact]
+    public async Task InstructorManagement_CanCompleteTheProfileLifecycle()
+    {
+        var context = await NewOrganization();
+        var subjectId = await CreateSubject(context.OwnerClient, "Yazilim");
+        var profileId = await CreateProfile(context.OwnerClient, context.InstructorMembershipId);
+
+        var hourlyRate = await context.OwnerClient.PatchAsJsonAsync(
+            new Uri($"/api/v1/instructors/{profileId}/hourly-rate", UriKind.Relative),
+            new { hourlyRate = 750m, currency = "try" },
+            TestContext.Current.CancellationToken);
+
+        hourlyRate.StatusCode.ShouldBe(HttpStatusCode.NoContent);
+
+        var subjectResponse = await context.OwnerClient.PostAsJsonAsync(
+            new Uri($"/api/v1/instructors/{profileId}/subjects", UriKind.Relative),
+            new { subjectId, levelId = (Guid?)null },
+            TestContext.Current.CancellationToken);
+
+        var subjectBody = await subjectResponse.Content.ReadFromJsonAsync<JsonElement>(
+            TestContext.Current.CancellationToken);
+        var instructorSubjectId = subjectBody.GetProperty("instructorSubjectId").GetGuid();
+
+        var availabilityResponse = await AddAvailability(
+            context.OwnerClient, profileId, DayOfWeek.Monday, "09:00:00", "12:00:00");
+        var availabilityBody = await availabilityResponse.Content.ReadFromJsonAsync<JsonElement>(
+            TestContext.Current.CancellationToken);
+        var availabilityId = availabilityBody.GetProperty("availabilityId").GetGuid();
+
+        var deactivateSubject = await context.OwnerClient.PostAsync(
+            new Uri(
+                $"/api/v1/instructors/{profileId}/subjects/{instructorSubjectId}/deactivate",
+                UriKind.Relative),
+            content: null,
+            TestContext.Current.CancellationToken);
+
+        deactivateSubject.StatusCode.ShouldBe(HttpStatusCode.NoContent);
+
+        var invalidClose = await context.OwnerClient.PostAsJsonAsync(
+            new Uri(
+                $"/api/v1/instructors/{profileId}/availabilities/{availabilityId}/close",
+                UriKind.Relative),
+            new { validUntil = "2025-12-31" },
+            TestContext.Current.CancellationToken);
+
+        invalidClose.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+
+        var close = await context.OwnerClient.PostAsJsonAsync(
+            new Uri(
+                $"/api/v1/instructors/{profileId}/availabilities/{availabilityId}/close",
+                UriKind.Relative),
+            new { validUntil = "2026-06-30" },
+            TestContext.Current.CancellationToken);
+
+        close.StatusCode.ShouldBe(HttpStatusCode.NoContent);
+
+        // Ayni yetkinligi yeniden eklemek yeni kayit acmaz, pasif kaydi aktifleştirir.
+        var reactivateSubject = await context.OwnerClient.PostAsJsonAsync(
+            new Uri($"/api/v1/instructors/{profileId}/subjects", UriKind.Relative),
+            new { subjectId, levelId = (Guid?)null },
+            TestContext.Current.CancellationToken);
+
+        reactivateSubject.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        using var instructorClient = await context.SignInAsInstructor();
+        var publicProfile = await instructorClient.PatchAsJsonAsync(
+            new Uri($"/api/v1/instructors/{profileId}/public-profile", UriKind.Relative),
+            new
+            {
+                headline = "Yazilim egitmeni",
+                bio = "Uygulamali dersler veriyorum.",
+                hobbies = "Kitap, kosu"
+            },
+            TestContext.Current.CancellationToken);
+
+        publicProfile.StatusCode.ShouldBe(HttpStatusCode.NoContent);
+
+        var selfSuspend = await instructorClient.PostAsync(
+            new Uri($"/api/v1/instructors/{profileId}/suspend", UriKind.Relative),
+            content: null,
+            TestContext.Current.CancellationToken);
+
+        selfSuspend.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+
+        var suspend = await context.OwnerClient.PostAsync(
+            new Uri($"/api/v1/instructors/{profileId}/suspend", UriKind.Relative),
+            content: null,
+            TestContext.Current.CancellationToken);
+
+        suspend.StatusCode.ShouldBe(HttpStatusCode.NoContent);
+
+        var detail = await GetDetail(context.OwnerClient, profileId);
+        detail.DefaultHourlyRate.ShouldBe(750m);
+        detail.DefaultHourlyRateCurrency.ShouldBe("TRY");
+        detail.Headline.ShouldBe("Yazilim egitmeni");
+        detail.Bio.ShouldBe("Uygulamali dersler veriyorum.");
+        detail.Hobbies.ShouldBe("Kitap, kosu");
+        detail.Subjects.Single().Status.ShouldBe(InstructorSubjectStatus.Active);
+        detail.Subjects.Single().Id.ShouldBe(instructorSubjectId);
+        detail.Availabilities.Single().ValidUntil.ShouldBe(new DateOnly(2026, 6, 30));
+        detail.Status.ShouldBe(InstructorStatus.Suspended);
+
+        context.Dispose();
+    }
+
     private static Task<HttpResponseMessage> AddAvailability(
         HttpClient client,
         Guid profileId,

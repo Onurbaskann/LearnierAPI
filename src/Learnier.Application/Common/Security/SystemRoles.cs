@@ -47,8 +47,13 @@ public static class SystemRoles
             Permissions.Course.Manage,
             Permissions.Session.Create,
             Permissions.Session.Cancel,
+            Permissions.Session.Complete,
             Permissions.Booking.ManageAll,
-            Permissions.Student.ProgressRead
+            Permissions.Compensation.Manage,
+            Permissions.Student.ProgressRead,
+            Permissions.Club.Read,
+            Permissions.Club.Manage,
+            Permissions.Club.MessageSend
         ]),
 
         new(Instructor, "Egitmen",
@@ -56,13 +61,18 @@ public static class SystemRoles
             Permissions.Course.Read,
             Permissions.Session.Create,
             Permissions.Session.Cancel,
-            Permissions.Student.ProgressRead
+            Permissions.Session.Complete,
+            Permissions.Student.ProgressRead,
+            Permissions.Club.Read,
+            Permissions.Club.MessageSend
         ]),
 
         new(Student, "Ogrenci",
         [
             Permissions.Course.Read,
-            Permissions.Booking.Create
+            Permissions.Booking.Create,
+            Permissions.Club.Read,
+            Permissions.Club.MessageSend
         ]),
 
         // Veli, sorumlu oldugu ogrenci adina rezervasyon yapabilir ve ilerlemesini
@@ -83,7 +93,8 @@ public static class SystemRoles
 
         new(FinanceManager, "Finans Yoneticisi",
         [
-            Permissions.Subscription.Manage
+            Permissions.Subscription.Manage,
+            Permissions.Compensation.Manage
         ])
     ];
 }

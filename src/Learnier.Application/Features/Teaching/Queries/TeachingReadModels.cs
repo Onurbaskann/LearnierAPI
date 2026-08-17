@@ -1,4 +1,5 @@
 using Learnier.Domain.Teaching;
+using Learnier.Domain.Scheduling;
 
 namespace Learnier.Application.Features.Teaching.Queries;
 
@@ -7,6 +8,7 @@ public sealed record InstructorListItem(
     Guid MembershipId,
     string FirstName,
     string LastName,
+    string? Headline,
     InstructorStatus Status,
     string TimeZoneId,
     IReadOnlyList<string> SubjectNames);
@@ -16,7 +18,9 @@ public sealed record InstructorDetail(
     Guid MembershipId,
     string FirstName,
     string LastName,
+    string? Headline,
     string? Bio,
+    string? Hobbies,
     string TimeZoneId,
     InstructorStatus Status,
     decimal? DefaultHourlyRate,
@@ -49,3 +53,59 @@ public sealed record AvailabilityOverrideDetail(
     TimeOnly? EndLocalTime,
     AvailabilityOverrideType OverrideType,
     string? Reason);
+
+public sealed record InstructorStudentListItem(
+    Guid UserId,
+    string FirstName,
+    string LastName,
+    IReadOnlyList<string> CourseTitles,
+    int TotalLessons,
+    DateTimeOffset LastLessonAt);
+
+public sealed record InstructorScheduleLearner(
+    Guid UserId,
+    string FirstName,
+    string LastName);
+
+/// <param name="InstructorCancellationDeadlineAt">
+/// Bu ana kadar yapilan iptalde egitmene kesinti uygulanmaz.
+/// </param>
+/// <param name="CanCancel">
+/// Ders henuz baslamadiysa dogru. Dort saat siniri iptali kapatmaz, yalnizca
+/// kesinti uygulanip uygulanmayacagini belirler.
+/// </param>
+/// <param name="WillReceivePenaltyIfCancelled">
+/// Su anda iptal edilirse kesinti dogar mi.
+/// </param>
+/// <param name="NextPenaltyPercentage">
+/// Kesinti dogarsa uygulanacak oran. Arayuz yuzdeyi tahmin etmez.
+/// </param>
+public sealed record InstructorScheduleListItem(
+    Guid SessionId,
+    string CourseTitle,
+    DateTimeOffset StartsAt,
+    DateTimeOffset EndsAt,
+    LessonSessionStatus Status,
+    DateTimeOffset? InstructorCancellationDeadlineAt,
+    bool CanCancel,
+    bool WillReceivePenaltyIfCancelled,
+    decimal NextPenaltyPercentage,
+    IReadOnlyList<InstructorScheduleLearner> Learners);
+
+public sealed record InstructorDashboardStats(
+    int StudentCount,
+    int CompletedLessons,
+    decimal ThisMonthTotal,
+    string Currency,
+    double? AverageRating);
+
+public sealed record InstructorEarningListItem(
+    Guid SessionId,
+    string CourseTitle,
+    DateTimeOffset StartsAt,
+    int LearnerCount,
+    decimal Amount,
+    string Currency,
+    decimal GrossAmount,
+    decimal PenaltyPercentage,
+    decimal PenaltyAmount);

@@ -7,7 +7,6 @@ namespace Learnier.Application.Features.Teaching.Commands.AddAvailability;
 /// <param name="StartLocalTime">Egitmenin kendi saat diliminde baslangic.</param>
 /// <param name="ValidUntil">Bos ise aralik suresiz gecerlidir.</param>
 public sealed record AddAvailabilityCommand(
-    Guid ProfileId,
     DayOfWeek DayOfWeek,
     TimeOnly StartLocalTime,
     TimeOnly EndLocalTime,
@@ -47,6 +46,7 @@ public sealed class AddAvailabilityHandler(
     IUnitOfWork unitOfWork)
 {
     public async Task<Result<AddAvailabilityResult>> Handle(
+        Guid profileId,
         AddAvailabilityCommand command,
         bool canManageInstructors,
         CancellationToken cancellationToken)
@@ -58,7 +58,7 @@ public sealed class AddAvailabilityHandler(
             return TeachingErrors.OrganizationContextRequired;
         }
 
-        var profile = await instructors.FindWithDetailsAsync(command.ProfileId, cancellationToken);
+        var profile = await instructors.FindWithDetailsAsync(profileId, cancellationToken);
 
         if (profile is null)
         {

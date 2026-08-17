@@ -76,7 +76,7 @@ internal sealed class EfActivePackageQueries(AppDbContext context, IClock clock)
                 : 3;
 
             result.AddRange(subjects.Select(subject => new ActivePackageAccess(
-                subscription.Id, plan.Name, subject.Id, subject.Name,
+                subscription.Id, plan.Id, plan.Name, subject.Id, subject.Name,
                 subscription.StartsAt, subscription.CurrentPeriodEnd, remainingCredits,
                 totalCredits, lessonsPerWeek, durationMonths,
                 entitlement?.LessonDurationMinutes ?? plan.LessonDurationMinutes ?? 50)));

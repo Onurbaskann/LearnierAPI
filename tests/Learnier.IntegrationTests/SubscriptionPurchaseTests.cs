@@ -92,6 +92,32 @@ public sealed class SubscriptionPurchaseTests(AuthApiFixture fixture) : IClassFi
     }
 
     /// <summary>
+    /// Katalog ekrani "zaten abonesin" durumunu plan kimligiyle gosterir; ad
+    /// uzerinden eslestirme ayni adli iki planda yanilirdi.
+    /// </summary>
+    [Fact]
+    public async Task ActivePackages_CarryPlanIdOfPurchasedPlan()
+    {
+        using var client = await NewOrganizationClient();
+        var priceId = await PublishPlan(client, "Kimlikli Plan", amount: 500m, credits: 4);
+
+        var result = await Purchase(client, priceId);
+
+        var response = await client.GetAsync(
+            new Uri("/api/v1/subscriptions/me/active-packages", UriKind.Relative),
+            TestContext.Current.CancellationToken);
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        var packages = (await response.Content.ReadFromJsonAsync<IReadOnlyList<ActivePackageAccess>>(
+            TestJson.Options,
+            TestContext.Current.CancellationToken))!;
+
+        packages
+            .Where(item => item.SubscriptionId == result.SubscriptionId)
+            .ShouldAllBe(item => item.PlanId == result.PlanId);
+    }
+
+    /// <summary>
     /// Yonetici panelinden acilan plan <c>MonthlyLessonCredits</c> alanini doldurmaz;
     /// yenileme o alana bakmis olsaydi satin alinan abonelik ilk aydan sonra hicbir
     /// hak almazdi.

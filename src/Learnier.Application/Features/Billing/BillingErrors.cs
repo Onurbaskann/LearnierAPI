@@ -38,4 +38,19 @@ internal static class BillingErrors
 
     /// <summary>Sinirsiz erisimde adet anlamsiz; verilmesi karisikliga yol acar.</summary>
     public static Error QuantityNotAllowed => Error.Validation("billing.quantity_not_allowed");
+
+    /// <summary>Suresi olmayan birebir ders kredisi hicbir oturumla eslesmez.</summary>
+    public static Error LessonDurationRequired =>
+        Error.Validation("billing.lesson_duration_required");
+
+    public static Error LessonDurationInvalid =>
+        Error.Validation("billing.lesson_duration_invalid");
+
+    /// <summary>Grup ve webinar oturumlari sure kirilimiyla satilmiyor.</summary>
+    public static Error LessonDurationNotAllowed =>
+        Error.Validation("billing.lesson_duration_not_allowed");
+
+    /// <summary>Ayni ders turu ve suresi icin plan zaten hak tasiyor.</summary>
+    public static Error EntitlementAlreadyExists =>
+        Error.Conflict("billing.entitlement_already_exists");
 }

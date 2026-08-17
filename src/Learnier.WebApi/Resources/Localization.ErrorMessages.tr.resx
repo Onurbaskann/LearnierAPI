@@ -729,6 +729,18 @@
   <data name="billing.quantity_not_allowed" xml:space="preserve">
     <value>Sınırsız erişimde miktar verilemez.</value>
   </data>
+  <data name="billing.lesson_duration_required" xml:space="preserve">
+    <value>Birebir ders kredisi için ders süresi zorunludur.</value>
+  </data>
+  <data name="billing.lesson_duration_invalid" xml:space="preserve">
+    <value>Ders süresi 30 veya 50 dakika olmalıdır.</value>
+  </data>
+  <data name="billing.lesson_duration_not_allowed" xml:space="preserve">
+    <value>Ders süresi yalnızca birebir ders kredisinde verilebilir.</value>
+  </data>
+  <data name="billing.entitlement_already_exists" xml:space="preserve">
+    <value>Plan bu hak tanımını zaten içeriyor.</value>
+  </data>
   <data name="billing.access_target_invalid" xml:space="preserve">
     <value>Alan veya eğitimden yalnızca biri verilmelidir.</value>
   </data>

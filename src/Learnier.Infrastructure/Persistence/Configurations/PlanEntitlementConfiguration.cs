@@ -27,8 +27,17 @@ internal sealed class PlanEntitlementConfiguration : IEntityTypeConfiguration<Pl
             .HasMaxLength(32)
             .IsRequired();
 
-        // Ayni plan bir ders turu icin tek hak tanimi icerir.
-        builder.HasIndex(e => new { e.PlanId, e.EntitlementType, e.SessionType }).IsUnique();
+        builder.Property(e => e.LessonDurationMinutes);
+
+        // Ayni plan bir ders turu icin tek hak tanimi icerir. Birebir ders kredisi
+        // sure kirilimindadir: 30 ve 50 dakika ayri haklardir.
+        builder.HasIndex(e => new
+        {
+            e.PlanId,
+            e.EntitlementType,
+            e.SessionType,
+            e.LessonDurationMinutes
+        }).IsUnique();
 
         builder.ToTable(t =>
         {
@@ -41,6 +50,18 @@ internal sealed class PlanEntitlementConfiguration : IEntityTypeConfiguration<Pl
             t.HasCheckConstraint(
                 "ck_plan_entitlements_credit_requires_quantity",
                 @"entitlement_type <> 'LessonCredit' OR quantity IS NOT NULL");
+
+            // Rezervasyon yetkilendirmesi uygun paketi ders suresiyle secer:
+            // suresiz birebir kredi hicbir oturumla eslesmez, sureli grup hakki
+            // ise hicbir yerde okunmaz.
+            t.HasCheckConstraint(
+                "ck_plan_entitlements_private_credit_duration",
+                "(entitlement_type = 'LessonCredit' AND session_type = 'Private') "
+                + "= (lesson_duration_minutes IS NOT NULL)");
+
+            t.HasCheckConstraint(
+                "ck_plan_entitlements_lesson_duration",
+                "lesson_duration_minutes IS NULL OR lesson_duration_minutes IN (30, 50)");
         });
     }
 }

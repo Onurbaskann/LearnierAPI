@@ -91,7 +91,8 @@ public sealed class PurchaseDemoPackageHandler(
                 planName,
                 monthlyCredits,
                 command.LessonDurationMinutes,
-                "Ödeme sağlayıcısı bağlanana kadar kullanılan kalıcı demo paketi.");
+                "Ödeme sağlayıcısı bağlanana kadar kullanılan kalıcı demo paketi.",
+                isSystemGenerated: true);
             price = plan.AddPrice(
                 "TRY",
                 LessonPackagePricing.CalculateTotal(

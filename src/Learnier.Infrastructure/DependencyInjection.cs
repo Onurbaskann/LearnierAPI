@@ -81,6 +81,7 @@ public static class DependencyInjection
         services.AddScoped<ICreditLedgerQueries, EfCreditLedgerQueries>();
         services.AddScoped<IPackagePurchaseRepository, EfPackagePurchaseRepository>();
         services.AddScoped<IPlanRepository, EfPlanRepository>();
+        services.AddScoped<IPlanQueries, EfPlanQueries>();
         services.AddScoped<IInstructorRepository, EfInstructorRepository>();
         services.AddScoped<IInstructorQueries, EfInstructorQueries>();
         services.AddScoped<ISchedulingRepository, EfSchedulingRepository>();

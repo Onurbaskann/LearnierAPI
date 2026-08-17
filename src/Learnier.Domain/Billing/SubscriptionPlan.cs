@@ -38,6 +38,16 @@ public sealed class SubscriptionPlan : AggregateRoot, IAuditableEntity, ITenantS
     public bool IsLessonPackage
         => MonthlyLessonCredits is not null && LessonDurationMinutes is not null;
 
+    /// <summary>
+    /// Plan yonetici tarafindan degil, satin alma akisi tarafindan ortuk uretildi mi.
+    /// </summary>
+    /// <remarks>
+    /// Demo satin alma her kosul kombinasyonu icin kendi planini dogurur. Bunlar
+    /// yonetim listesinde gorunur ama ogrenci kataloguna girmez: kimse onlari
+    /// satisa acmadi, yalnizca bir satin almanin yan urunu olarak olustular.
+    /// </remarks>
+    public bool IsSystemGenerated { get; private set; }
+
     public IReadOnlyCollection<PlanPrice> Prices => _prices.AsReadOnly();
 
     public IReadOnlyCollection<PlanEntitlement> Entitlements => _entitlements.AsReadOnly();
@@ -68,18 +78,25 @@ public sealed class SubscriptionPlan : AggregateRoot, IAuditableEntity, ITenantS
         };
     }
 
+    /// <param name="isSystemGenerated">
+    /// Satin alma akisi plani ortuk uretiyorsa <c>true</c>; boyle planlar ogrenci
+    /// kataloguna girmez.
+    /// </param>
     public static SubscriptionPlan CreateLessonPackage(
         Guid organizationId,
         string name,
         int monthlyLessonCredits,
         int lessonDurationMinutes,
-        string? description = null)
+        string? description = null,
+        bool isSystemGenerated = false)
     {
         var plan = Create(
             organizationId,
             name,
             CatalogAccess.Restricted,
             description);
+
+        plan.IsSystemGenerated = isSystemGenerated;
 
         plan.ConfigureLessonPackage(monthlyLessonCredits, lessonDurationMinutes);
 
@@ -119,7 +136,8 @@ public sealed class SubscriptionPlan : AggregateRoot, IAuditableEntity, ITenantS
 
         var monthlyPrivateCredit = _entitlements.Find(entitlement =>
             entitlement.EntitlementType == EntitlementType.LessonCredit
-            && entitlement.SessionType == Scheduling.SessionType.Private);
+            && entitlement.SessionType == Scheduling.SessionType.Private
+            && entitlement.LessonDurationMinutes == lessonDurationMinutes);
 
         if (monthlyPrivateCredit is null)
         {
@@ -127,7 +145,8 @@ public sealed class SubscriptionPlan : AggregateRoot, IAuditableEntity, ITenantS
                 EntitlementType.LessonCredit,
                 Scheduling.SessionType.Private,
                 monthlyLessonCredits,
-                EntitlementResetPeriod.Month);
+                EntitlementResetPeriod.Month,
+                lessonDurationMinutes);
         }
         else if (monthlyPrivateCredit.Quantity != monthlyLessonCredits
             || monthlyPrivateCredit.ResetPeriod != EntitlementResetPeriod.Month)
@@ -176,13 +195,18 @@ public sealed class SubscriptionPlan : AggregateRoot, IAuditableEntity, ITenantS
     /// <summary>
     /// Plana hak tanimi ekler - "haftada 3 birebir ders" veya "sinirsiz grup dersi" gibi.
     /// </summary>
+    /// <param name="lessonDurationMinutes">
+    /// Birebir ders kredisinde zorunlu (30 veya 50); diger haklarda bos birakilir.
+    /// </param>
     public PlanEntitlement AddEntitlement(
         EntitlementType entitlementType,
         Scheduling.SessionType sessionType,
         int? quantity,
-        EntitlementResetPeriod resetPeriod)
+        EntitlementResetPeriod resetPeriod,
+        int? lessonDurationMinutes = null)
     {
-        var entitlement = PlanEntitlement.Create(Id, entitlementType, sessionType, quantity, resetPeriod);
+        var entitlement = PlanEntitlement.Create(
+            Id, entitlementType, sessionType, quantity, resetPeriod, lessonDurationMinutes);
         _entitlements.Add(entitlement);
         return entitlement;
     }

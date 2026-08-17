@@ -25,7 +25,11 @@ internal sealed class CreditPeriodRenewalProcessor(
                     on price.PlanId equals plan.Id
                 where subscription.Status == SubscriptionStatus.Active
                       && subscription.SubscriberUserId != null
-                      && plan.MonthlyLessonCredits != null
+                      && context.PlanEntitlements.IgnoreQueryFilters().Any(entitlement =>
+                          entitlement.PlanId == plan.Id
+                          && entitlement.EntitlementType == EntitlementType.LessonCredit
+                          && entitlement.SessionType == SessionType.Private
+                          && entitlement.ResetPeriod == EntitlementResetPeriod.Month)
                       && context.CreditLedger.IgnoreQueryFilters().Any(entry =>
                           entry.SubscriptionId == subscription.Id
                           && entry.TransactionType == CreditTransactionType.PeriodGrant)
@@ -66,15 +70,25 @@ internal sealed class CreditPeriodRenewalProcessor(
                 continue;
             }
 
+            // Yenilenecek hak plan uzerindeki denormalize alandan degil hak
+            // tanimlarindan okunur: yonetici panelinden acilan planlar o alani
+            // doldurmaz, yalnizca demo akisi doldururdu.
+            //
+            // Ayni plan hem 30 hem 50 dakikalik birebir kredi tasiyabilir. Defterde
+            // sure kirilimi yoktur, bakiye abonelik basina tutulur; bu yuzden ikisi
+            // toplanir - satin almada verilen ilk donem hakkiyla ayni davranis.
             var monthlyCredits = await (
                     from price in context.PlanPrices.IgnoreQueryFilters()
-                    join plan in context.SubscriptionPlans.IgnoreQueryFilters()
-                        on price.PlanId equals plan.Id
+                    join entitlement in context.PlanEntitlements.IgnoreQueryFilters()
+                        on price.PlanId equals entitlement.PlanId
                     where price.Id == subscription.PlanPriceId
-                    select plan.MonthlyLessonCredits)
-                .SingleAsync(cancellationToken);
+                          && entitlement.EntitlementType == EntitlementType.LessonCredit
+                          && entitlement.SessionType == SessionType.Private
+                          && entitlement.ResetPeriod == EntitlementResetPeriod.Month
+                    select entitlement.Quantity ?? 0)
+                .SumAsync(cancellationToken);
 
-            if (monthlyCredits is null || subscription.SubscriberUserId is not { } learnerUserId)
+            if (monthlyCredits <= 0 || subscription.SubscriberUserId is not { } learnerUserId)
             {
                 await transaction.RollbackAsync(cancellationToken);
                 context.ChangeTracker.Clear();
@@ -134,14 +148,14 @@ internal sealed class CreditPeriodRenewalProcessor(
                     subscription.Id,
                     learnerUserId,
                     SessionType.Private,
-                    monthlyCredits.Value,
+                    monthlyCredits,
                     now,
                     nextPeriodEnd,
                     periodEnd);
                 context.CreditLedger.Add(currentGrant);
                 renewedPeriods++;
-                grantedCredits += monthlyCredits.Value;
-                trackedPeriodBalance = monthlyCredits.Value;
+                grantedCredits += monthlyCredits;
+                trackedPeriodBalance = monthlyCredits;
             }
 
             await context.SaveChangesAsync(cancellationToken);

@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Learnier.Application.Common.Abstractions;
 using Learnier.Application.Features.Authentication.Commands.LoginUser;
 using Learnier.Application.Features.Billing.Commands.AddPlanPrice;
 using Learnier.Application.Features.Billing.Commands.CreatePlan;
@@ -9,6 +10,7 @@ using Learnier.Application.Features.Subscriptions.Commands.CreateSubscription;
 using Learnier.Domain.Billing;
 using Learnier.Domain.Scheduling;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Shouldly;
 
 namespace Learnier.IntegrationTests;
@@ -87,6 +89,60 @@ public sealed class SubscriptionPurchaseTests(AuthApiFixture fixture) : IClassFi
         result.CurrentPeriodEnd.ShouldBe(result.CurrentPeriodStart.AddMonths(6));
         result.GrantedCredits.ShouldHaveSingleItem()
             .ExpiresAt.ShouldBe(result.CurrentPeriodStart.AddMonths(1));
+    }
+
+    /// <summary>
+    /// Yonetici panelinden acilan plan <c>MonthlyLessonCredits</c> alanini doldurmaz;
+    /// yenileme o alana bakmis olsaydi satin alinan abonelik ilk aydan sonra hicbir
+    /// hak almazdi.
+    /// </summary>
+    [Fact]
+    public async Task Purchase_FromAdminPlan_RenewsNextPeriod()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        using var client = await NewOrganizationClient();
+        var priceId = await PublishPlan(
+            client,
+            "Yenilenen",
+            amount: 3000m,
+            credits: 4,
+            billingIntervalCount: 6);
+
+        var result = await Purchase(client, priceId);
+
+        var expiredAt = DateTimeOffset.UtcNow.AddMinutes(-1);
+
+        await using (var database = fixture.CreateContext())
+        {
+            await database.CreditLedger
+                .Where(entry => entry.SubscriptionId == result.SubscriptionId)
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(entry => entry.PeriodStart, DateTimeOffset.UtcNow.AddMonths(-1))
+                    .SetProperty(entry => entry.CreatedAt, DateTimeOffset.UtcNow.AddMonths(-1))
+                    .SetProperty(entry => entry.ExpiresAt, expiredAt),
+                    cancellationToken);
+        }
+
+        await using (var scope = fixture.Services.CreateAsyncScope())
+        {
+            await scope.ServiceProvider
+                .GetRequiredService<ICreditPeriodRenewalProcessor>()
+                .ProcessDueAsync(100, cancellationToken);
+        }
+
+        await using (var database = fixture.CreateContext())
+        {
+            var grants = await database.CreditLedger
+                .Where(entry => entry.SubscriptionId == result.SubscriptionId
+                                && entry.TransactionType == CreditTransactionType.PeriodGrant)
+                .OrderBy(entry => entry.CreatedAt)
+                .ToListAsync(cancellationToken);
+
+            grants.Count.ShouldBe(2);
+            grants[1].Quantity.ShouldBe(4);
+            grants[1].PeriodStart!.Value.ShouldBe(expiredAt, tolerance: TimeSpan.FromMilliseconds(1));
+        }
     }
 
     [Fact]

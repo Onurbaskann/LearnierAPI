@@ -122,6 +122,41 @@ public sealed class PlanManagementTests(AuthApiFixture fixture) : IClassFixture<
         (await ErrorCode(response)).ShouldBe("billing.plan_has_no_entitlement");
     }
 
+    /// <summary>
+    /// Kisitli kapsamli plan erisim satiri olmadan hicbir alani kapsamaz: ogrenci
+    /// satin alir, kredisi olur ama hicbir derse rezervasyon yapamaz.
+    /// </summary>
+    [Fact]
+    public async Task RestrictedPlan_WithoutAccess_CannotBeActivated()
+    {
+        using var client = await NewOrganizationClient();
+        var planId = await CreatePlan(client, "Kapsamsiz", CatalogAccess.Restricted);
+        await AddPrice(client, planId, 500m);
+        await AddEntitlement(client, planId, quantity: 4);
+
+        var response = await client.PostAsync(
+            new Uri($"/api/v1/plans/{planId}/activate", UriKind.Relative),
+            content: null,
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        (await ErrorCode(response)).ShouldBe("billing.plan_has_no_access");
+    }
+
+    [Fact]
+    public async Task Plan_WithoutName_IsRejected()
+    {
+        using var client = await NewOrganizationClient();
+
+        var response = await client.PostAsJsonAsync(
+            new Uri("/api/v1/plans", UriKind.Relative),
+            new { name = "  ", catalogAccess = "All" },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await ErrorCode(response)).ShouldBe("common.validation_failed");
+    }
+
     [Fact]
     public async Task Plans_AreListedWithPriceHistoryAndEntitlements()
     {

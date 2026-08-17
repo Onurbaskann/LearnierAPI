@@ -678,6 +678,9 @@
   <data name="billing.plan_has_no_entitlement" xml:space="preserve">
     <value>Hak tanımı olmayan plan satışa açılamaz.</value>
   </data>
+  <data name="billing.plan_has_no_access" xml:space="preserve">
+    <value>Kısıtlı kapsamlı plan, bir alan veya eğitim eklenmeden satışa açılamaz.</value>
+  </data>
   <data name="billing.plan_price_not_found" xml:space="preserve">
     <value>Seçilen fiyat bulunamadı.</value>
   </data>

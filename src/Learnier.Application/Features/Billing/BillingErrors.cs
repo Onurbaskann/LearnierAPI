@@ -17,6 +17,9 @@ internal static class BillingErrors
     /// <summary>Hak tanimi olmayan plan aboneye hicbir sey vermez.</summary>
     public static Error PlanHasNoEntitlement => Error.Conflict("billing.plan_has_no_entitlement");
 
+    /// <summary>Kisitli kapsamli plan erisim satiri olmadan hicbir alani kapsamaz.</summary>
+    public static Error PlanHasNoAccess => Error.Conflict("billing.plan_has_no_access");
+
     public static Error PlanPriceNotFound => Error.NotFound("billing.plan_price_not_found");
 
     /// <summary>Arsivlenmis fiyattan yeni abonelik satilamaz.</summary>

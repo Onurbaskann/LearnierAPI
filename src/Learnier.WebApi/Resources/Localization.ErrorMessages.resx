@@ -682,6 +682,9 @@
   <data name="billing.plan_has_no_entitlement" xml:space="preserve">
     <value>A plan without any entitlement cannot be put on sale.</value>
   </data>
+  <data name="billing.plan_has_no_access" xml:space="preserve">
+    <value>A restricted plan cannot be put on sale before a subject or course is granted.</value>
+  </data>
   <data name="billing.plan_price_not_found" xml:space="preserve">
     <value>The selected price could not be found.</value>
   </data>

@@ -5,9 +5,13 @@ using Learnier.Application.Common.Abstractions;
 using Learnier.Application.Features.Authentication.Commands.LoginUser;
 using Learnier.Application.Features.Billing.Commands.AddPlanPrice;
 using Learnier.Application.Features.Billing.Commands.CreatePlan;
+using Learnier.Application.Features.Catalog.Commands.CreateCourse;
 using Learnier.Application.Features.Organizations.Commands.CreateOrganization;
+using Learnier.Application.Features.Scheduling.Commands.OpenInstructorSlot;
 using Learnier.Application.Features.Subscriptions.Commands.CreateSubscription;
+using Learnier.Application.Features.Teaching.Commands.CreateInstructorProfile;
 using Learnier.Domain.Billing;
+using Learnier.Domain.Identity;
 using Learnier.Domain.Scheduling;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -267,6 +271,165 @@ public sealed class SubscriptionPurchaseTests(AuthApiFixture fixture) : IClassFi
 
         response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
         (await ErrorCode(response)).ShouldBe("billing.plan_price_not_found");
+    }
+
+    /// <summary>
+    /// Faz 0.0'in uctan uca kaniti: yonetici planiyla rezervasyon.
+    /// </summary>
+    /// <remarks>
+    /// Rezervasyon yetkilendirmesi plan uzerindeki denormalize alanlardan degil
+    /// hak tanimindan turetiliyor. Yonetici planinda o alanlar bos ve kapsam
+    /// <c>CatalogAccess.All</c>; eski kod bu iki nedenle de rezervasyonu
+    /// reddederdi. Gercek satin alma ucu olmadan bu senaryo ancak elle DB satiri
+    /// seedleyerek kurulabildigi icin Faz 0.4'e birakilmisti.
+    /// </remarks>
+    [Fact]
+    public async Task Booking_WorksWithPlanPurchasedFromCatalog()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        using var client = await NewOrganizationClient();
+        var organizationId = Guid.Parse(
+            client.DefaultRequestHeaders.GetValues(OrganizationHeader).Single());
+
+        var subjectId = await CreateSubject(client, "Ingilizce");
+        var courseId = await CreatePublishedPrivateCourse(client, subjectId);
+
+        // Plan hicbir alana acik degil, kapsami tum katalog: erisim satiri
+        // olmadan da rezervasyona izin vermeli.
+        var priceId = await PublishPlan(client, "Katalog Plani", amount: 900m, credits: 4);
+        var subscription = await Purchase(client, priceId);
+
+        var sessionId = await OpenInstructorSlot(client, organizationId, courseId, subjectId);
+
+        var booking = await client.PostAsJsonAsync(
+            new Uri($"/api/v1/sessions/{sessionId}/bookings", UriKind.Relative),
+            new { learnerUserId = (Guid?)null, lessonDurationMinutes = 50 },
+            cancellationToken);
+
+        booking.StatusCode.ShouldBe(
+            HttpStatusCode.OK,
+            await booking.Content.ReadAsStringAsync(cancellationToken));
+
+        await using var database = fixture.CreateContext();
+
+        var entries = await database.CreditLedger
+            .Where(entry => entry.SubscriptionId == subscription.SubscriptionId)
+            .ToListAsync(cancellationToken);
+
+        entries.Count(entry => entry.TransactionType == CreditTransactionType.PeriodGrant)
+            .ShouldBe(1);
+
+        var reserve = entries.Single(
+            entry => entry.TransactionType == CreditTransactionType.Reserve);
+        reserve.Quantity.ShouldBe(-1);
+
+        // Rezervasyon hakki dusurur; kalan bakiye defterin toplamidir.
+        entries.Sum(entry => entry.Quantity).ShouldBe(3);
+    }
+
+    /// <summary>Egitmeni kurar, bir slot acar ve olusan oturumu dondurur.</summary>
+    private async Task<Guid> OpenInstructorSlot(
+        HttpClient client,
+        Guid organizationId,
+        Guid courseId,
+        Guid subjectId)
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        Guid instructorRoleId;
+        await using (var database = fixture.CreateContext())
+        {
+            instructorRoleId = await database.Roles
+                .Where(role => role.Code == "instructor" && role.OrganizationId == null)
+                .Select(role => role.Id)
+                .FirstAsync(cancellationToken);
+        }
+
+        (await client.PostAsJsonAsync(
+            new Uri("/api/v1/organizations/members", UriKind.Relative),
+            new { email = "ogretmen@hotmail.com", roleId = instructorRoleId },
+            cancellationToken)).StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        Guid membershipId;
+        await using (var database = fixture.CreateContext())
+        {
+            var membership = await database.Memberships
+                .Where(item => item.OrganizationId == organizationId
+                               && item.Status == MembershipStatus.Invited)
+                .FirstAsync(cancellationToken);
+
+            membership.Accept(DateTimeOffset.UtcNow);
+            await database.SaveChangesAsync(cancellationToken);
+            membershipId = membership.Id;
+        }
+
+        var profile = await client.PostAsJsonAsync(
+            new Uri("/api/v1/instructors", UriKind.Relative),
+            new { membershipId, timeZoneId = "Europe/Istanbul" },
+            cancellationToken);
+        profile.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        var profileId = (await profile.Content.ReadFromJsonAsync<CreateInstructorProfileResult>(
+            TestJson.Options,
+            cancellationToken))!.ProfileId;
+
+        (await client.PostAsync(
+            new Uri($"/api/v1/instructors/{profileId}/activate", UriKind.Relative),
+            content: null,
+            cancellationToken)).StatusCode.ShouldBe(HttpStatusCode.NoContent);
+
+        (await client.PostAsJsonAsync(
+            new Uri($"/api/v1/instructors/{profileId}/subjects", UriKind.Relative),
+            new { subjectId, levelId = (Guid?)null },
+            cancellationToken)).StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        using var instructorClient = fixture.CreateClient();
+        await SignIn(instructorClient, "ogretmen@hotmail.com", "ogretmen123");
+        instructorClient.DefaultRequestHeaders.Add(
+            OrganizationHeader, organizationId.ToString());
+
+        var slot = await instructorClient.PostAsJsonAsync(
+            new Uri("/api/v1/instructors/me/slots", UriKind.Relative),
+            new { courseId, startsAt = DateTimeOffset.UtcNow.AddDays(10) },
+            cancellationToken);
+        slot.StatusCode.ShouldBe(
+            HttpStatusCode.OK,
+            await slot.Content.ReadAsStringAsync(cancellationToken));
+
+        var opened = await slot.Content.ReadFromJsonAsync<OpenInstructorSlotResult>(
+            TestJson.Options,
+            cancellationToken);
+
+        return opened!.SessionId;
+    }
+
+    private static async Task<Guid> CreatePublishedPrivateCourse(HttpClient client, Guid subjectId)
+    {
+        var course = await client.PostAsJsonAsync(
+            new Uri("/api/v1/courses", UriKind.Relative),
+            new
+            {
+                subjectId,
+                title = "Birebir Ingilizce",
+                courseType = "Private",
+                defaultDurationMinutes = 50,
+                minParticipants = 1,
+                maxParticipants = 1
+            },
+            TestContext.Current.CancellationToken);
+        course.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        var created = await course.Content.ReadFromJsonAsync<CreateCourseResult>(
+            TestJson.Options,
+            TestContext.Current.CancellationToken);
+
+        (await client.PostAsync(
+            new Uri($"/api/v1/courses/{created!.CourseId}/publish", UriKind.Relative),
+            content: null,
+            TestContext.Current.CancellationToken)).StatusCode.ShouldBe(HttpStatusCode.NoContent);
+
+        return created.CourseId;
     }
 
     private static async Task<CreateSubscriptionResult> Purchase(HttpClient client, Guid priceId)

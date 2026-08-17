@@ -42,6 +42,14 @@ public sealed class ActivatePlanHandler(
             return Result.Failure(BillingErrors.PlanHasNoEntitlement);
         }
 
+        // Kisitli kapsamli plan erisim satiri olmadan hicbir alani kapsamaz:
+        // ogrenci satin alir, kredisi olur ama hicbir derse rezervasyon yapamaz.
+        if (plan.CatalogAccess is CatalogAccess.Restricted
+            && !await plans.HasAccessDefinitionAsync(plan.Id, cancellationToken))
+        {
+            return Result.Failure(BillingErrors.PlanHasNoAccess);
+        }
+
         plan.Activate();
 
         await unitOfWork.SaveChangesAsync(cancellationToken);

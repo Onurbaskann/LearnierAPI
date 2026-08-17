@@ -24,6 +24,14 @@ internal sealed class EfPlanRepository(AppDbContext context) : IPlanRepository
         return query.FirstOrDefaultAsync(plan => plan.Id == planId, cancellationToken);
     }
 
+    public async Task<bool> HasAccessDefinitionAsync(
+        Guid planId,
+        CancellationToken cancellationToken)
+        => await context.PlanSubjectAccess.AnyAsync(
+               access => access.PlanId == planId, cancellationToken)
+           || await context.PlanCourseAccess.AnyAsync(
+               access => access.PlanId == planId, cancellationToken);
+
     public void AddPlan(SubscriptionPlan plan) => context.SubscriptionPlans.Add(plan);
 
     public void AddSubjectAccess(PlanSubjectAccess access) => context.PlanSubjectAccess.Add(access);

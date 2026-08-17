@@ -682,6 +682,21 @@
   <data name="billing.plan_has_no_entitlement" xml:space="preserve">
     <value>A plan without any entitlement cannot be put on sale.</value>
   </data>
+  <data name="billing.plan_price_not_found" xml:space="preserve">
+    <value>The selected price could not be found.</value>
+  </data>
+  <data name="billing.plan_price_not_active" xml:space="preserve">
+    <value>This price is no longer on sale; please pick the current price.</value>
+  </data>
+  <data name="billing.plan_not_active" xml:space="preserve">
+    <value>This plan is not on sale.</value>
+  </data>
+  <data name="billing.plan_not_purchasable" xml:space="preserve">
+    <value>This plan cannot be purchased directly.</value>
+  </data>
+  <data name="billing.already_subscribed" xml:space="preserve">
+    <value>You already have an active subscription to this plan.</value>
+  </data>
   <data name="billing.subject_not_found" xml:space="preserve">
     <value>Subject not found.</value>
   </data>

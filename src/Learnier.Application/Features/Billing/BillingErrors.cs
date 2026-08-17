@@ -17,6 +17,20 @@ internal static class BillingErrors
     /// <summary>Hak tanimi olmayan plan aboneye hicbir sey vermez.</summary>
     public static Error PlanHasNoEntitlement => Error.Conflict("billing.plan_has_no_entitlement");
 
+    public static Error PlanPriceNotFound => Error.NotFound("billing.plan_price_not_found");
+
+    /// <summary>Arsivlenmis fiyattan yeni abonelik satilamaz.</summary>
+    public static Error PlanPriceNotActive => Error.Conflict("billing.plan_price_not_active");
+
+    /// <summary>Taslak veya satistan kaldirilmis plan satin alinamaz.</summary>
+    public static Error PlanNotActive => Error.Conflict("billing.plan_not_active");
+
+    /// <summary>Demo akisinin urettigi plan kataloga girmez, dogrudan da satilamaz.</summary>
+    public static Error PlanNotPurchasable => Error.Conflict("billing.plan_not_purchasable");
+
+    /// <summary>Ayni plandan suregelen abonelik varken ikincisi acilmaz.</summary>
+    public static Error AlreadySubscribed => Error.Conflict("billing.already_subscribed");
+
     public static Error SubjectNotFound => Error.Validation("billing.subject_not_found");
 
     public static Error CourseNotFound => Error.Validation("billing.course_not_found");

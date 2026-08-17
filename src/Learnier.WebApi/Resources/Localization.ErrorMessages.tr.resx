@@ -678,6 +678,21 @@
   <data name="billing.plan_has_no_entitlement" xml:space="preserve">
     <value>Hak tanımı olmayan plan satışa açılamaz.</value>
   </data>
+  <data name="billing.plan_price_not_found" xml:space="preserve">
+    <value>Seçilen fiyat bulunamadı.</value>
+  </data>
+  <data name="billing.plan_price_not_active" xml:space="preserve">
+    <value>Bu fiyat artık satışta değil; güncel fiyatı seçin.</value>
+  </data>
+  <data name="billing.plan_not_active" xml:space="preserve">
+    <value>Bu plan satışta değil.</value>
+  </data>
+  <data name="billing.plan_not_purchasable" xml:space="preserve">
+    <value>Bu plan doğrudan satın alınamaz.</value>
+  </data>
+  <data name="billing.already_subscribed" xml:space="preserve">
+    <value>Bu plana ait aktif aboneliğiniz zaten var.</value>
+  </data>
   <data name="billing.subject_not_found" xml:space="preserve">
     <value>Alan bulunamadı.</value>
   </data>

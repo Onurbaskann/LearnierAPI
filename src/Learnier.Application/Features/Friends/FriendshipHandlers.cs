@@ -169,6 +169,13 @@ public sealed class SendFriendRequestHandler(
             return Error.Unauthorized("common.unauthorized");
         }
 
+        // Arkadaslik iki tarafli bir ogrenci iliskisi: egitmen kimseye istek
+        // gonderemez, kimse de egitmene gonderemez.
+        if (!await friendships.HasStudentRoleAsync(userId, cancellationToken))
+        {
+            return FriendshipErrors.SenderNotAStudent;
+        }
+
         var target = await users.FindByIdAsync(command.UserId, cancellationToken);
         if (target is null)
         {
@@ -178,6 +185,13 @@ public sealed class SendFriendRequestHandler(
         if (target.Id == userId)
         {
             return FriendshipErrors.CannotAddSelf;
+        }
+
+        // Arama zaten yalnizca ogrencileri donduruyor, ama bu uc ham kullanici
+        // kimligi kabul ettigi icin kural burada da dogrulanir.
+        if (!await friendships.HasStudentRoleAsync(target.Id, cancellationToken))
+        {
+            return FriendshipErrors.NotAStudent;
         }
 
         var now = clock.UtcNow;

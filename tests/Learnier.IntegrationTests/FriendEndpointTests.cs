@@ -17,9 +17,9 @@ public sealed class FriendEndpointTests(AuthApiFixture fixture) : IClassFixture<
     public async Task FriendRequest_CanBeSentAcceptedAndListedForBothUsers()
     {
         using var studentClient = fixture.CreateClient();
-        using var instructorClient = fixture.CreateClient();
+        using var peerClient = fixture.CreateClient();
         await AuthenticateAsync(studentClient, "ogrenci@hotmail.com", "ogrenci123");
-        await AuthenticateAsync(instructorClient, "ogretmen@hotmail.com", "ogretmen123");
+        await AuthenticateAsync(peerClient, "paketsiz@hotmail.com", "paketsiz123");
 
         var invalidSearchResponse = await studentClient.GetAsync(
             "/api/v1/friends/search?query=o",
@@ -27,7 +27,7 @@ public sealed class FriendEndpointTests(AuthApiFixture fixture) : IClassFixture<
         invalidSearchResponse.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
 
         var initialSearchResponse = await studentClient.GetAsync(
-            "/api/v1/friends/search?query=ogretmen",
+            "/api/v1/friends/search?query=paketsiz",
             TestContext.Current.CancellationToken);
         initialSearchResponse.StatusCode.ShouldBe(
             HttpStatusCode.OK,
@@ -36,28 +36,28 @@ public sealed class FriendEndpointTests(AuthApiFixture fixture) : IClassFixture<
             .ReadFromJsonAsync<IReadOnlyList<FriendUserSearchItem>>(
                 JsonOptions,
                 TestContext.Current.CancellationToken);
-        var initialInstructorResult = initialSearch.ShouldNotBeNull().ShouldHaveSingleItem();
-        initialInstructorResult.Email.ShouldBe("ogretmen@hotmail.com");
-        initialInstructorResult.RelationState.ShouldBe(FriendshipRelationState.None);
+        var initialPeerResult = initialSearch.ShouldNotBeNull().ShouldHaveSingleItem();
+        initialPeerResult.Email.ShouldBe("paketsiz@hotmail.com");
+        initialPeerResult.RelationState.ShouldBe(FriendshipRelationState.None);
 
         var sendResponse = await studentClient.PostAsJsonAsync(
             "/api/v1/friends/requests",
-            new SendFriendRequestCommand(initialInstructorResult.UserId),
+            new SendFriendRequestCommand(initialPeerResult.UserId),
             TestContext.Current.CancellationToken);
         sendResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
         var request = await sendResponse.Content.ReadFromJsonAsync<FriendRequestListItem>(
             TestContext.Current.CancellationToken);
         request.ShouldNotBeNull();
-        request.Email.ShouldBe("ogretmen@hotmail.com");
+        request.Email.ShouldBe("paketsiz@hotmail.com");
 
         var sentSearch = await studentClient.GetFromJsonAsync<IReadOnlyList<FriendUserSearchItem>>(
-            "/api/v1/friends/search?query=ogretmen",
+            "/api/v1/friends/search?query=paketsiz",
             JsonOptions,
             TestContext.Current.CancellationToken);
         sentSearch.ShouldNotBeNull().ShouldHaveSingleItem().RelationState
             .ShouldBe(FriendshipRelationState.SentRequest);
 
-        var incomingSearch = await instructorClient.GetFromJsonAsync<IReadOnlyList<FriendUserSearchItem>>(
+        var incomingSearch = await peerClient.GetFromJsonAsync<IReadOnlyList<FriendUserSearchItem>>(
             "/api/v1/friends/search?query=ogrenci",
             JsonOptions,
             TestContext.Current.CancellationToken);
@@ -74,7 +74,7 @@ public sealed class FriendEndpointTests(AuthApiFixture fixture) : IClassFixture<
             TestContext.Current.CancellationToken);
         sent.ShouldNotBeNull().ShouldContain(item => item.RequestId == request.RequestId);
 
-        var incoming = await instructorClient.GetFromJsonAsync<IReadOnlyList<FriendRequestListItem>>(
+        var incoming = await peerClient.GetFromJsonAsync<IReadOnlyList<FriendRequestListItem>>(
             "/api/v1/friends/requests/incoming",
             TestContext.Current.CancellationToken);
         incoming.ShouldNotBeNull().ShouldContain(item => item.RequestId == request.RequestId);
@@ -85,7 +85,7 @@ public sealed class FriendEndpointTests(AuthApiFixture fixture) : IClassFixture<
             TestContext.Current.CancellationToken);
         senderAcceptResponse.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
 
-        var acceptResponse = await instructorClient.PostAsync(
+        var acceptResponse = await peerClient.PostAsync(
             $"/api/v1/friends/requests/{request.RequestId}/accept",
             null,
             TestContext.Current.CancellationToken);
@@ -94,21 +94,21 @@ public sealed class FriendEndpointTests(AuthApiFixture fixture) : IClassFixture<
         var studentFriends = await studentClient.GetFromJsonAsync<IReadOnlyList<FriendListItem>>(
             "/api/v1/friends",
             TestContext.Current.CancellationToken);
-        studentFriends.ShouldNotBeNull().ShouldContain(friend => friend.Email == "ogretmen@hotmail.com");
+        studentFriends.ShouldNotBeNull().ShouldContain(friend => friend.Email == "paketsiz@hotmail.com");
 
-        var instructorFriends = await instructorClient.GetFromJsonAsync<IReadOnlyList<FriendListItem>>(
+        var peerFriends = await peerClient.GetFromJsonAsync<IReadOnlyList<FriendListItem>>(
             "/api/v1/friends",
             TestContext.Current.CancellationToken);
-        instructorFriends.ShouldNotBeNull().ShouldContain(friend => friend.Email == "ogrenci@hotmail.com");
+        peerFriends.ShouldNotBeNull().ShouldContain(friend => friend.Email == "ogrenci@hotmail.com");
 
         var duplicateResponse = await studentClient.PostAsJsonAsync(
             "/api/v1/friends/requests",
-            new SendFriendRequestCommand(initialInstructorResult.UserId),
+            new SendFriendRequestCommand(initialPeerResult.UserId),
             TestContext.Current.CancellationToken);
         duplicateResponse.StatusCode.ShouldBe(HttpStatusCode.Conflict);
 
         var friendSearch = await studentClient.GetFromJsonAsync<IReadOnlyList<FriendUserSearchItem>>(
-            "/api/v1/friends/search?query=ogretmen",
+            "/api/v1/friends/search?query=paketsiz",
             JsonOptions,
             TestContext.Current.CancellationToken);
         var friendSearchResult = friendSearch.ShouldNotBeNull().ShouldHaveSingleItem();
@@ -125,7 +125,7 @@ public sealed class FriendEndpointTests(AuthApiFixture fixture) : IClassFixture<
             TestContext.Current.CancellationToken);
         friendsAfterRemoval.ShouldBeEmpty();
 
-        var reverseSendResponse = await instructorClient.PostAsJsonAsync(
+        var reverseSendResponse = await peerClient.PostAsJsonAsync(
             "/api/v1/friends/requests",
             new SendFriendRequestCommand(incomingStudentResult.UserId),
             TestContext.Current.CancellationToken);
@@ -139,7 +139,7 @@ public sealed class FriendEndpointTests(AuthApiFixture fixture) : IClassFixture<
             TestContext.Current.CancellationToken);
         recipientCancelResponse.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
 
-        var cancelResponse = await instructorClient.DeleteAsync(
+        var cancelResponse = await peerClient.DeleteAsync(
             $"/api/v1/friends/requests/{reverseRequest.RequestId}",
             TestContext.Current.CancellationToken);
         cancelResponse.StatusCode.ShouldBe(HttpStatusCode.NoContent);
@@ -150,7 +150,55 @@ public sealed class FriendEndpointTests(AuthApiFixture fixture) : IClassFixture<
         incomingAfterCancellation.ShouldBeEmpty();
     }
 
-    private static async Task AuthenticateAsync(HttpClient client, string email, string password)
+    [Fact]
+    public async Task FriendRequest_IsRejectedWhenTargetIsNotAStudent()
+    {
+        using var studentClient = fixture.CreateClient();
+        using var instructorClient = fixture.CreateClient();
+        await AuthenticateAsync(studentClient, "ogrenci@hotmail.com", "ogrenci123");
+        var instructor = await AuthenticateAsync(
+            instructorClient, "ogretmen@hotmail.com", "ogretmen123");
+
+        // Egitmen aramada hic gorunmez.
+        var search = await studentClient.GetFromJsonAsync<IReadOnlyList<FriendUserSearchItem>>(
+            "/api/v1/friends/search?query=ogretmen",
+            JsonOptions,
+            TestContext.Current.CancellationToken);
+        search.ShouldNotBeNull().ShouldBeEmpty();
+
+        // Kimlik dogrudan verilse bile sunucu reddeder.
+        var response = await studentClient.PostAsJsonAsync(
+            "/api/v1/friends/requests",
+            new SendFriendRequestCommand(instructor.User.Id),
+            TestContext.Current.CancellationToken);
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken))
+            .ShouldContain("friends.not_a_student");
+    }
+
+    [Fact]
+    public async Task FriendRequest_IsRejectedWhenSenderIsNotAStudent()
+    {
+        using var studentClient = fixture.CreateClient();
+        using var instructorClient = fixture.CreateClient();
+        var student = await AuthenticateAsync(studentClient, "ogrenci@hotmail.com", "ogrenci123");
+        await AuthenticateAsync(instructorClient, "ogretmen@hotmail.com", "ogretmen123");
+
+        // Arkadaslik iki tarafli bir ogrenci iliskisi: egitmen hedefi ogrenci
+        // olsa bile istek gonderemez.
+        var response = await instructorClient.PostAsJsonAsync(
+            "/api/v1/friends/requests",
+            new SendFriendRequestCommand(student.User.Id),
+            TestContext.Current.CancellationToken);
+        response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        (await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken))
+            .ShouldContain("friends.sender_not_a_student");
+    }
+
+    private static async Task<LoginUserResult> AuthenticateAsync(
+        HttpClient client,
+        string email,
+        string password)
     {
         var response = await client.PostAsJsonAsync(
             "/api/v1/auth/login",
@@ -163,6 +211,7 @@ public sealed class FriendEndpointTests(AuthApiFixture fixture) : IClassFixture<
         login.ShouldNotBeNull();
         client.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", login.AccessToken);
+        return login;
     }
 
     private static JsonSerializerOptions CreateJsonOptions()

@@ -32,6 +32,16 @@ public interface IFriendshipRepository
         string searchTerm,
         int limit,
         CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Kullanicinin herhangi bir kurumda ogrenci rolu var mi.
+    /// </summary>
+    /// <remarks>
+    /// Arkadaslik yalnizca ogrenciler arasinda kurulur; egitmen, veli ve yonetici
+    /// hesaplari arkadas olarak eklenemez. Arama zaten filtreliyor ama istek
+    /// gonderme ucu ham kullanici kimligi aldigi icin kontrol orada da yapilir.
+    /// </remarks>
+    Task<bool> HasStudentRoleAsync(Guid userId, CancellationToken cancellationToken);
     void Add(Friendship friendship);
     void Remove(Friendship friendship);
 }

@@ -57,9 +57,15 @@ public sealed class OpenInstructorSlotHandler(
         }
 
         var startsAt = command.StartsAt.ToUniversalTime();
-        if (startsAt <= clock.UtcNow)
+
+        // Slot asagida BookingClosesAt = StartsAt - BookingCutoffMinutes ile aciliyor.
+        // Bu esikten yakina acilan slot, dogar dogmaz kapali olur: ogrenci listesi
+        // (EfSchedulingQueries.ListInstructorSlots) tam bu ani filtreledigi icin hic
+        // gorunmez, ama egitmenin takviminde durur ve saati bos gostermez. Bu yuzden
+        // acilis, gorunurluk esigiyle ayni sinirdan reddedilir.
+        if (startsAt <= clock.UtcNow.AddMinutes(LessonSession.BookingCutoffMinutes))
         {
-            return SchedulingErrors.InstructorUnavailable;
+            return SchedulingErrors.SlotTooSoon(LessonSession.BookingCutoffMinutes);
         }
 
         var course = await catalog.FindCourseAsync(command.CourseId, false, cancellationToken);

@@ -394,6 +394,9 @@
   <data name="scheduling.instructor_busy" xml:space="preserve">
     <value>Eğitmen bu saatte başka bir oturuma atanmış.</value>
   </data>
+  <data name="scheduling.slot_too_soon" xml:space="preserve">
+    <value>Ders en az {minutes} dakika sonrasına açılabilir; rezervasyon başlangıçtan bu kadar önce kapanıyor.</value>
+  </data>
   <data name="scheduling.session_not_bookable" xml:space="preserve">
     <value>Bu oturum rezervasyona kapalı.</value>
   </data>
@@ -480,6 +483,12 @@
   </data>
   <data name="friends.cannot_add_self" xml:space="preserve">
     <value>Kendinize arkadaşlık isteği gönderemezsiniz.</value>
+  </data>
+  <data name="friends.not_a_student" xml:space="preserve">
+    <value>Yalnızca öğrenci hesapları arkadaş olarak eklenebilir.</value>
+  </data>
+  <data name="friends.sender_not_a_student" xml:space="preserve">
+    <value>Arkadaşlık isteği yalnızca öğrenci hesapları tarafından gönderilebilir.</value>
   </data>
   <data name="friends.already_friends" xml:space="preserve">
     <value>Bu kullanıcıyla zaten arkadaşsınız.</value>
@@ -761,5 +770,23 @@
   </data>
   <data name="billing.access_target_invalid" xml:space="preserve">
     <value>Alan veya eğitimden yalnızca biri verilmelidir.</value>
+  </data>
+  <data name="messages.user_not_found" xml:space="preserve">
+    <value>Kullanıcı bulunamadı.</value>
+  </data>
+  <data name="messages.cannot_message_self" xml:space="preserve">
+    <value>Kendinize mesaj gönderemezsiniz.</value>
+  </data>
+  <data name="messages.not_reachable" xml:space="preserve">
+    <value>Yalnızca arkadaşlarınızla ve ders aldığınız eğitmenlerle mesajlaşabilirsiniz.</value>
+  </data>
+  <data name="messages.recipient_required" xml:space="preserve">
+    <value>Alıcı belirtilmedi.</value>
+  </data>
+  <data name="messages.body_required" xml:space="preserve">
+    <value>Mesaj boş olamaz.</value>
+  </data>
+  <data name="messages.body_too_long" xml:space="preserve">
+    <value>Mesaj çok uzun.</value>
   </data>
 </root>

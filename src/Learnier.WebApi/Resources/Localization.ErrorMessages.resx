@@ -398,6 +398,9 @@
   <data name="scheduling.instructor_busy" xml:space="preserve">
     <value>The instructor is already assigned to another session at this time.</value>
   </data>
+  <data name="scheduling.slot_too_soon" xml:space="preserve">
+    <value>A slot must start at least {minutes} minutes from now; booking closes that long before the lesson.</value>
+  </data>
   <data name="scheduling.session_not_bookable" xml:space="preserve">
     <value>This session is not open for booking.</value>
   </data>
@@ -484,6 +487,12 @@
   </data>
   <data name="friends.cannot_add_self" xml:space="preserve">
     <value>You cannot send a friend request to yourself.</value>
+  </data>
+  <data name="friends.not_a_student" xml:space="preserve">
+    <value>Only student accounts can be added as friends.</value>
+  </data>
+  <data name="friends.sender_not_a_student" xml:space="preserve">
+    <value>Only student accounts can send friend requests.</value>
   </data>
   <data name="friends.already_friends" xml:space="preserve">
     <value>You are already friends with this user.</value>
@@ -765,5 +774,23 @@
   </data>
   <data name="billing.access_target_invalid" xml:space="preserve">
     <value>Provide exactly one of subject or course.</value>
+  </data>
+  <data name="messages.user_not_found" xml:space="preserve">
+    <value>The user was not found.</value>
+  </data>
+  <data name="messages.cannot_message_self" xml:space="preserve">
+    <value>You cannot send a message to yourself.</value>
+  </data>
+  <data name="messages.not_reachable" xml:space="preserve">
+    <value>You can only message your friends and the instructors you have booked a lesson with.</value>
+  </data>
+  <data name="messages.recipient_required" xml:space="preserve">
+    <value>A recipient is required.</value>
+  </data>
+  <data name="messages.body_required" xml:space="preserve">
+    <value>The message cannot be empty.</value>
+  </data>
+  <data name="messages.body_too_long" xml:space="preserve">
+    <value>The message is too long.</value>
   </data>
 </root>

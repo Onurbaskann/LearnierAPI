@@ -362,4 +362,7 @@ internal sealed class EfInstructorQueries(AppDbContext context) : IInstructorQue
                 earning.PenaltyAmount))
             .ToListAsync(cancellationToken);
     }
+    
+     
+    
 }

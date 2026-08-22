@@ -37,6 +37,8 @@ namespace Learnier.Application.Features.Scheduling.Commands.CreateBooking;
 public sealed class CreateBookingHandler(
     ISchedulingRepository scheduling,
     IBookingEntitlementPolicy entitlements,
+    IMeetingRepository meetings,
+    IMeetingProviderResolver meetingProviders,
     ICurrentUser currentUser,
     ICurrentTenant currentTenant,
     IUnitOfWork unitOfWork,
@@ -151,6 +153,21 @@ public sealed class CreateBookingHandler(
         if (booking.Status is BookingStatus.Reserved)
         {
             session.Confirm(reservedSeats + 1);
+        }
+
+        // Provider cagrisi acik transaction ve oturum kilidi icinde yapilmaz.
+        // Yalnizca kalici provisioning istegi yazilir; worker dis servisi daha
+        // sonra cagirir. Boylece Zoom/Teams yavasligi rezervasyonu kilitlemez.
+        if (booking.Status is BookingStatus.Reserved
+            && session.Status is LessonSessionStatus.Confirmed
+            && await meetings.FindBySessionAsync(session.Id, cancellationToken) is null)
+        {
+            meetings.Add(Meeting.Request(
+                session.OrganizationId,
+                session.Id,
+                meetingProviders.DefaultProvider.Name,
+                session.StartsAt,
+                session.EndsAt));
         }
 
         await unitOfWork.SaveChangesAsync(cancellationToken);

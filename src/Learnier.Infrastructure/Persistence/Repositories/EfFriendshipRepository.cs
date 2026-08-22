@@ -156,11 +156,15 @@ internal sealed class EfFriendshipRepository(AppDbContext context) : IFriendship
     /// <remarks>
     /// Kullanici birden fazla kurumda uye olabilir; herhangi birinde ogrenciyse
     /// yeterli. Ayni kisi hem ogrenci hem egitmen olabilir, o durumda ogrenci
-    /// sayilir. Sorgu global kiraci filtresine takilmasin diye uyelikler uzerinden
-    /// degil kullanici kimlikleri uzerinden yurutulur.
+    /// sayilir. <see cref="MembershipRole"/> uzerinde kiraci filtresi tanimli
+    /// oldugu icin (bkz. <c>AppDbContext.ApplyDerivedTenantQueryFilters</c>) ve bu
+    /// filtre yalnizca sorgu kaynagina degil sonuc kolonuna da bakilmaksizin
+    /// uygulandigi icin, filtre acikca <c>IgnoreQueryFilters</c> ile kapatilmazsa
+    /// aktif organizasyon disindaki uyelikler sessizce elenirdi.
     /// </remarks>
     private IQueryable<Guid> StudentUserIds()
         => context.MembershipRoles
+            .IgnoreQueryFilters([AppDbContext.TenantFilterName])
             .AsNoTracking()
             .Where(membershipRole => membershipRole.Role.Code == SystemRoles.Student)
             .Where(membershipRole => membershipRole.Membership.Status != MembershipStatus.Suspended)

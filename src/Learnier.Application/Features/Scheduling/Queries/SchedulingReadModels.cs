@@ -107,3 +107,28 @@ public sealed record LearnerBookingListItem(
     bool CanCancel,
     bool WillRefundIfCancelled,
     IReadOnlyList<SessionInstructorDetail> Instructors);
+
+/// <summary>Meeting erisim kurallarinin degerlendirildigi, disariya acilmayan projeksiyon.</summary>
+public sealed record MeetingAccessSnapshot(
+    Guid MeetingId,
+    Guid SessionId,
+    string Provider,
+    string? ProviderMeetingId,
+    MeetingStatus MeetingStatus,
+    LessonSessionStatus SessionStatus,
+    DateTimeOffset StartsAt,
+    DateTimeOffset EndsAt,
+    string? JoinUrl,
+    string? HostUrl,
+    bool HasActiveBooking,
+    bool IsAssignedInstructor);
+
+public sealed record MeetingRoomAccessResult(
+    Guid MeetingId,
+    Guid SessionId,
+    string Provider,
+    string? ProviderMeetingId,
+    MeetingParticipantRole Role,
+    DateTimeOffset StartsAt,
+    DateTimeOffset EndsAt,
+    string? RedirectUrl);

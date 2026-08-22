@@ -143,10 +143,11 @@ public sealed class CancelBookingHandlerTests
         unitOfWork.BeginTransactionAsync(Arg.Any<CancellationToken>()).Returns(transaction);
         var clock = Substitute.For<IClock>();
         clock.UtcNow.Returns(now);
+        var meetings = Substitute.For<IMeetingRepository>();
 
         return new HandlerSetup(
             new CancelBookingHandler(
-                scheduling, entitlements, currentUser, tenant, unitOfWork, clock),
+                scheduling, entitlements, meetings, currentUser, tenant, unitOfWork, clock),
             booking,
             entitlements);
     }

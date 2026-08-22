@@ -77,6 +77,8 @@ public sealed class AppDbContext(
 
     public DbSet<SessionAttendance> SessionAttendances => Set<SessionAttendance>();
 
+    public DbSet<Meeting> Meetings => Set<Meeting>();
+
     public DbSet<SubscriptionPlan> SubscriptionPlans => Set<SubscriptionPlan>();
 
     public DbSet<PlanPrice> PlanPrices => Set<PlanPrice>();
@@ -111,6 +113,14 @@ public sealed class AppDbContext(
     public DbSet<Payment> Payments => Set<Payment>();
 
     public DbSet<Refund> Refunds => Set<Refund>();
+
+    public DbSet<CheckoutSession> CheckoutSessions => Set<CheckoutSession>();
+
+    public DbSet<PaymentAttempt> PaymentAttempts => Set<PaymentAttempt>();
+
+    public DbSet<PaymentWebhookInbox> PaymentWebhookInbox => Set<PaymentWebhookInbox>();
+
+    public DbSet<RefundRequest> RefundRequests => Set<RefundRequest>();
 
     public DbSet<LearnerCourseProgress> LearnerCourseProgress => Set<LearnerCourseProgress>();
 
@@ -329,6 +339,11 @@ public sealed class AppDbContext(
             TenantFilterName,
             e => CurrentOrganizationId == null
                  || e.Subscription.OrganizationId == CurrentOrganizationId);
+
+        modelBuilder.Entity<PaymentAttempt>().HasQueryFilter(
+            TenantFilterName,
+            a => CurrentOrganizationId == null
+                 || a.CheckoutSession.OrganizationId == CurrentOrganizationId);
 
         // Ilerleme kayitlari egitim veya oturum uzerinden baglidir.
         modelBuilder.Entity<LearnerCourseProgress>().HasQueryFilter(

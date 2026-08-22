@@ -32,6 +32,7 @@ public sealed class LearnierApiFactory : WebApplicationFactory<Program>
                 ["Jwt:SigningKey"] = "integration-test-signing-key-at-least-32-chars",
                 ["Jwt:AccessTokenLifetimeMinutes"] = "15",
                 ["CreditRenewal:Enabled"] = "false",
+                ["Meetings:ProvisioningEnabled"] = "false",
                 ["Cors:AllowedOrigins:0"] = "http://localhost:8082"
             });
         });

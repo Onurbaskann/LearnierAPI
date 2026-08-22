@@ -5,6 +5,8 @@ using Learnier.Application.Common.Abstractions;
 using Learnier.Application.Features.Authentication.Commands.LoginUser;
 using Learnier.Application.Features.Billing.Commands.AddPlanPrice;
 using Learnier.Application.Features.Billing.Commands.CreatePlan;
+using Learnier.Application.Features.Billing.Commands.CreateCheckout;
+using Learnier.Application.Features.Billing.Commands.ProcessPaymentWebhook;
 using Learnier.Application.Features.Catalog.Commands.CreateCourse;
 using Learnier.Application.Features.Organizations.Commands.CreateOrganization;
 using Learnier.Application.Features.Scheduling.Commands.OpenInstructorSlot;
@@ -29,6 +31,84 @@ namespace Learnier.IntegrationTests;
 public sealed class SubscriptionPurchaseTests(AuthApiFixture fixture) : IClassFixture<AuthApiFixture>
 {
     private const string OrganizationHeader = "X-Organization-Id";
+
+    [Fact]
+    public async Task SandboxCheckout_ActivatesSubscriptionAndCreditsOnlyAfterWebhook()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        using var client = await NewOrganizationClient();
+        var priceId = await PublishPlan(client, "Webhook Paketi", amount: 825m, credits: 6);
+
+        var checkoutResponse = await client.PostAsJsonAsync(
+            new Uri("/api/v1/payments/checkouts", UriKind.Relative),
+            new { planPriceId = priceId, idempotencyKey = $"test-{Guid.CreateVersion7():N}" },
+            cancellationToken);
+        checkoutResponse.StatusCode.ShouldBe(
+            HttpStatusCode.OK,
+            await checkoutResponse.Content.ReadAsStringAsync(cancellationToken));
+
+        var checkout = (await checkoutResponse.Content.ReadFromJsonAsync<CreateCheckoutResult>(
+            TestJson.Options,
+            cancellationToken))!;
+
+        await using (var database = fixture.CreateContext())
+        {
+            (await database.Subscriptions.CountAsync(
+                s => s.PlanPriceId == priceId,
+                cancellationToken)).ShouldBe(0);
+            var persistedCheckout = await database.CheckoutSessions.SingleAsync(
+                c => c.Id == checkout.CheckoutSessionId,
+                cancellationToken);
+            persistedCheckout.Status.ShouldBe(CheckoutSessionStatus.Ready);
+        }
+
+        var completion = await client.PostAsync(
+            new Uri(
+                $"/api/v1/payments/sandbox/checkouts/{checkout.CheckoutSessionId}/complete",
+                UriKind.Relative),
+            content: null,
+            cancellationToken);
+        completion.StatusCode.ShouldBe(
+            HttpStatusCode.OK,
+            await completion.Content.ReadAsStringAsync(cancellationToken));
+
+        var webhook = (await completion.Content.ReadFromJsonAsync<ProcessPaymentWebhookResult>(
+            TestJson.Options,
+            cancellationToken))!;
+        webhook.Status.ShouldBe(WebhookProcessingStatus.Succeeded);
+
+        // Ayni checkout'un yeniden tamamlanmasi finansal kayitlari cogaltmamalidir.
+        (await client.PostAsync(
+            new Uri(
+                $"/api/v1/payments/sandbox/checkouts/{checkout.CheckoutSessionId}/complete",
+                UriKind.Relative),
+            content: null,
+            cancellationToken)).StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        await using (var database = fixture.CreateContext())
+        {
+            var subscription = await database.Subscriptions.SingleAsync(
+                s => s.PlanPriceId == priceId,
+                cancellationToken);
+            subscription.Status.ShouldBe(SubscriptionStatus.Active);
+            subscription.PaymentProvider.ShouldBe("sandbox");
+
+            var payment = await database.Payments.SingleAsync(
+                p => p.SubscriptionId == subscription.Id,
+                cancellationToken);
+            payment.Status.ShouldBe(PaymentStatus.Succeeded);
+            payment.Amount.ShouldBe(825m);
+
+            var credit = await database.CreditLedger.SingleAsync(
+                entry => entry.SubscriptionId == subscription.Id,
+                cancellationToken);
+            credit.Quantity.ShouldBe(6);
+
+            (await database.PaymentAttempts.CountAsync(
+                attempt => attempt.CheckoutSessionId == checkout.CheckoutSessionId,
+                cancellationToken)).ShouldBe(1);
+        }
+    }
 
     [Fact]
     public async Task Purchase_CreatesActiveSubscriptionWithPaymentAndCredits()

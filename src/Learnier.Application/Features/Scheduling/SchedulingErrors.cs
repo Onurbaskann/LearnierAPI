@@ -87,4 +87,17 @@ internal static class SchedulingErrors
     public static Error SessionNotOwned => Error.Forbidden("scheduling.session_not_owned");
 
     public static Error SlotHasBooking => Error.Conflict("scheduling.slot_has_booking");
+
+    public static Error MeetingNotFound => Error.NotFound("scheduling.meeting_not_found");
+
+    public static Error MeetingAccessDenied => Error.Forbidden("scheduling.meeting_access_denied");
+
+    public static Error MeetingNotReady => Error.Conflict("scheduling.meeting_not_ready");
+
+    public static Error MeetingUnavailable => Error.Conflict("scheduling.meeting_unavailable");
+
+    public static Error MeetingAccessTooEarly(DateTimeOffset availableAt)
+        => Error.Conflict("scheduling.meeting_access_too_early", ("availableAt", availableAt));
+
+    public static Error MeetingAccessClosed => Error.Conflict("scheduling.meeting_access_closed");
 }

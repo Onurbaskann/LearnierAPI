@@ -82,6 +82,8 @@ public sealed class LessonSession : AggregateRoot, IAuditableEntity, ITenantScop
 
     public Course Course { get; private set; } = null!;
 
+    public Meeting? Meeting { get; private set; }
+
     public IReadOnlyCollection<SessionInstructor> Instructors => _instructors.AsReadOnly();
 
     public IReadOnlyCollection<SessionBooking> Bookings => _bookings.AsReadOnly();

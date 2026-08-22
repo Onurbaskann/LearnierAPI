@@ -154,8 +154,8 @@ internal sealed class EfSchedulingQueries(AppDbContext context) : ISchedulingQue
                 s.Capacity,
                 s.MinimumParticipants,
                 s.Status,
-                s.MeetingProvider,
-                s.MeetingReference,
+                s.Meeting != null ? s.Meeting.Provider : s.MeetingProvider,
+                s.Meeting != null ? s.Meeting.ProviderMeetingId : s.MeetingReference,
                 s.BookingOpensAt,
                 s.BookingClosesAt,
                 s.CancellationDeadlineAt,
@@ -281,8 +281,16 @@ internal sealed class EfSchedulingQueries(AppDbContext context) : ISchedulingQue
                 b.Session.StartsAt,
                 b.Session.EndsAt,
                 b.Session.Status,
-                b.Session.MeetingProvider,
-                b.Session.MeetingReference,
+                b.Session.Meeting != null ? b.Session.Meeting.Provider : b.Session.MeetingProvider,
+                b.Session.Meeting != null
+                    && b.Session.Meeting.Status == MeetingStatus.Ready
+                    && b.Status == BookingStatus.Reserved
+                    && b.Session.Status != LessonSessionStatus.Cancelled
+                    && b.Session.Status != LessonSessionStatus.Completed
+                    && now >= b.Session.StartsAt.AddMinutes(-5)
+                    && now < b.Session.EndsAt
+                        ? b.Session.Meeting.JoinUrl
+                        : null,
                 b.Session.CancellationDeadlineAt,
                 (b.Status == BookingStatus.Reserved || b.Status == BookingStatus.Waitlisted)
                     && b.Session.Status != LessonSessionStatus.Cancelled
@@ -307,4 +315,32 @@ internal sealed class EfSchedulingQueries(AppDbContext context) : ISchedulingQue
         return new PagedResult<LearnerBookingListItem>(
             items, page.Page, page.PageSize, totalCount);
     }
+
+    public Task<MeetingAccessSnapshot?> FindMeetingAccessAsync(
+        Guid meetingId,
+        Guid organizationId,
+        Guid userId,
+        Guid? membershipId,
+        CancellationToken cancellationToken)
+        => context.Meetings
+            .AsNoTracking()
+            .Where(meeting => meeting.Id == meetingId
+                              && meeting.OrganizationId == organizationId)
+            .Select(meeting => new MeetingAccessSnapshot(
+                meeting.Id,
+                meeting.SessionId,
+                meeting.Provider,
+                meeting.ProviderMeetingId,
+                meeting.Status,
+                meeting.Session.Status,
+                meeting.StartsAt,
+                meeting.EndsAt,
+                meeting.JoinUrl,
+                meeting.HostUrl,
+                meeting.Session.Bookings.Any(booking =>
+                    booking.LearnerUserId == userId
+                    && booking.Status == BookingStatus.Reserved),
+                membershipId != null && meeting.Session.Instructors.Any(instructor =>
+                    instructor.InstructorProfile.MembershipId == membershipId)))
+            .SingleOrDefaultAsync(cancellationToken);
 }

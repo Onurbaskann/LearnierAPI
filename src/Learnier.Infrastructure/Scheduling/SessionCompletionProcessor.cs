@@ -164,6 +164,7 @@ internal sealed partial class SessionCompletionProcessor(
         session.Complete();
         await context.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
+        context.ChangeTracker.Clear();
 
         return participants.Count;
     }

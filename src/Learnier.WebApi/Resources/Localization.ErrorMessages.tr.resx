@@ -789,4 +789,49 @@
   <data name="messages.body_too_long" xml:space="preserve">
     <value>Mesaj çok uzun.</value>
   </data>
+  <data name="payment.checkout_not_found" xml:space="preserve">
+    <value>Ödeme oturumu bulunamadı.</value>
+  </data>
+  <data name="payment.checkout_not_ready" xml:space="preserve">
+    <value>Ödeme oturumu bu işlem için hazır değil.</value>
+  </data>
+  <data name="payment.paid_plan_required" xml:space="preserve">
+    <value>Ödeme oturumu için ücretli bir plan fiyatı gereklidir.</value>
+  </data>
+  <data name="payment.amount_mismatch" xml:space="preserve">
+    <value>Ödeme sağlayıcısının bildirdiği tutar ödeme oturumuyla eşleşmiyor.</value>
+  </data>
+  <data name="payment.provider_not_found" xml:space="preserve">
+    <value>Ödeme sağlayıcısı yapılandırılmamış.</value>
+  </data>
+  <data name="payment.webhook_invalid" xml:space="preserve">
+    <value>Ödeme bildiriminin imzası veya içeriği geçersiz.</value>
+  </data>
+  <data name="payment.webhook_missing_checkout" xml:space="preserve">
+    <value>Ödeme bildirimi bir ödeme oturumu belirtmiyor.</value>
+  </data>
+  <data name="payment.idempotency_key_required" xml:space="preserve">
+    <value>Tekrarlı işlemleri önleyen idempotency anahtarı zorunludur.</value>
+  </data>
+  <data name="payment.idempotency_key_too_long" xml:space="preserve">
+    <value>Idempotency anahtarı çok uzun.</value>
+  </data>
+  <data name="scheduling.meeting_not_found" xml:space="preserve">
+    <value>Canlı ders toplantısı bulunamadı.</value>
+  </data>
+  <data name="scheduling.meeting_access_denied" xml:space="preserve">
+    <value>Bu canlı dersin katılımcısı değilsiniz.</value>
+  </data>
+  <data name="scheduling.meeting_not_ready" xml:space="preserve">
+    <value>Canlı ders toplantısı henüz hazır değil.</value>
+  </data>
+  <data name="scheduling.meeting_unavailable" xml:space="preserve">
+    <value>Bu canlı ders kullanıma açık değil.</value>
+  </data>
+  <data name="scheduling.meeting_access_too_early" xml:space="preserve">
+    <value>Canlı derse {availableAt} tarihinde girebilirsiniz.</value>
+  </data>
+  <data name="scheduling.meeting_access_closed" xml:space="preserve">
+    <value>Canlı derse giriş süresi sona erdi.</value>
+  </data>
 </root>

@@ -237,6 +237,7 @@ public sealed class SchedulingEndpointTests(AuthApiFixture fixture) : IClassFixt
             TestContext.Current.CancellationToken);
         reservation!.Status.ShouldBe(Domain.Scheduling.BookingStatus.Reserved);
 
+        Guid meetingId;
         await using (var database = fixture.CreateContext())
         {
             var storedBooking = await database.SessionBookings.SingleAsync(
@@ -249,7 +250,50 @@ public sealed class SchedulingEndpointTests(AuthApiFixture fixture) : IClassFixt
                         && item.TransactionType == Domain.Billing.CreditTransactionType.Reserve,
                 TestContext.Current.CancellationToken);
             reserve.Quantity.ShouldBe(-1);
+
+            var pendingMeeting = await database.Meetings.SingleAsync(
+                item => item.SessionId == opened.SessionId,
+                TestContext.Current.CancellationToken);
+            pendingMeeting.Status.ShouldBe(Domain.Scheduling.MeetingStatus.Pending);
+            meetingId = pendingMeeting.Id;
         }
+
+        await using (var scope = fixture.Services.CreateAsyncScope())
+        {
+            var processor = scope.ServiceProvider
+                .GetRequiredService<IMeetingProvisioningProcessor>();
+            (await processor.ProcessBatchAsync(TestContext.Current.CancellationToken))
+                .ShouldBeGreaterThanOrEqualTo(1);
+        }
+
+        await using (var database = fixture.CreateContext())
+        {
+            var readyMeeting = await database.Meetings.SingleAsync(
+                item => item.SessionId == opened.SessionId,
+                TestContext.Current.CancellationToken);
+            readyMeeting.Status.ShouldBe(Domain.Scheduling.MeetingStatus.Ready);
+            readyMeeting.Provider.ShouldBe("sandbox");
+            readyMeeting.ProvisioningAttemptCount.ShouldBe(1);
+            readyMeeting.JoinUrl.ShouldNotBeNullOrWhiteSpace();
+            readyMeeting.HostUrl.ShouldNotBeNullOrWhiteSpace();
+            readyMeeting.JoinUrl.ShouldNotBe(readyMeeting.HostUrl);
+        }
+
+        // Rotalar artik vardir; dogru katilimci bile ders penceresinden once 409 alir.
+        (await context.Client.GetAsync(
+            new Uri($"/api/v1/meetings/sandbox/{meetingId}/join", UriKind.Relative),
+            TestContext.Current.CancellationToken)).StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        (await instructorClient.GetAsync(
+            new Uri($"/api/v1/meetings/sandbox/{meetingId}/host", UriKind.Relative),
+            TestContext.Current.CancellationToken)).StatusCode.ShouldBe(HttpStatusCode.Conflict);
+
+        // Rol URL'sini degistirmek yetki kazandirmaz.
+        (await context.Client.GetAsync(
+            new Uri($"/api/v1/meetings/sandbox/{meetingId}/host", UriKind.Relative),
+            TestContext.Current.CancellationToken)).StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        (await instructorClient.GetAsync(
+            new Uri($"/api/v1/meetings/sandbox/{meetingId}/join", UriKind.Relative),
+            TestContext.Current.CancellationToken)).StatusCode.ShouldBe(HttpStatusCode.Forbidden);
 
         var instructorSchedule = await instructorClient.GetFromJsonAsync<
             IReadOnlyList<InstructorScheduleListItem>>(
@@ -258,6 +302,8 @@ public sealed class SchedulingEndpointTests(AuthApiFixture fixture) : IClassFixt
             TestContext.Current.CancellationToken);
         var scheduledLesson = instructorSchedule.ShouldHaveSingleItem();
         scheduledLesson.SessionId.ShouldBe(opened.SessionId);
+        scheduledLesson.MeetingProvider.ShouldBe("sandbox");
+        scheduledLesson.MeetingReference.ShouldBeNull();
         scheduledLesson.Learners.ShouldHaveSingleItem().FirstName.ShouldBe("Deniz");
         scheduledLesson.Learners.ShouldHaveSingleItem().LastName.ShouldBe("Yilmaz");
 
@@ -273,8 +319,11 @@ public sealed class SchedulingEndpointTests(AuthApiFixture fixture) : IClassFixt
             new Uri("/api/v1/bookings/me", UriKind.Relative),
             TestJson.Options,
             TestContext.Current.CancellationToken);
-        bookings!.Items.Single(item => item.Id == reservation.BookingId)
-            .SessionId.ShouldBe(opened.SessionId);
+        var learnerBooking = bookings!.Items.Single(item => item.Id == reservation.BookingId);
+        learnerBooking.SessionId.ShouldBe(opened.SessionId);
+        learnerBooking.MeetingProvider.ShouldBe("sandbox");
+        // Ders yedi gun sonra: katilim baglantisi bes dakikalik pencere acilmadan sizmaz.
+        learnerBooking.MeetingReference.ShouldBeNull();
 
         var cancelled = await context.Client.DeleteAsync(
             new Uri($"/api/v1/bookings/{reservation.BookingId}", UriKind.Relative),
@@ -289,6 +338,29 @@ public sealed class SchedulingEndpointTests(AuthApiFixture fixture) : IClassFixt
             movements.Sum(item => item.Quantity).ShouldBe(0);
             movements.ShouldContain(item =>
                 item.TransactionType == Domain.Billing.CreditTransactionType.Refund);
+
+            var cancelledMeeting = await database.Meetings.SingleAsync(
+                item => item.Id == meetingId,
+                TestContext.Current.CancellationToken);
+            cancelledMeeting.Status.ShouldBe(Domain.Scheduling.MeetingStatus.Cancelled);
+            cancelledMeeting.ProviderCancelledAt.ShouldBeNull();
+        }
+
+        await using (var scope = fixture.Services.CreateAsyncScope())
+        {
+            var processor = scope.ServiceProvider
+                .GetRequiredService<IMeetingProvisioningProcessor>();
+            (await processor.ProcessCancellationBatchAsync(
+                TestContext.Current.CancellationToken)).ShouldBeGreaterThanOrEqualTo(1);
+        }
+
+        await using (var database = fixture.CreateContext())
+        {
+            var cancelledMeeting = await database.Meetings.SingleAsync(
+                item => item.Id == meetingId,
+                TestContext.Current.CancellationToken);
+            cancelledMeeting.ProviderCancelledAt.ShouldNotBeNull();
+            cancelledMeeting.CancellationAttemptCount.ShouldBe(1);
         }
 
         var slotsAfterCancellation = await context.Client.GetFromJsonAsync<

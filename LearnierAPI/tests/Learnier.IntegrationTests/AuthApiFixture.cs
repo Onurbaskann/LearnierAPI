@@ -27,6 +27,10 @@ public sealed class AuthApiFixture : IAsyncLifetime
 
     private WebApplicationFactory<Program>? _factory;
 
+    public IServiceProvider Services
+        => _factory?.Services
+           ?? throw new InvalidOperationException("Fixture henuz baslatilmadi.");
+
     public HttpClient CreateClient()
         => _factory?.CreateClient()
            ?? throw new InvalidOperationException("Fixture henuz baslatilmadi.");

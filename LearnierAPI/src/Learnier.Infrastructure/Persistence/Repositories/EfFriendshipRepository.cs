@@ -1,4 +1,5 @@
 using Learnier.Application.Common.Abstractions;
+using Learnier.Application.Common.Security;
 using Learnier.Domain.Identity;
 using Learnier.Domain.Social;
 using Microsoft.EntityFrameworkCore;
@@ -100,6 +101,10 @@ internal sealed class EfFriendshipRepository(AppDbContext context) : IFriendship
         var users = await context.Users
             .AsNoTracking()
             .Where(user => user.Id != currentUserId && user.Status == UserStatus.Active)
+            // Arkadaslik ogrenciler arasindadir; egitmen ve yonetici hesaplari
+            // aramada hic gorunmez. Sunucu tarafi kontrolu icin bkz.
+            // SendFriendRequestHandler.
+            .Where(user => StudentUserIds().Contains(user.Id))
             .Where(user => EF.Functions.ILike(user.Email, pattern, "\\")
                            || EF.Functions.ILike(user.FirstName, pattern, "\\")
                            || EF.Functions.ILike(user.LastName, pattern, "\\")
@@ -141,6 +146,29 @@ internal sealed class EfFriendshipRepository(AppDbContext context) : IFriendship
                 friendship?.RequestedByUserId);
         }).ToList();
     }
+
+    public async Task<bool> HasStudentRoleAsync(Guid userId, CancellationToken cancellationToken)
+        => await StudentUserIds().ContainsAsync(userId, cancellationToken);
+
+    /// <summary>
+    /// Askiya alinmamis bir uyelik uzerinden ogrenci rolu tasiyan kullanicilar.
+    /// </summary>
+    /// <remarks>
+    /// Kullanici birden fazla kurumda uye olabilir; herhangi birinde ogrenciyse
+    /// yeterli. Ayni kisi hem ogrenci hem egitmen olabilir, o durumda ogrenci
+    /// sayilir. <see cref="MembershipRole"/> uzerinde kiraci filtresi tanimli
+    /// oldugu icin (bkz. <c>AppDbContext.ApplyDerivedTenantQueryFilters</c>) ve bu
+    /// filtre yalnizca sorgu kaynagina degil sonuc kolonuna da bakilmaksizin
+    /// uygulandigi icin, filtre acikca <c>IgnoreQueryFilters</c> ile kapatilmazsa
+    /// aktif organizasyon disindaki uyelikler sessizce elenirdi.
+    /// </remarks>
+    private IQueryable<Guid> StudentUserIds()
+        => context.MembershipRoles
+            .IgnoreQueryFilters([AppDbContext.TenantFilterName])
+            .AsNoTracking()
+            .Where(membershipRole => membershipRole.Role.Code == SystemRoles.Student)
+            .Where(membershipRole => membershipRole.Membership.Status != MembershipStatus.Suspended)
+            .Select(membershipRole => membershipRole.Membership.UserId);
 
     private static IQueryable<FriendshipPeer> ProjectPeers(
         IQueryable<Friendship> query,

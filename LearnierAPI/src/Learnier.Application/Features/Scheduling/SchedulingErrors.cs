@@ -52,6 +52,15 @@ internal static class SchedulingErrors
     public static Error InstructorUnavailable
         => Error.Conflict("scheduling.instructor_unavailable");
 
+    /// <summary>
+    /// Slot, rezervasyon penceresi kapanmis olarak dogacak kadar yakina acilmis.
+    /// Esik <see cref="Domain.Scheduling.LessonSession.BookingCutoffMinutes"/> ile
+    /// ayni: ogrenci listesi de tam bu ani filtreler, aksi halde slot hic
+    /// gorunmeyecegi halde takvimde yer kaplardi.
+    /// </summary>
+    public static Error SlotTooSoon(int minutes)
+        => Error.Validation("scheduling.slot_too_soon", ("minutes", minutes));
+
     public static Error InstructorSubjectMismatch
         => Error.Validation("scheduling.instructor_subject_mismatch");
 

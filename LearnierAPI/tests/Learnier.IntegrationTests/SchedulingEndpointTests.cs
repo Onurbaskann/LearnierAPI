@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Learnier.Application.Common.Abstractions;
 using Learnier.Application.Common.Models;
 using Learnier.Application.Features.Authentication.Commands.LoginUser;
 using Learnier.Application.Features.Catalog.Commands.CreateCourse;
@@ -16,6 +17,7 @@ using Learnier.Application.Features.Teaching.Commands.CreateInstructorProfile;
 using Learnier.Application.Features.Teaching.Queries;
 using Learnier.Domain.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Shouldly;
 
 namespace Learnier.IntegrationTests;
@@ -338,16 +340,15 @@ public sealed class SchedulingEndpointTests(AuthApiFixture fixture) : IClassFixt
         instructorClient.DefaultRequestHeaders.Add(
             OrganizationHeader, context.OrganizationId.ToString());
 
-        // Baslangica yirmi dakika kalan slot: pencere on dakika once kapandi.
-        var closedStart = DateTimeOffset.UtcNow.AddMinutes(20);
-        var closedResponse = await instructorClient.PostAsJsonAsync(
+        // Baslangica yirmi dakika kalan slot hic acilamaz: acilsaydi pencere on
+        // dakika once kapanmis olacak, yani slot ogrenciye hic gorunmeyecekti.
+        var tooSoonResponse = await instructorClient.PostAsJsonAsync(
             new Uri("/api/v1/instructors/me/slots", UriKind.Relative),
-            new { courseId, startsAt = closedStart },
+            new { courseId, startsAt = DateTimeOffset.UtcNow.AddMinutes(20) },
             TestContext.Current.CancellationToken);
-        closedResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
-        var closedSlot = await closedResponse.Content.ReadFromJsonAsync<OpenInstructorSlotResult>(
-            TestJson.Options,
-            TestContext.Current.CancellationToken);
+        tooSoonResponse.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await tooSoonResponse.Content.ReadAsStringAsync(TestContext.Current.CancellationToken))
+            .ShouldContain("scheduling.slot_too_soon");
 
         // Baslangica iki saat kalan slot: pencere hala acik.
         var openStart = DateTimeOffset.UtcNow.AddHours(2);
@@ -359,6 +360,28 @@ public sealed class SchedulingEndpointTests(AuthApiFixture fixture) : IClassFixt
         var openSlot = await openResponse.Content.ReadFromJsonAsync<OpenInstructorSlotResult>(
             TestJson.Options,
             TestContext.Current.CancellationToken);
+
+        // Pencere kapanmis bir slot artik API ile uretilemiyor. Zaman ilerledikce
+        // olusan bu durumu taklit etmek icin gecerli bir slotun kapanisi geriye cekilir.
+        var closedStart = DateTimeOffset.UtcNow.AddHours(3);
+        var closedResponse = await instructorClient.PostAsJsonAsync(
+            new Uri("/api/v1/instructors/me/slots", UriKind.Relative),
+            new { courseId, startsAt = closedStart },
+            TestContext.Current.CancellationToken);
+        closedResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var closedSlot = await closedResponse.Content.ReadFromJsonAsync<OpenInstructorSlotResult>(
+            TestJson.Options,
+            TestContext.Current.CancellationToken);
+
+        await using (var db = fixture.CreateContext())
+        {
+            var stored = await db.LessonSessions.SingleAsync(
+                session => session.Id == closedSlot!.SessionId,
+                TestContext.Current.CancellationToken);
+            db.Entry(stored).Property(session => session.BookingClosesAt)
+                .CurrentValue = DateTimeOffset.UtcNow.AddMinutes(-5);
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
 
         var rangeStart = DateTimeOffset.UtcNow.AddMinutes(-5);
         var slotsUri = new Uri(
@@ -897,6 +920,109 @@ public sealed class SchedulingEndpointTests(AuthApiFixture fixture) : IClassFixt
             TestContext.Current.CancellationToken);
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task EndedSession_IsCompletedAutomatically_WithoutInstructorAction()
+    {
+        var context = await NewOrganization();
+        var (courseId, subjectId) = await CreatePublishedPrivateCourse(context.Client);
+
+        (await context.Client.PutAsJsonAsync(
+            new Uri("/api/v1/admin/compensation/rates", UriKind.Relative),
+            new { subjectId, lessonDurationMinutes = 50, amount = 400m, currency = "TRY" },
+            TestContext.Current.CancellationToken)).StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        var profileId = await CreateInstructor(context);
+
+        (await context.Client.PostAsync(
+            new Uri($"/api/v1/instructors/{profileId}/activate", UriKind.Relative),
+            content: null,
+            TestContext.Current.CancellationToken)).StatusCode.ShouldBe(HttpStatusCode.NoContent);
+
+        (await context.Client.PostAsJsonAsync(
+            new Uri($"/api/v1/instructors/{profileId}/subjects", UriKind.Relative),
+            new { subjectId, levelId = (Guid?)null },
+            TestContext.Current.CancellationToken)).StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        using var instructorClient = fixture.CreateClient();
+        await SignIn(instructorClient, "ogretmen@hotmail.com", "ogretmen123");
+        instructorClient.DefaultRequestHeaders.Add(
+            OrganizationHeader, context.OrganizationId.ToString());
+
+        var openedResponse = await instructorClient.PostAsJsonAsync(
+            new Uri("/api/v1/instructors/me/slots", UriKind.Relative),
+            new { courseId, startsAt = DateTimeOffset.UtcNow.AddDays(2), lessonDurationMinutes = 50 },
+            TestContext.Current.CancellationToken);
+        openedResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var opened = await openedResponse.Content.ReadFromJsonAsync<OpenInstructorSlotResult>(
+            TestJson.Options,
+            TestContext.Current.CancellationToken);
+
+        var bookingResponse = await context.Client.PostAsJsonAsync(
+            new Uri($"/api/v1/sessions/{opened!.SessionId}/bookings", UriKind.Relative),
+            new { learnerUserId = (Guid?)null, lessonDurationMinutes = 50 },
+            TestContext.Current.CancellationToken);
+        bookingResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var booking = await bookingResponse.Content.ReadFromJsonAsync<CreateBookingResult>(
+            TestJson.Options,
+            TestContext.Current.CancellationToken);
+
+        // Slot yalnizca gelecege acilabildigi icin ders bitmis hale getirilir.
+        await using (var database = fixture.CreateContext())
+        {
+            var now = DateTimeOffset.UtcNow;
+            await database.Database.ExecuteSqlInterpolatedAsync(
+                $"UPDATE lesson_sessions SET starts_at = {now.AddMinutes(-60)}, ends_at = {now.AddMinutes(-10)} WHERE id = {opened.SessionId}",
+                TestContext.Current.CancellationToken);
+        }
+
+        // Egitmenden hicbir istek gelmeden, arka plan islemi dersi kapatir.
+        var result = await RunSessionCompletionAsync();
+        result.CompletedSessions.ShouldBe(1);
+        result.CompletedBookings.ShouldBe(1);
+
+        await using (var database = fixture.CreateContext())
+        {
+            (await database.LessonSessions.SingleAsync(
+                item => item.Id == opened.SessionId,
+                TestContext.Current.CancellationToken)).Status
+                .ShouldBe(Domain.Scheduling.LessonSessionStatus.Completed);
+
+            (await database.SessionBookings.SingleAsync(
+                item => item.Id == booking!.BookingId,
+                TestContext.Current.CancellationToken)).Status
+                .ShouldBe(Domain.Scheduling.BookingStatus.Attended);
+
+            var attendance = await database.SessionAttendances.SingleAsync(
+                item => item.BookingId == booking!.BookingId,
+                TestContext.Current.CancellationToken);
+            attendance.Status.ShouldBe(Domain.Scheduling.AttendanceStatus.Present);
+            attendance.AttendedMinutes.ShouldBe(50);
+            // Otomatik yoklamanin elle girilenden ayirt edilebilmesi icin bos kalir.
+            attendance.MarkedByUserId.ShouldBeNull();
+
+            (await database.InstructorEarnings.AnyAsync(
+                item => item.SessionId == opened.SessionId,
+                TestContext.Current.CancellationToken)).ShouldBeTrue();
+        }
+
+        // Tekrar calistiginda ayni oturumu yeniden islemez.
+        (await RunSessionCompletionAsync()).CompletedSessions.ShouldBe(0);
+    }
+
+    /// <summary>
+    /// Arka plan isini worker beklemeden calistirir. Kapsamda kiraci yoktur —
+    /// uretimdeki calisma sekliyle ayni.
+    /// </summary>
+    private async Task<SessionCompletionResult> RunSessionCompletionAsync()
+    {
+        await using var scope = fixture.Services.CreateAsyncScope();
+        var processor = scope.ServiceProvider.GetRequiredService<ISessionCompletionProcessor>();
+        return await processor.ProcessDueAsync(
+            batchSize: 100,
+            gracePeriod: TimeSpan.Zero,
+            TestContext.Current.CancellationToken);
     }
 
     private async Task<Guid> CreateInstructor(OrganizationContext context)

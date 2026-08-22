@@ -46,6 +46,8 @@ public sealed class AppDbContext(
 
     public DbSet<ClubMessage> ClubMessages => Set<ClubMessage>();
 
+    public DbSet<DirectMessage> DirectMessages => Set<DirectMessage>();
+
     public DbSet<Subject> Subjects => Set<Subject>();
 
     public DbSet<Level> Levels => Set<Level>();

@@ -2,7 +2,7 @@
 
 Çok kiracılı (multi-tenant) uzaktan eğitim platformunun backend API'si. Farklı alanlarda (İngilizce, matematik, yazılım…) grup ve birebir dersler, abonelik/kredi sistemi, randevu yapısı ve organizasyon kapsamlı yetkilendirme içerir.
 
-Veritabanı tasarımının gerekçeli kaynağı: `C:\Users\onurb\Downloads\Uzaktan_Egitim_Platformu_Veritabani_Sohbeti.txt`. Şema kararlarını değiştirmeden önce o dosyaya bak.
+Veritabanı tasarımının gerekçeli kaynağı: `Uzaktan_Egitim_Platformu_Veritabani_Sohbeti.txt` (proje kökünde). Şema kararlarını değiştirmeden önce o dosyaya bak.
 
 **Not:** Klasör adı ileride `Learnier` olarak değiştirilecek. Bu yüzden hiçbir dosyada mutlak yol kullanma — solution, proje referansları ve Docker yolları göreli kalmalı.
 

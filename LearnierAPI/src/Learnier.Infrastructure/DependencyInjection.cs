@@ -68,6 +68,7 @@ public static class DependencyInjection
         services.AddScoped<IUserRepository, EfUserRepository>();
         services.AddScoped<IFriendshipRepository, EfFriendshipRepository>();
         services.AddScoped<IClubRepository, EfClubRepository>();
+        services.AddScoped<IDirectMessageRepository, EfDirectMessageRepository>();
         services.AddScoped<IClubAccessPolicy, EfClubAccessPolicy>();
         services.AddScoped<ILearnerOnboardingRepository, EfLearnerOnboardingRepository>();
         services.AddScoped<IRefreshTokenRepository, EfRefreshTokenRepository>();
@@ -95,6 +96,14 @@ public static class DependencyInjection
 
         services.AddOptions<CreditRenewalOptions>()
             .Bind(configuration.GetSection(CreditRenewalOptions.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
+        services.AddScoped<ISessionCompletionProcessor, SessionCompletionProcessor>();
+        services.AddHostedService<SessionCompletionWorker>();
+
+        services.AddOptions<SessionCompletionOptions>()
+            .Bind(configuration.GetSection(SessionCompletionOptions.SectionName))
             .ValidateDataAnnotations()
             .ValidateOnStart();
 

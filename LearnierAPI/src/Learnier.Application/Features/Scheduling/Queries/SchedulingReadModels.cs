@@ -71,8 +71,13 @@ public sealed record SessionDetail(
     int WaitlistedCount,
     IReadOnlyList<SessionInstructorDetail> Instructors);
 
+/// <param name="UserId">
+/// Egitmenin kullanici kimligi. Birebir mesajlasma egitmen profili uzerinden
+/// degil kullanici uzerinden yurudugu icin listede tasinir.
+/// </param>
 public sealed record SessionInstructorDetail(
     Guid InstructorProfileId,
+    Guid UserId,
     string FirstName,
     string LastName,
     SessionInstructorRole Role);

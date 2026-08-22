@@ -169,6 +169,7 @@ internal sealed class EfSchedulingQueries(AppDbContext context) : ISchedulingQue
                     .ThenBy(i => i.Id)
                     .Select(i => new SessionInstructorDetail(
                         i.InstructorProfileId,
+                        i.InstructorProfile.Membership.UserId,
                         i.InstructorProfile.Membership.User.FirstName,
                         i.InstructorProfile.Membership.User.LastName,
                         i.Role))
@@ -296,6 +297,7 @@ internal sealed class EfSchedulingQueries(AppDbContext context) : ISchedulingQue
                     .ThenBy(i => i.Id)
                     .Select(i => new SessionInstructorDetail(
                         i.InstructorProfileId,
+                        i.InstructorProfile.Membership.UserId,
                         i.InstructorProfile.Membership.User.FirstName,
                         i.InstructorProfile.Membership.User.LastName,
                         i.Role))

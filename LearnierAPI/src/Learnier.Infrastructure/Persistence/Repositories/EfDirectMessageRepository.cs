@@ -168,8 +168,12 @@ internal sealed class EfDirectMessageRepository(AppDbContext context) : IDirectM
                 : friendship.FirstUserId);
 
         // 2. kapi: ortak ders. Kullanici ogrenciyse dersini aldigi egitmenler,
-        // egitmense ders verdigi ogrenciler erisilebilir sayilir.
+        // egitmense ders verdigi ogrenciler erisilebilir sayilir. Kanal kalici
+        // oldugu icin aktif organizasyondan bagimsiz calismali; SessionBooking/
+        // SessionInstructor/InstructorProfile uzerindeki kiraci filtresi acikca
+        // kapatilmazsa baska bir organizasyonda alinmis ders sessizce elenirdi.
         var myInstructors = context.SessionBookings
+            .IgnoreQueryFilters([AppDbContext.TenantFilterName])
             .AsNoTracking()
             .Where(booking => booking.LearnerUserId == userId)
             .SelectMany(booking => booking.Session.Instructors
@@ -177,6 +181,7 @@ internal sealed class EfDirectMessageRepository(AppDbContext context) : IDirectM
             .Where(instructorUserId => candidates.Contains(instructorUserId));
 
         var myLearners = context.SessionBookings
+            .IgnoreQueryFilters([AppDbContext.TenantFilterName])
             .AsNoTracking()
             .Where(booking => candidates.Contains(booking.LearnerUserId))
             .Where(booking => booking.Session.Instructors.Any(instructor =>

@@ -9,12 +9,17 @@ namespace Learnier.Application.Features.Billing.Commands.AddPlanEntitlement;
 /// <c>LessonCredit</c> icin zorunlu. <c>BookingAccess</c> sinirsiz erisimi ifade
 /// ettigi icin bos birakilir.
 /// </param>
+/// <param name="LessonDurationMinutes">
+/// Birebir ders kredisinde zorunlu: 30 veya 50. Rezervasyon yetkilendirmesi uygun
+/// paketi bu alanla secer. Diger haklarda bos birakilir.
+/// </param>
 public sealed record AddPlanEntitlementCommand(
     Guid PlanId,
     EntitlementType EntitlementType,
     SessionType SessionType,
     EntitlementResetPeriod ResetPeriod,
-    int? Quantity = null);
+    int? Quantity = null,
+    int? LessonDurationMinutes = null);
 
 public sealed record AddPlanEntitlementResult(Guid EntitlementId);
 
@@ -65,6 +70,28 @@ public sealed class AddPlanEntitlementHandler(
                 break;
         }
 
+        // Suresi olmayan birebir kredi hicbir oturumla eslesmez; sureli grup hakki
+        // ise hicbir yerde okunmaz.
+        var isPrivateCredit = command.EntitlementType is EntitlementType.LessonCredit
+            && command.SessionType is SessionType.Private;
+
+        if (isPrivateCredit)
+        {
+            if (command.LessonDurationMinutes is null)
+            {
+                return BillingErrors.LessonDurationRequired;
+            }
+
+            if (command.LessonDurationMinutes is not (30 or 50))
+            {
+                return BillingErrors.LessonDurationInvalid;
+            }
+        }
+        else if (command.LessonDurationMinutes is not null)
+        {
+            return BillingErrors.LessonDurationNotAllowed;
+        }
+
         var plan = await plans.FindPlanAsync(command.PlanId, includeDetails: true, cancellationToken);
 
         if (plan is null)
@@ -72,11 +99,23 @@ public sealed class AddPlanEntitlementHandler(
             return BillingErrors.PlanNotFound;
         }
 
+        // Benzersiz indeks ihlali 500'e donusmeden once anlasilir bir cakisma dondurulur.
+        var alreadyDefined = plan.Entitlements.Any(existing =>
+            existing.EntitlementType == command.EntitlementType
+            && existing.SessionType == command.SessionType
+            && existing.LessonDurationMinutes == command.LessonDurationMinutes);
+
+        if (alreadyDefined)
+        {
+            return BillingErrors.EntitlementAlreadyExists;
+        }
+
         var entitlement = plan.AddEntitlement(
             command.EntitlementType,
             command.SessionType,
             command.Quantity,
-            command.ResetPeriod);
+            command.ResetPeriod,
+            command.LessonDurationMinutes);
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
 

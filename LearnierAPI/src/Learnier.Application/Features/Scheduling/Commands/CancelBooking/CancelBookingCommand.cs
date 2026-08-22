@@ -39,6 +39,7 @@ public sealed record CancelBookingResult(
 public sealed class CancelBookingHandler(
     ISchedulingRepository scheduling,
     IBookingEntitlementPolicy entitlements,
+    IMeetingRepository meetings,
     ICurrentUser currentUser,
     ICurrentTenant currentTenant,
     IUnitOfWork unitOfWork,
@@ -128,6 +129,12 @@ public sealed class CancelBookingHandler(
                 // iptal edilince ayni oturum tekrar acilmaz; egitmen isterse yeni
                 // bir slot acar.
                 session.Cancel("Rezervasyon iptal edildi.");
+
+                var meeting = await meetings.FindBySessionAsync(session.Id, cancellationToken);
+                if (meeting is not null)
+                {
+                    meeting.Cancel(now);
+                }
             }
         }
 

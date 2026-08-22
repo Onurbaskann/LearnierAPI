@@ -221,6 +221,13 @@ internal sealed class EfInstructorQueries(AppDbContext context) : IInstructorQue
                 false,
                 false,
                 0m,
+                session.Meeting != null ? session.Meeting.Provider : session.MeetingProvider,
+                session.Meeting != null
+                    && session.Meeting.Status == MeetingStatus.Ready
+                    && now >= session.StartsAt.AddMinutes(-15)
+                    && now < session.EndsAt
+                        ? session.Meeting.HostUrl
+                        : null,
                 session.Bookings
                     .Where(booking => booking.Status == BookingStatus.Reserved
                                       || booking.Status == BookingStatus.Attended
@@ -362,4 +369,7 @@ internal sealed class EfInstructorQueries(AppDbContext context) : IInstructorQue
                 earning.PenaltyAmount))
             .ToListAsync(cancellationToken);
     }
+    
+     
+    
 }

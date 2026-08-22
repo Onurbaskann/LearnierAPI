@@ -25,6 +25,15 @@ public interface IPlanRepository
         bool includeDetails,
         CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Plana alan veya egitim erisimi tanimlanmis mi.
+    /// </summary>
+    /// <remarks>
+    /// Erisim satirlari plan koku uzerinden gezilmiyor; ayri tablolarda tutuluyor
+    /// ve yalnizca aktiflestirme kontrolu icin sayilmasi yeterli.
+    /// </remarks>
+    Task<bool> HasAccessDefinitionAsync(Guid planId, CancellationToken cancellationToken);
+
     void AddPlan(SubscriptionPlan plan);
 
     void AddSubjectAccess(PlanSubjectAccess access);

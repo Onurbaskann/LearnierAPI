@@ -1,9 +1,11 @@
+using Learnier.Application.Common.Abstractions;
 using Learnier.Application.Common.Security;
 using Learnier.Application.Features.Billing.Commands.ActivatePlan;
 using Learnier.Application.Features.Billing.Commands.AddPlanEntitlement;
 using Learnier.Application.Features.Billing.Commands.AddPlanPrice;
 using Learnier.Application.Features.Billing.Commands.CreatePlan;
 using Learnier.Application.Features.Billing.Commands.GrantPlanAccess;
+using Learnier.Application.Features.Billing.Queries;
 using Learnier.Domain.Billing;
 using Learnier.Domain.Scheduling;
 using Learnier.WebApi.Common;
@@ -25,6 +27,34 @@ namespace Learnier.WebApi.Controllers;
 [Authorize(Policy = Permissions.Subscription.Manage)]
 public sealed class PlansController : ControllerBase
 {
+    /// <summary>Kurumun butun planlari - taslak ve emekli olanlar dahil.</summary>
+    [HttpGet]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<IReadOnlyList<PlanDetail>>> List(
+        [FromServices] ListPlansHandler handler,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(handler);
+
+        return (await handler.Handle(cancellationToken)).ToActionResult(this);
+    }
+
+    /// <summary>Tek planin ayrintisi: fiyat gecmisi, haklar ve kapsam.</summary>
+    [HttpGet("{planId:guid}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<PlanDetail>> Get(
+        Guid planId,
+        [FromServices] GetPlanHandler handler,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(handler);
+
+        return (await handler.Handle(planId, cancellationToken)).ToActionResult(this);
+    }
+
     /// <summary>Yeni abonelik plani olusturur. Plan taslak baslar.</summary>
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -96,7 +126,8 @@ public sealed class PlansController : ControllerBase
                 request.EntitlementType,
                 request.SessionType,
                 request.ResetPeriod,
-                request.Quantity),
+                request.Quantity,
+                request.LessonDurationMinutes),
             cancellationToken);
 
         return result.ToActionResult(this);
@@ -154,11 +185,15 @@ public sealed record AddPlanPriceRequest(
     BillingInterval BillingInterval,
     int BillingIntervalCount);
 
+/// <param name="LessonDurationMinutes">
+/// Birebir ders kredisinde zorunlu: 30 veya 50. Diger haklarda bos birakilir.
+/// </param>
 public sealed record AddPlanEntitlementRequest(
     EntitlementType EntitlementType,
     SessionType SessionType,
     EntitlementResetPeriod ResetPeriod,
-    int? Quantity);
+    int? Quantity,
+    int? LessonDurationMinutes);
 
 /// <param name="SubjectId">Alanin tamamini kapsamak icin.</param>
 /// <param name="CourseId">Yalnizca bir egitimi kapsamak icin.</param>

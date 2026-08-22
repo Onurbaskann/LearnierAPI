@@ -36,13 +36,15 @@ internal sealed class SubscriptionCreditEntitlementPolicy(
                     from subscription in context.Subscriptions
                     join price in context.PlanPrices on subscription.PlanPriceId equals price.Id
                     join plan in context.SubscriptionPlans on price.PlanId equals plan.Id
-                    join access in context.PlanSubjectAccess on plan.Id equals access.PlanId
                     where subscription.SubscriberUserId == learnerUserId
                           && subscription.Status == SubscriptionStatus.Active
                           && subscription.CurrentPeriodStart <= now
                           && subscription.CurrentPeriodEnd > now
                           && plan.Status == PlanStatus.Active
-                          && access.SubjectId == subjectId.Value
+                          && (plan.CatalogAccess == CatalogAccess.All
+                              || context.PlanSubjectAccess.Any(access =>
+                                  access.PlanId == plan.Id
+                                  && access.SubjectId == subjectId.Value))
                     orderby subscription.CurrentPeriodEnd, subscription.Id
                     select (Guid?)subscription.Id)
                 .FirstOrDefaultAsync(cancellationToken);
@@ -55,19 +57,26 @@ internal sealed class SubscriptionCreditEntitlementPolicy(
         var durationMinutes = lessonDurationMinutes
             ?? (int)(session.EndsAt - session.StartsAt).TotalMinutes;
 
+        // Uygun paket plan uzerindeki denormalize alanlardan degil hak tanimindan
+        // secilir: yonetici panelinden olusturulan planlar o alanlari doldurmaz ve
+        // ayni plan hem 30 hem 50 dakikalik kredi tasiyabilir.
         var candidateIds = await (
                 from subscription in context.Subscriptions
                 join price in context.PlanPrices on subscription.PlanPriceId equals price.Id
                 join plan in context.SubscriptionPlans on price.PlanId equals plan.Id
-                join access in context.PlanSubjectAccess on plan.Id equals access.PlanId
+                join entitlement in context.PlanEntitlements on plan.Id equals entitlement.PlanId
                 where subscription.SubscriberUserId == learnerUserId
                       && subscription.Status == SubscriptionStatus.Active
                       && subscription.CurrentPeriodStart <= now
                       && subscription.CurrentPeriodEnd > now
                       && plan.Status == PlanStatus.Active
-                      && plan.MonthlyLessonCredits != null
-                      && plan.LessonDurationMinutes == durationMinutes
-                      && access.SubjectId == subjectId.Value
+                      && entitlement.EntitlementType == EntitlementType.LessonCredit
+                      && entitlement.SessionType == SessionType.Private
+                      && entitlement.LessonDurationMinutes == durationMinutes
+                      && (plan.CatalogAccess == CatalogAccess.All
+                          || context.PlanSubjectAccess.Any(access =>
+                              access.PlanId == plan.Id
+                              && access.SubjectId == subjectId.Value))
                 orderby subscription.CurrentPeriodEnd, subscription.Id
                 select subscription.Id)
             .Distinct()

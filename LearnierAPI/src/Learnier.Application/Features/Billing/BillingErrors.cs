@@ -17,6 +17,18 @@ internal static class BillingErrors
     /// <summary>Hak tanimi olmayan plan aboneye hicbir sey vermez.</summary>
     public static Error PlanHasNoEntitlement => Error.Conflict("billing.plan_has_no_entitlement");
 
+    public static Error PlanHasNoAccess => Error.Conflict("billing.plan_has_no_access");
+
+    public static Error PlanPriceNotFound => Error.NotFound("billing.plan_price_not_found");
+
+    public static Error PlanPriceNotActive => Error.Conflict("billing.plan_price_not_active");
+
+    public static Error PlanNotActive => Error.Conflict("billing.plan_not_active");
+
+    public static Error PlanNotPurchasable => Error.Conflict("billing.plan_not_purchasable");
+
+    public static Error AlreadySubscribed => Error.Conflict("billing.already_subscribed");
+
     public static Error SubjectNotFound => Error.Validation("billing.subject_not_found");
 
     public static Error CourseNotFound => Error.Validation("billing.course_not_found");
@@ -38,4 +50,16 @@ internal static class BillingErrors
 
     /// <summary>Sinirsiz erisimde adet anlamsiz; verilmesi karisikliga yol acar.</summary>
     public static Error QuantityNotAllowed => Error.Validation("billing.quantity_not_allowed");
+
+    public static Error LessonDurationRequired =>
+        Error.Validation("billing.lesson_duration_required");
+
+    public static Error LessonDurationInvalid =>
+        Error.Validation("billing.lesson_duration_invalid");
+
+    public static Error LessonDurationNotAllowed =>
+        Error.Validation("billing.lesson_duration_not_allowed");
+
+    public static Error EntitlementAlreadyExists =>
+        Error.Conflict("billing.entitlement_already_exists");
 }

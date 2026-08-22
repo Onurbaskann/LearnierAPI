@@ -90,6 +90,8 @@ public sealed record InstructorScheduleListItem(
     bool CanCancel,
     bool WillReceivePenaltyIfCancelled,
     decimal NextPenaltyPercentage,
+    string? MeetingProvider,
+    string? MeetingReference,
     IReadOnlyList<InstructorScheduleLearner> Learners);
 
 public sealed record InstructorDashboardStats(

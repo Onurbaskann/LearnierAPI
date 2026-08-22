@@ -78,6 +78,124 @@ namespace Learnier.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Learnier.Domain.Billing.CheckoutSession", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("amount");
+
+                    b.Property<DateTimeOffset?>("CancelledAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("cancelled_at");
+
+                    b.Property<string>("CheckoutUrl")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("checkout_url");
+
+                    b.Property<DateTimeOffset?>("CompletedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("completed_at");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)")
+                        .HasColumnName("currency");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("expires_at");
+
+                    b.Property<string>("IdempotencyKey")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("idempotency_key");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organization_id");
+
+                    b.Property<Guid?>("PaymentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("payment_id");
+
+                    b.Property<Guid>("PlanPriceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("plan_price_id");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("provider");
+
+                    b.Property<string>("ProviderCheckoutSessionId")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("provider_checkout_session_id");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("status");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_checkout_sessions");
+
+                    b.HasIndex("PaymentId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_checkout_sessions_payment_id")
+                        .HasFilter("payment_id IS NOT NULL");
+
+                    b.HasIndex("PlanPriceId")
+                        .HasDatabaseName("ix_checkout_sessions_plan_price_id");
+
+                    b.HasIndex("Provider", "IdempotencyKey")
+                        .IsUnique()
+                        .HasDatabaseName("ix_checkout_sessions_provider_idempotency_key");
+
+                    b.HasIndex("Provider", "ProviderCheckoutSessionId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_checkout_sessions_provider_provider_checkout_session_id")
+                        .HasFilter("provider_checkout_session_id IS NOT NULL");
+
+                    b.HasIndex("UserId", "Status")
+                        .HasDatabaseName("ix_checkout_sessions_user_id_status");
+
+                    b.ToTable("checkout_sessions", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_checkout_sessions_amount_positive", "amount > 0");
+                        });
+                });
+
             modelBuilder.Entity("Learnier.Domain.Billing.CreditLedgerEntry", b =>
                 {
                     b.Property<Guid>("Id")
@@ -602,6 +720,113 @@ namespace Learnier.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Learnier.Domain.Billing.PaymentAttempt", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("amount");
+
+                    b.Property<Guid>("CheckoutSessionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("checkout_session_id");
+
+                    b.Property<DateTimeOffset?>("CompletedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("completed_at");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)")
+                        .HasColumnName("currency");
+
+                    b.Property<string>("FailureCode")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("failure_code");
+
+                    b.Property<string>("FailureMessage")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("failure_message");
+
+                    b.Property<string>("IdempotencyKey")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("idempotency_key");
+
+                    b.Property<string>("NextActionUrl")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("next_action_url");
+
+                    b.Property<Guid?>("PaymentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("payment_id");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("provider");
+
+                    b.Property<string>("ProviderPaymentAttemptId")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("provider_payment_attempt_id");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("status");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id")
+                        .HasName("pk_payment_attempts");
+
+                    b.HasIndex("PaymentId")
+                        .HasDatabaseName("ix_payment_attempts_payment_id");
+
+                    b.HasIndex("CheckoutSessionId", "Status")
+                        .HasDatabaseName("ix_payment_attempts_checkout_session_id_status");
+
+                    b.HasIndex("Provider", "IdempotencyKey")
+                        .IsUnique()
+                        .HasDatabaseName("ix_payment_attempts_provider_idempotency_key");
+
+                    b.HasIndex("Provider", "ProviderPaymentAttemptId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_payment_attempts_provider_provider_payment_attempt_id")
+                        .HasFilter("provider_payment_attempt_id IS NOT NULL");
+
+                    b.ToTable("payment_attempts", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_payment_attempts_amount_positive", "amount > 0");
+                        });
+                });
+
             modelBuilder.Entity("Learnier.Domain.Billing.PaymentCustomer", b =>
                 {
                     b.Property<Guid>("Id")
@@ -663,6 +888,93 @@ namespace Learnier.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Learnier.Domain.Billing.PaymentWebhookInbox", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("event_type");
+
+                    b.Property<string>("LastError")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("last_error");
+
+                    b.Property<string>("Payload")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("payload");
+
+                    b.Property<string>("PayloadSha256")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("payload_sha256");
+
+                    b.Property<DateTimeOffset?>("ProcessedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("processed_at");
+
+                    b.Property<int>("ProcessingAttemptCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("processing_attempt_count");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("provider");
+
+                    b.Property<string>("ProviderEventId")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("provider_event_id");
+
+                    b.Property<DateTimeOffset>("ReceivedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("received_at");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("status");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id")
+                        .HasName("pk_payment_webhook_inbox");
+
+                    b.HasIndex("Provider", "ProviderEventId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_payment_webhook_inbox_provider_provider_event_id");
+
+                    b.HasIndex("Status", "ReceivedAt")
+                        .HasDatabaseName("ix_payment_webhook_inbox_status_received_at");
+
+                    b.ToTable("payment_webhook_inbox", (string)null);
+                });
+
             modelBuilder.Entity("Learnier.Domain.Billing.PlanCourseAccess", b =>
                 {
                     b.Property<Guid>("PlanId")
@@ -702,6 +1014,10 @@ namespace Learnier.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(32)")
                         .HasColumnName("entitlement_type");
 
+                    b.Property<int?>("LessonDurationMinutes")
+                        .HasColumnType("integer")
+                        .HasColumnName("lesson_duration_minutes");
+
                     b.Property<Guid>("PlanId")
                         .HasColumnType("uuid")
                         .HasColumnName("plan_id");
@@ -733,13 +1049,17 @@ namespace Learnier.Infrastructure.Persistence.Migrations
                     b.HasKey("Id")
                         .HasName("pk_plan_entitlements");
 
-                    b.HasIndex("PlanId", "EntitlementType", "SessionType")
+                    b.HasIndex("PlanId", "EntitlementType", "SessionType", "LessonDurationMinutes")
                         .IsUnique()
-                        .HasDatabaseName("ix_plan_entitlements_plan_id_entitlement_type_session_type");
+                        .HasDatabaseName("ix_plan_entitlements_plan_id_entitlement_type_session_type_les");
 
                     b.ToTable("plan_entitlements", null, t =>
                         {
                             t.HasCheckConstraint("ck_plan_entitlements_credit_requires_quantity", "entitlement_type <> 'LessonCredit' OR quantity IS NOT NULL");
+
+                            t.HasCheckConstraint("ck_plan_entitlements_lesson_duration", "lesson_duration_minutes IS NULL OR lesson_duration_minutes IN (30, 50)");
+
+                            t.HasCheckConstraint("ck_plan_entitlements_private_credit_duration", "(entitlement_type = 'LessonCredit' AND session_type = 'Private') = (lesson_duration_minutes IS NOT NULL)");
 
                             t.HasCheckConstraint("ck_plan_entitlements_quantity_positive", "quantity IS NULL OR quantity > 0");
                         });
@@ -904,6 +1224,112 @@ namespace Learnier.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Learnier.Domain.Billing.RefundRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("amount");
+
+                    b.Property<DateTimeOffset?>("CompletedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("completed_at");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<string>("FailureCode")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("failure_code");
+
+                    b.Property<string>("FailureMessage")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("failure_message");
+
+                    b.Property<string>("IdempotencyKey")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("idempotency_key");
+
+                    b.Property<Guid>("PaymentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("payment_id");
+
+                    b.Property<int>("ProcessingAttemptCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("processing_attempt_count");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("provider");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("reason");
+
+                    b.Property<Guid>("RefundId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("refund_id");
+
+                    b.Property<Guid>("RequestedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("requested_by_user_id");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("status");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id")
+                        .HasName("pk_refund_requests");
+
+                    b.HasIndex("PaymentId")
+                        .HasDatabaseName("ix_refund_requests_payment_id");
+
+                    b.HasIndex("RefundId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_refund_requests_refund_id");
+
+                    b.HasIndex("RequestedByUserId")
+                        .HasDatabaseName("ix_refund_requests_requested_by_user_id");
+
+                    b.HasIndex("Provider", "IdempotencyKey")
+                        .IsUnique()
+                        .HasDatabaseName("ix_refund_requests_provider_idempotency_key");
+
+                    b.HasIndex("Status", "CreatedAt")
+                        .HasDatabaseName("ix_refund_requests_status_created_at");
+
+                    b.ToTable("refund_requests", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_refund_requests_amount_positive", "amount > 0");
+                        });
+                });
+
             modelBuilder.Entity("Learnier.Domain.Billing.Subscription", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1030,6 +1456,12 @@ namespace Learnier.Infrastructure.Persistence.Migrations
                         .HasMaxLength(4000)
                         .HasColumnType("character varying(4000)")
                         .HasColumnName("description");
+
+                    b.Property<bool>("IsSystemGenerated")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_system_generated");
 
                     b.Property<int?>("LessonDurationMinutes")
                         .HasColumnType("integer")
@@ -2483,6 +2915,117 @@ namespace Learnier.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Learnier.Domain.Scheduling.Meeting", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int>("CancellationAttemptCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("cancellation_attempt_count");
+
+                    b.Property<DateTimeOffset?>("CancelledAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("cancelled_at");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateTimeOffset>("EndsAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("ends_at");
+
+                    b.Property<string>("HostUrl")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("host_url");
+
+                    b.Property<string>("JoinUrl")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("join_url");
+
+                    b.Property<string>("LastError")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("last_error");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organization_id");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("provider");
+
+                    b.Property<DateTimeOffset?>("ProviderCancelledAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("provider_cancelled_at");
+
+                    b.Property<string>("ProviderMeetingId")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("provider_meeting_id");
+
+                    b.Property<DateTimeOffset?>("ProvisionedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("provisioned_at");
+
+                    b.Property<int>("ProvisioningAttemptCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("provisioning_attempt_count");
+
+                    b.Property<Guid>("SessionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("session_id");
+
+                    b.Property<DateTimeOffset>("StartsAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("starts_at");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("status");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updated_by");
+
+                    b.HasKey("Id")
+                        .HasName("pk_meetings");
+
+                    b.HasIndex("SessionId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_meetings_session_id");
+
+                    b.HasIndex("Provider", "ProviderMeetingId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_meetings_provider_provider_meeting_id")
+                        .HasFilter("provider_meeting_id IS NOT NULL");
+
+                    b.HasIndex("Status", "CreatedAt")
+                        .HasDatabaseName("ix_meetings_status_created_at");
+
+                    b.ToTable("meetings", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_meetings_time_range", "ends_at > starts_at");
+                        });
+                });
+
             modelBuilder.Entity("Learnier.Domain.Scheduling.SessionAttendance", b =>
                 {
                     b.Property<Guid>("Id")
@@ -3250,6 +3793,35 @@ namespace Learnier.Infrastructure.Persistence.Migrations
                         .HasConstraintName("fk_cancellation_policies_organizations_organization_id");
                 });
 
+            modelBuilder.Entity("Learnier.Domain.Billing.CheckoutSession", b =>
+                {
+                    b.HasOne("Learnier.Domain.Billing.Payment", "Payment")
+                        .WithOne()
+                        .HasForeignKey("Learnier.Domain.Billing.CheckoutSession", "PaymentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_checkout_sessions_payments_payment_id");
+
+                    b.HasOne("Learnier.Domain.Billing.PlanPrice", "PlanPrice")
+                        .WithMany()
+                        .HasForeignKey("PlanPriceId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_checkout_sessions_plan_prices_plan_price_id");
+
+                    b.HasOne("Learnier.Domain.Identity.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_checkout_sessions_users_user_id");
+
+                    b.Navigation("Payment");
+
+                    b.Navigation("PlanPrice");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Learnier.Domain.Billing.CreditLedgerEntry", b =>
                 {
                     b.HasOne("Learnier.Domain.Scheduling.SessionBooking", null)
@@ -3368,6 +3940,26 @@ namespace Learnier.Infrastructure.Persistence.Migrations
                     b.Navigation("Subscription");
                 });
 
+            modelBuilder.Entity("Learnier.Domain.Billing.PaymentAttempt", b =>
+                {
+                    b.HasOne("Learnier.Domain.Billing.CheckoutSession", "CheckoutSession")
+                        .WithMany()
+                        .HasForeignKey("CheckoutSessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_payment_attempts_checkout_sessions_checkout_session_id");
+
+                    b.HasOne("Learnier.Domain.Billing.Payment", "Payment")
+                        .WithMany()
+                        .HasForeignKey("PaymentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_payment_attempts_payments_payment_id");
+
+                    b.Navigation("CheckoutSession");
+
+                    b.Navigation("Payment");
+                });
+
             modelBuilder.Entity("Learnier.Domain.Billing.PaymentCustomer", b =>
                 {
                     b.HasOne("Learnier.Domain.Identity.Organization", null)
@@ -3461,6 +4053,36 @@ namespace Learnier.Infrastructure.Persistence.Migrations
                         .HasConstraintName("fk_refunds_payments_payment_id");
 
                     b.Navigation("Payment");
+                });
+
+            modelBuilder.Entity("Learnier.Domain.Billing.RefundRequest", b =>
+                {
+                    b.HasOne("Learnier.Domain.Billing.Payment", "Payment")
+                        .WithMany()
+                        .HasForeignKey("PaymentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_refund_requests_payments_payment_id");
+
+                    b.HasOne("Learnier.Domain.Billing.Refund", "Refund")
+                        .WithOne()
+                        .HasForeignKey("Learnier.Domain.Billing.RefundRequest", "RefundId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_refund_requests_refunds_refund_id");
+
+                    b.HasOne("Learnier.Domain.Identity.User", "RequestedByUser")
+                        .WithMany()
+                        .HasForeignKey("RequestedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_refund_requests_users_requested_by_user_id");
+
+                    b.Navigation("Payment");
+
+                    b.Navigation("Refund");
+
+                    b.Navigation("RequestedByUser");
                 });
 
             modelBuilder.Entity("Learnier.Domain.Billing.Subscription", b =>
@@ -3922,6 +4544,18 @@ namespace Learnier.Infrastructure.Persistence.Migrations
                     b.Navigation("Course");
                 });
 
+            modelBuilder.Entity("Learnier.Domain.Scheduling.Meeting", b =>
+                {
+                    b.HasOne("Learnier.Domain.Scheduling.LessonSession", "Session")
+                        .WithOne("Meeting")
+                        .HasForeignKey("Learnier.Domain.Scheduling.Meeting", "SessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_meetings_lesson_sessions_session_id");
+
+                    b.Navigation("Session");
+                });
+
             modelBuilder.Entity("Learnier.Domain.Scheduling.SessionAttendance", b =>
                 {
                     b.HasOne("Learnier.Domain.Scheduling.SessionBooking", "Booking")
@@ -4224,6 +4858,8 @@ namespace Learnier.Infrastructure.Persistence.Migrations
                     b.Navigation("Bookings");
 
                     b.Navigation("Instructors");
+
+                    b.Navigation("Meeting");
                 });
 
             modelBuilder.Entity("Learnier.Domain.Scheduling.SessionBooking", b =>

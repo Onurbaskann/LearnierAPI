@@ -36,6 +36,7 @@ public sealed class CancelSessionHandler(
     IInstructorRepository instructors,
     IBookingEntitlementPolicy entitlements,
     IInstructorCompensationService compensation,
+    IMeetingRepository meetings,
     ICurrentTenant currentTenant,
     IUnitOfWork unitOfWork,
     IClock clock)
@@ -163,6 +164,13 @@ public sealed class CancelSessionHandler(
         }
 
         session.Cancel(command.Reason);
+
+        var meeting = await meetings.FindBySessionAsync(session.Id, cancellationToken);
+        if (meeting is not null)
+        {
+            meeting.Cancel(now);
+        }
+
         await unitOfWork.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
 

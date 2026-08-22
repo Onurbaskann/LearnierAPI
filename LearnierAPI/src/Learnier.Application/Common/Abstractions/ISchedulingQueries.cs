@@ -50,4 +50,11 @@ public interface ISchedulingQueries
         BookingStatus? status,
         DateTimeOffset now,
         CancellationToken cancellationToken);
+
+    Task<MeetingAccessSnapshot?> FindMeetingAccessAsync(
+        Guid meetingId,
+        Guid organizationId,
+        Guid userId,
+        Guid? membershipId,
+        CancellationToken cancellationToken);
 }

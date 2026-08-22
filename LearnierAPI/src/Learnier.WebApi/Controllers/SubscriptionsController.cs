@@ -1,6 +1,7 @@
 using Learnier.Application.Common.Abstractions;
 using Learnier.Application.Common.Security;
 using Learnier.Application.Features.Subscriptions;
+using Learnier.Application.Features.Subscriptions.Commands.CreateSubscription;
 using Learnier.WebApi.Common;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -12,6 +13,22 @@ namespace Learnier.WebApi.Controllers;
 [Authorize]
 public sealed class SubscriptionsController : ControllerBase
 {
+    /// <summary>Katalogdaki bir fiyat surumunden abonelik acar.</summary>
+    /// <remarks>
+    /// <c>demo-purchases</c> ucundan farki: plan uretilmez, yoneticinin satisa
+    /// actigi hazir plan satin alinir. Ilk donemin ders haklari plan hak
+    /// tanimlarindan deftere yazilir.
+    /// </remarks>
+    [HttpPost]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<CreateSubscriptionResult>> CreateSubscription(
+        CreateSubscriptionCommand command,
+        [FromServices] CreateSubscriptionHandler handler,
+        CancellationToken cancellationToken)
+        => (await handler.Handle(command, cancellationToken)).ToActionResult(this);
+
     [HttpPost("demo-purchases")]
     public async Task<ActionResult<PurchaseDemoPackageResult>> PurchaseDemoPackage(
         PurchaseDemoPackageCommand command,

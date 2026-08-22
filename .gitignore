@@ -41,3 +41,7 @@ Thumbs.db
 
 ## Docker
 docker-compose.override.yml
+
+## Yerel calisma ciktisi
+# API'yi arka planda calistirirken olusan loglar (api-run.log gibi).
+*.log

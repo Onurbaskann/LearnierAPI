@@ -29,6 +29,10 @@ internal sealed class SubscriptionPlanConfiguration : IEntityTypeConfiguration<S
         builder.Property(p => p.MonthlyLessonCredits);
         builder.Property(p => p.LessonDurationMinutes);
 
+        builder.Property(p => p.IsSystemGenerated)
+            .HasDefaultValue(false)
+            .IsRequired();
+
         builder.HasIndex(p => new { p.OrganizationId, p.Status });
 
         builder.ToTable(t =>

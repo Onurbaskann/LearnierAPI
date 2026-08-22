@@ -83,15 +83,28 @@ public static class DependencyInjection
         services.AddScoped<ICreditLedgerQueries, EfCreditLedgerQueries>();
         services.AddScoped<IPackagePurchaseRepository, EfPackagePurchaseRepository>();
         services.AddScoped<IPlanRepository, EfPlanRepository>();
+        services.AddScoped<ISubscriptionPurchaseRepository, EfSubscriptionPurchaseRepository>();
+        services.AddScoped<IPaymentOrchestrationRepository, EfPaymentOrchestrationRepository>();
+        services.AddScoped<IPlanQueries, EfPlanQueries>();
         services.AddScoped<IInstructorRepository, EfInstructorRepository>();
         services.AddScoped<IInstructorQueries, EfInstructorQueries>();
         services.AddScoped<ISchedulingRepository, EfSchedulingRepository>();
+        services.AddScoped<IMeetingRepository, EfMeetingRepository>();
         services.AddScoped<ISchedulingQueries, EfSchedulingQueries>();
 
         services.AddScoped<IBookingEntitlementPolicy, SubscriptionCreditEntitlementPolicy>();
         services.AddScoped<IInstructorCompensationService, InstructorCompensationService>();
         services.AddScoped<ICancellationPolicyService, CancellationPolicyService>();
         services.AddScoped<ICreditPeriodRenewalProcessor, CreditPeriodRenewalProcessor>();
+
+        services.AddOptions<PaymentOptions>()
+            .Bind(configuration.GetSection(PaymentOptions.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+        services.AddSingleton<SandboxPaymentProvider>();
+        services.AddSingleton<IPaymentProvider>(sp =>
+            sp.GetRequiredService<SandboxPaymentProvider>());
+        services.AddSingleton<IPaymentProviderResolver, PaymentProviderResolver>();
         services.AddHostedService<CreditPeriodRenewalWorker>();
 
         services.AddOptions<CreditRenewalOptions>()
@@ -101,6 +114,17 @@ public static class DependencyInjection
 
         services.AddScoped<ISessionCompletionProcessor, SessionCompletionProcessor>();
         services.AddHostedService<SessionCompletionWorker>();
+
+        services.AddOptions<MeetingOptions>()
+            .Bind(configuration.GetSection(MeetingOptions.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+        services.AddSingleton<SandboxMeetingProvider>();
+        services.AddSingleton<IMeetingProvider>(sp =>
+            sp.GetRequiredService<SandboxMeetingProvider>());
+        services.AddSingleton<IMeetingProviderResolver, MeetingProviderResolver>();
+        services.AddScoped<IMeetingProvisioningProcessor, MeetingProvisioningProcessor>();
+        services.AddHostedService<MeetingProvisioningWorker>();
 
         services.AddOptions<SessionCompletionOptions>()
             .Bind(configuration.GetSection(SessionCompletionOptions.SectionName))

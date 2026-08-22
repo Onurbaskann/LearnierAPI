@@ -1,7 +1,12 @@
 namespace Learnier.Application.Common.Abstractions;
 
+/// <param name="PlanId">
+/// Aboneligin dayandigi plan. Katalog ekrani "zaten abonesin" durumunu bununla
+/// gosterir; plan adi uzerinden eslestirme ayni adli iki planda yanilirdi.
+/// </param>
 public sealed record ActivePackageAccess(
     Guid SubscriptionId,
+    Guid PlanId,
     string PlanName,
     Guid SubjectId,
     string SubjectName,

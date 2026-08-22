@@ -691,6 +691,24 @@
   <data name="billing.plan_has_no_entitlement" xml:space="preserve">
     <value>A plan without any entitlement cannot be put on sale.</value>
   </data>
+  <data name="billing.plan_has_no_access" xml:space="preserve">
+    <value>A restricted plan cannot be put on sale before a subject or course is granted.</value>
+  </data>
+  <data name="billing.plan_price_not_found" xml:space="preserve">
+    <value>The selected price could not be found.</value>
+  </data>
+  <data name="billing.plan_price_not_active" xml:space="preserve">
+    <value>This price is no longer on sale; please pick the current price.</value>
+  </data>
+  <data name="billing.plan_not_active" xml:space="preserve">
+    <value>This plan is not on sale.</value>
+  </data>
+  <data name="billing.plan_not_purchasable" xml:space="preserve">
+    <value>This plan cannot be purchased directly.</value>
+  </data>
+  <data name="billing.already_subscribed" xml:space="preserve">
+    <value>You already have an active subscription to this plan.</value>
+  </data>
   <data name="billing.subject_not_found" xml:space="preserve">
     <value>Subject not found.</value>
   </data>
@@ -742,6 +760,18 @@
   <data name="billing.quantity_not_allowed" xml:space="preserve">
     <value>Quantity cannot be given for unlimited access.</value>
   </data>
+  <data name="billing.lesson_duration_required" xml:space="preserve">
+    <value>Lesson duration is required for private lesson credits.</value>
+  </data>
+  <data name="billing.lesson_duration_invalid" xml:space="preserve">
+    <value>Lesson duration must be 30 or 50 minutes.</value>
+  </data>
+  <data name="billing.lesson_duration_not_allowed" xml:space="preserve">
+    <value>Lesson duration applies only to private lesson credits.</value>
+  </data>
+  <data name="billing.entitlement_already_exists" xml:space="preserve">
+    <value>The plan already grants this entitlement.</value>
+  </data>
   <data name="billing.access_target_invalid" xml:space="preserve">
     <value>Provide exactly one of subject or course.</value>
   </data>
@@ -762,5 +792,50 @@
   </data>
   <data name="messages.body_too_long" xml:space="preserve">
     <value>The message is too long.</value>
+  </data>
+  <data name="payment.checkout_not_found" xml:space="preserve">
+    <value>The checkout session could not be found.</value>
+  </data>
+  <data name="payment.checkout_not_ready" xml:space="preserve">
+    <value>The checkout session is not ready for this operation.</value>
+  </data>
+  <data name="payment.paid_plan_required" xml:space="preserve">
+    <value>A paid plan price is required for checkout.</value>
+  </data>
+  <data name="payment.amount_mismatch" xml:space="preserve">
+    <value>The amount reported by the payment provider does not match the checkout.</value>
+  </data>
+  <data name="payment.provider_not_found" xml:space="preserve">
+    <value>The payment provider is not configured.</value>
+  </data>
+  <data name="payment.webhook_invalid" xml:space="preserve">
+    <value>The payment notification signature or payload is invalid.</value>
+  </data>
+  <data name="payment.webhook_missing_checkout" xml:space="preserve">
+    <value>The payment notification does not identify a checkout session.</value>
+  </data>
+  <data name="payment.idempotency_key_required" xml:space="preserve">
+    <value>An idempotency key is required.</value>
+  </data>
+  <data name="payment.idempotency_key_too_long" xml:space="preserve">
+    <value>The idempotency key is too long.</value>
+  </data>
+  <data name="scheduling.meeting_not_found" xml:space="preserve">
+    <value>The live lesson meeting could not be found.</value>
+  </data>
+  <data name="scheduling.meeting_access_denied" xml:space="preserve">
+    <value>You are not a participant of this live lesson.</value>
+  </data>
+  <data name="scheduling.meeting_not_ready" xml:space="preserve">
+    <value>The live lesson meeting is not ready yet.</value>
+  </data>
+  <data name="scheduling.meeting_unavailable" xml:space="preserve">
+    <value>This live lesson is not available.</value>
+  </data>
+  <data name="scheduling.meeting_access_too_early" xml:space="preserve">
+    <value>You can enter the live lesson at {availableAt}.</value>
+  </data>
+  <data name="scheduling.meeting_access_closed" xml:space="preserve">
+    <value>The live lesson access window has closed.</value>
   </data>
 </root>

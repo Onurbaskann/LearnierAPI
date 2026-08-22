@@ -61,19 +61,25 @@ internal sealed class EfActivePackageQueries(AppDbContext context, IClock clock)
             var durationMonths = subscription.PlanPrice.BillingInterval == BillingInterval.Year
                 ? subscription.PlanPrice.BillingIntervalCount * 12
                 : subscription.PlanPrice.BillingIntervalCount;
-            var entitlement = plan.Entitlements.FirstOrDefault(item =>
-                item.EntitlementType == EntitlementType.LessonCredit
-                && item.SessionType == Learnier.Domain.Scheduling.SessionType.Private);
+            // Bir plan hem 30 hem 50 dakikalik kredi tasiyabilir; bu goruntu abonelik
+            // basina tek satir urettigi icin ilk hak esas alinir. Kredi defteri
+            // bakiyeyi sure kiriliminda tutmadigi surece iki satir ayni bakiyeyi
+            // iki kez gosterirdi.
+            var entitlement = plan.Entitlements
+                .Where(item => item.EntitlementType == EntitlementType.LessonCredit
+                               && item.SessionType == Learnier.Domain.Scheduling.SessionType.Private)
+                .OrderBy(item => item.LessonDurationMinutes)
+                .FirstOrDefault();
             var totalCredits = entitlement?.Quantity ?? Math.Max(remainingCredits, 0);
             var lessonsPerWeek = totalCredits > 0
                 ? Math.Max(1, totalCredits / 4)
                 : 3;
 
             result.AddRange(subjects.Select(subject => new ActivePackageAccess(
-                subscription.Id, plan.Name, subject.Id, subject.Name,
+                subscription.Id, plan.Id, plan.Name, subject.Id, subject.Name,
                 subscription.StartsAt, subscription.CurrentPeriodEnd, remainingCredits,
                 totalCredits, lessonsPerWeek, durationMonths,
-                plan.LessonDurationMinutes ?? 50)));
+                entitlement?.LessonDurationMinutes ?? plan.LessonDurationMinutes ?? 50)));
         }
 
         return result;

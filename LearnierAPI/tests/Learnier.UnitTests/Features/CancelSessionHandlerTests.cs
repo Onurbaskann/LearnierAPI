@@ -236,12 +236,14 @@ public sealed class CancelSessionHandlerTests
         entitlements.ReleaseAsync(
                 Arg.Any<SessionBooking>(), true, Arg.Any<CancellationToken>())
             .Returns(Result.Success(true));
+        var meetings = Substitute.For<IMeetingRepository>();
 
         var handler = new CancelSessionHandler(
             scheduling,
             instructors,
             entitlements,
             compensation,
+            meetings,
             tenant,
             unitOfWork,
             clock);

@@ -36,6 +36,16 @@ public sealed class PlanEntitlement : Entity, IAuditableEntity
 
     public EntitlementResetPeriod ResetPeriod { get; private set; }
 
+    /// <summary>
+    /// Kredinin karsiladigi birebir ders suresi: 30 veya 50 dakika.
+    /// </summary>
+    /// <remarks>
+    /// Yalnizca <c>LessonCredit</c> + <c>Private</c> hakkinda doludur. Rezervasyon
+    /// yetkilendirmesi uygun paketi bu alanla secer; grup ve webinar oturumlari
+    /// sure kirilimiyla satilmadigi icin onlarda <c>null</c>'dir.
+    /// </remarks>
+    public int? LessonDurationMinutes { get; private set; }
+
     public SubscriptionPlan Plan { get; private set; } = null!;
 
     public DateTimeOffset CreatedAt { get; set; }
@@ -54,7 +64,8 @@ public sealed class PlanEntitlement : Entity, IAuditableEntity
         EntitlementType entitlementType,
         SessionType sessionType,
         int? quantity,
-        EntitlementResetPeriod resetPeriod)
+        EntitlementResetPeriod resetPeriod,
+        int? lessonDurationMinutes)
     {
         if (quantity is not null)
         {
@@ -68,13 +79,42 @@ public sealed class PlanEntitlement : Entity, IAuditableEntity
                 nameof(quantity));
         }
 
+        var isPrivateCredit = entitlementType is EntitlementType.LessonCredit
+            && sessionType is SessionType.Private;
+
+        if (isPrivateCredit)
+        {
+            if (lessonDurationMinutes is null)
+            {
+                throw new ArgumentException(
+                    "Birebir ders kredisi icin ders suresi zorunludur; suresi olmayan kredi "
+                    + "hicbir oturumla eslesmez.",
+                    nameof(lessonDurationMinutes));
+            }
+
+            if (lessonDurationMinutes is not (30 or 50))
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(lessonDurationMinutes),
+                    lessonDurationMinutes,
+                    "Ders suresi yalnizca 30 veya 50 dakika olabilir.");
+            }
+        }
+        else if (lessonDurationMinutes is not null)
+        {
+            throw new ArgumentException(
+                "Ders suresi yalnizca birebir ders kredisinde anlamlidir.",
+                nameof(lessonDurationMinutes));
+        }
+
         return new PlanEntitlement
         {
             PlanId = planId,
             EntitlementType = entitlementType,
             SessionType = sessionType,
             Quantity = quantity,
-            ResetPeriod = resetPeriod
+            ResetPeriod = resetPeriod,
+            LessonDurationMinutes = lessonDurationMinutes
         };
     }
 }

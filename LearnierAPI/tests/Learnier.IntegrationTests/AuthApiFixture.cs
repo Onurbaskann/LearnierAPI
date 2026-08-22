@@ -127,6 +127,7 @@ public sealed class AuthApiFixture : IAsyncLifetime
             builder.UseSetting("Jwt:SigningKey", "integration-test-signing-key-at-least-32-chars");
             builder.UseSetting("Jwt:AccessTokenLifetimeMinutes", "15");
             builder.UseSetting("CreditRenewal:Enabled", "false");
+            builder.UseSetting("Meetings:ProvisioningEnabled", "false");
         }
     }
 }
